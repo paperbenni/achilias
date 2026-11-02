@@ -275,7 +275,6 @@ export function QuickSearch({
           throw new Error(body.error || "ILIAS search failed.");
         }
         const results = Array.isArray(body.results) ? body.results : [];
-        rememberItems(results);
         if (root) scopedKeys = results.map(itemKey);
         accumulated = mergeItems(accumulated, results);
         setDeep({
@@ -300,7 +299,7 @@ export function QuickSearch({
       if (searchAbort.current === controller) searchAbort.current = null;
       if (request === searchRequest.current) setDeepLoadingQuery(null);
     }
-  }, [searchQuery, currentRoot, demo, scope, data.page.sourceUrl, data.page.title, rememberItems]);
+  }, [searchQuery, currentRoot, demo, scope, data.page.sourceUrl, data.page.title]);
   // Local results remain instant. Give typing a pause before starting the
   // recursive upstream search, and cancel every stage on close or query change.
   useEffect(() => {

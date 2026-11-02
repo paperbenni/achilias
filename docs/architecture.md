@@ -9,7 +9,7 @@ Routes orchestrate server loaders; loaders adapt ILIAS into typed data; feature 
 | Course/dashboard loading                                                             | `src/lib/ilias/workspace.ts`                                             |
 | Listing response cache and in-flight request coalescing                             | `src/lib/ilias/workspace-store.ts`, `page-cache.ts`                       |
 | Search projection, nearby discovery, and stream decoding                            | `src/lib/ilias/search-index.ts`, `nearby-search.ts`, `search-stream.ts`    |
-| Repository search form discovery, read-only POST, and demo index                     | `src/lib/ilias/search.ts`                                                |
+| Repository search form discovery, read-only POST, and demo index                     | `src/lib/ilias/search.ts`, `search-form.ts`                              |
 | Exercise unit discovery, grading, feedback, and verified form submissions            | `src/lib/ilias/exercise.ts`                                              |
 | Exercise HTML adaptation, successful-control serialization, and version fingerprints | `src/lib/ilias/exercise-parser.ts`                                       |
 | Exercise payload validation shared by browser and server                             | `src/lib/ilias/exercise-validation.ts`                                   |
@@ -140,7 +140,9 @@ Quick search combines three independent paths:
    normal ILIAS visits, just like existing navigation prefetch.
 3. After a typing pause, ILIAS repository search supplies broader matches and
    pagination. It runs alongside discovery, without gating nearby results.
-   Completed first pages are memoized per login/query/scope for 30 seconds;
+   Authenticated page loads prime the main-menu search form cache, avoiding a
+   redundant dashboard download before the first query. Its tokens stay in
+   server memory for at most five minutes. Completed first pages are memoized per login/query/scope for 30 seconds;
    concurrent identical searches coalesce through the existing search queue.
    An uncached global search still takes however long ILIAS needs to render it.
 

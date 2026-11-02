@@ -1,4 +1,3 @@
-import { load } from "cheerio";
 import { dashboardUrl, FREIBURG, upstreamUrl } from "./config";
 import {
   fetchAuthenticatedHtml,
@@ -13,6 +12,7 @@ import { parsePage } from "./parser";
 import type { Session } from "./session";
 import type { Item } from "./types";
 import { validObjectId } from "./identifiers";
+import { cachedSearchForm, clearCachedSearchForms, searchFormTtl, type SearchForm } from "./search-form";
 
 export type SearchResults = {
   results: Item[];
@@ -23,18 +23,6 @@ export type SearchResults = {
 
 export const searchResultLimit = 40;
 
-type SearchForm = {
-  instance: string;
-  action: string;
-  rootId: string;
-  fields: [string, string][];
-};
-
-/** The main-menu form, its hidden fields and its CSRF token are the same for
- * every query in an ILIAS session, so rediscovering them per query would spend
- * a whole dashboard download and parse on nothing. */
-const searchFormTtl = 5 * 60_000;
-const searchForms = new Map<string, { form: SearchForm; expiresAt: number }>();
 const discovering = new Map<string, Promise<SearchForm>>();
 /** `switchResultPage` renders whatever search ILIAS has cached for the
  * session, so a later page must belong to the query the user is looking at.
@@ -58,14 +46,14 @@ function cachedResults(session: Session, query: string, root?: string) {
 export function clearSearchFormCache(sessionId?: string) {
   if (sessionId === undefined) {
     resultCache.clear();
-    searchForms.clear();
+    clearCachedSearchForms();
     discovering.clear();
     lastSearches.clear();
     return;
   }
   for (const key of resultCache.keys())
     if (JSON.parse(key)[0] === sessionId) resultCache.delete(key);
-  searchForms.delete(sessionId);
+  clearCachedSearchForms(sessionId);
   discovering.delete(sessionId);
   lastSearches.delete(sessionId);
 }
@@ -103,49 +91,15 @@ export function searchDemo(
 }
 
 async function readSearchForm(session: Session): Promise<SearchForm> {
-  const dashboard = await fetchAuthenticatedHtml(
-    session,
-    dashboardUrl(session.instance),
-  );
-  const $ = load(dashboard.html);
-  const form = $("#mm_search_form").first();
-  const action = form.attr("action") || "";
-  if (!form.length || !action)
-    throw new IliasError(
-      "ILIAS did not offer its repository search. Use the original search page.",
-    );
-  let actionUrl: URL;
-  try {
-    actionUrl = upstreamUrl(
-      session.instance,
-      new URL(action, dashboard.url).href,
-    );
-  } catch {
-    throw new IliasError("ILIAS offered an unsafe search form.", 502);
-  }
-  const fields: [string, string][] = [];
-  form.find('input[type="hidden"][name]').each((_, node) => {
-    const name = $(node).attr("name");
-    const value = $(node).attr("value");
-    if (name && value !== undefined && !fields.some(([key]) => key === name))
-      fields.push([name, value]);
-  });
-  const root = form.find('input[name="root_id"]').first().attr("value") || "";
-  return {
-    instance: session.instance,
-    action: actionUrl.href,
-    rootId: /^[1-9]\d{0,11}$/.test(root) ? root : "1",
-    fields,
-  };
+  await fetchAuthenticatedHtml(session, dashboardUrl(session.instance));
+  const form = cachedSearchForm(session);
+  if (!form) throw new IliasError("ILIAS did not offer its repository search. Use the original search page.");
+  return form;
 }
 
 async function discoverSearchForm(session: Session): Promise<SearchForm> {
-  const cached = searchForms.get(session.id);
-  if (
-    cached?.form.instance === session.instance &&
-    cached.expiresAt > Date.now()
-  )
-    return cached.form;
+  const cached = cachedSearchForm(session);
+  if (cached) return cached;
   // Concurrent queries for one account share a single dashboard download.
   const shared = discovering.get(session.id);
   if (shared) {
@@ -156,10 +110,6 @@ async function discoverSearchForm(session: Session): Promise<SearchForm> {
   discovering.set(session.id, task);
   try {
     const form = await task;
-    searchForms.set(session.id, {
-      form,
-      expiresAt: Date.now() + searchFormTtl,
-    });
     return form;
   } catch (error) {
     clearSearchFormCache(session.id);

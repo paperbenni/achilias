@@ -14,6 +14,7 @@ import {
 } from "node:fs/promises";
 import path from "node:path";
 import { dataDirectory, getStorageKey } from "./private-storage";
+import { clearCachedSearchForms } from "./search-form";
 import { clearWorkspacePages } from "./page-cache";
 import { cookies } from "next/headers";
 import type { SerializedCookieJar } from "tough-cookie";
@@ -83,6 +84,7 @@ export async function readSession(id?: string): Promise<Session | null> {
   if (session.id !== id || !Number.isFinite(session.createdAt)) return null;
   if (session.createdAt + maxAge * 1000 < Date.now()) {
     await unlink(sessionPath(id)).catch(() => {});
+    clearCachedSearchForms(id);
     await clearWorkspacePages(id);
     return null;
   }
@@ -126,6 +128,7 @@ export async function withSessionLock<T>(
 export async function deleteSession(id: string) {
   await withSessionLock(id, async () => {
     await unlink(sessionPath(id)).catch(() => {});
+    clearCachedSearchForms(id);
     await clearWorkspacePages(id);
   });
 }

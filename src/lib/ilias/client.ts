@@ -7,6 +7,7 @@ import {
   withSessionLock,
   type Session,
 } from "./session";
+import { observeSearchForm } from "./search-form";
 import { parsePage } from "./parser";
 import { IliasError } from "./errors";
 import {
@@ -189,6 +190,7 @@ export async function fetchAuthenticatedHtml(session: Session, target: string) {
       "Your ILIAS session has expired, or ILIAS requires an additional step. Reconnect to continue.",
       401,
     );
+  observeSearchForm(session, html, url);
   return { html, url, page };
 }
 export async function fetchPage(session: Session, target: string) {

@@ -26,6 +26,7 @@ export async function GET(request: Request) {
         send(await response.json());
       } finally {
         if (!signal.aborted) output.close();
+        controller.abort();
       }
     },
     cancel() { controller.abort(); },

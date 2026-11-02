@@ -346,3 +346,18 @@ test("repeat and simultaneous first-page searches reuse completed upstream resul
   await searchRepository({ ...session(), id: "another-user" }, "Gruppe 04");
   expect(requests).toBe(4);
 });
+
+test("ordinary page loads prime repository search without another dashboard request", async () => {
+  const { fetchPage } = await import("../src/lib/ilias/client");
+  const requests: string[] = [];
+  upstreamTransport.fetch = (async (url: Parameters<typeof fetch>[0], init?: RequestInit) => {
+    requests.push(String(url));
+    return new Response(init?.method === "POST" ? results : dashboard, { headers: { "content-type": "text/html" } });
+  }) as typeof fetch;
+  const account = session();
+  await fetchPage(account, FREIBURG + "goto.php?target=fold_200");
+  await searchRepository(account, "Gruppe 04");
+  expect(requests).toHaveLength(2);
+  expect(requests[0]).toContain("target=fold_200");
+  expect(requests[1]).toContain("remoteSearch");
+});

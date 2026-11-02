@@ -14,7 +14,9 @@
     "test:e2e": "bun scripts/smoke.ts && bun scripts/forum-smoke.ts && bun scripts/headless-smoke.ts",
     "screenshots": "bun scripts/screenshots.ts",
     "test:forums": "bun scripts/forum-smoke.ts",
-    "test:headless": "bun scripts/headless-smoke.ts"
+    "test:headless": "bun scripts/headless-smoke.ts",
+    "benchmark:navigation": "bun scripts/navigation-benchmark.ts",
+    "test:navigation": "bun scripts/navigation-smoke.ts"
   },
   "dependencies": {
     "cheerio": "^1.2.0",

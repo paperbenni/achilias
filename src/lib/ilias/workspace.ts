@@ -8,6 +8,7 @@ export async function getWorkspace(
   demo = false,
   type?: string,
   id?: string,
+  metadataOnly = false,
 ): Promise<Workspace> {
   if (demo)
     return {
@@ -21,6 +22,7 @@ export async function getWorkspace(
   const instance = session?.instance || FREIBURG;
   const empty = {
     ...demoPage(),
+    sourceUrl: new URL("ilias.php?baseClass=ilDashboardGUI", instance).href,
     items: [],
     tools: [],
     text: [],
@@ -39,6 +41,15 @@ export async function getWorkspace(
     .update(session.id)
     .digest("hex")
     .slice(0, 16);
+  if (metadataOnly)
+    return {
+      storageKey,
+      mode: "live",
+      instance,
+      instanceName: instanceName(instance),
+      userName: session.userName || "",
+      page: empty,
+    };
   try {
     const url =
       type && id
@@ -72,4 +83,8 @@ export async function getWorkspace(
       error: e instanceof Error ? e.message : "Could not load ILIAS.",
     };
   }
+}
+
+export async function getWorkspaceMetadata(demo = false) {
+  return getWorkspace(demo, undefined, undefined, true);
 }

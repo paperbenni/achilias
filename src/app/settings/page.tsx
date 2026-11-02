@@ -1,5 +1,5 @@
 import { WorkspaceView } from "@/components/workspace/workspace-view";
-import { getWorkspace } from "@/lib/ilias/workspace";
+import { getWorkspaceMetadata } from "@/lib/ilias/workspace";
 export const metadata = { title: "Features & connection" };
 export default async function Settings({
   searchParams,
@@ -8,7 +8,7 @@ export default async function Settings({
 }) {
   return (
     <WorkspaceView
-      data={await getWorkspace((await searchParams).demo === "1")}
+      data={await getWorkspaceMetadata((await searchParams).demo === "1")}
       view="settings"
     />
   );

@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   ArrowUpRight,
   Check,
@@ -42,7 +41,6 @@ export function ConnectDialog({
   onOpenChange: (open: boolean) => void;
   instance: string;
 }) {
-  const router = useRouter();
   const [url, setUrl] = useState(instance);
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
@@ -80,8 +78,8 @@ export function ConnectDialog({
         if (data.status === "connected" && status === "pending") {
           setStatus("idle");
           setCode("");
-          router.replace("/");
-          router.refresh();
+          // A full navigation clears any previous account's router cache.
+          window.location.replace("/");
           onOpenChange(false);
         } else if (data.status === "pending") {
           setStatus("pending");
@@ -101,7 +99,7 @@ export function ConnectDialog({
       cancelled = true;
       clearInterval(interval);
     };
-  }, [open, router, onOpenChange, status]);
+  }, [open, onOpenChange, status]);
   async function connect(event?: React.FormEvent) {
     event?.preventDefault();
     setError("");

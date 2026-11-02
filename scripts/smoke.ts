@@ -26,11 +26,11 @@ try {
     .getByRole("link", { name: "Saved for later", exact: true })
     .click();
   await page
-    .getByRole("button", { name: "Linear Algebra I", exact: true })
+    .getByRole("link", { name: "Linear Algebra I", exact: true })
     .waitFor();
   await page.reload();
   await page
-    .getByRole("button", { name: "Linear Algebra I", exact: true })
+    .getByRole("link", { name: "Linear Algebra I", exact: true })
     .waitFor();
   await page.getByRole("link", { name: "Overview", exact: true }).click();
   await page
@@ -43,7 +43,7 @@ try {
   await page.getByRole("radio", { name: "List view" }).click();
   assert.equal(await page.locator(".resource-row").count(), 4);
   await page
-    .getByRole("button", {
+    .getByRole("link", {
       name: "Introduction to Computer Science",
       exact: true,
     })
@@ -62,7 +62,7 @@ try {
     .waitFor();
   await page.getByRole("button", { name: "Close", exact: true }).click();
   await page
-    .getByRole("button", { name: "Lecture materials", exact: true })
+    .getByRole("link", { name: "Lecture materials", exact: true })
     .click();
   await page
     .getByRole("heading", { name: "Lecture materials", exact: true })

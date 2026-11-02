@@ -18,6 +18,7 @@ import {
   Pin,
   Plus,
   Reply,
+  RefreshCw,
   Search,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -69,6 +70,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { markThreadRead, refreshWorkspace } from "@/app/actions/workspace";
 import {
   forumHref,
   type ForumOrder,
@@ -101,6 +103,7 @@ function Pagination({
 }) {
   if (!pages.length) return null;
   const { forumId, threadId, page, order, workspace } = state;
+  const demo = workspace.mode === "demo";
   const visible = [...new Set([page, ...pages.map((p) => p.page)])].sort(
     (a, b) => a - b,
   );
@@ -119,7 +122,7 @@ function Pagination({
             asChild
           >
             <Link
-              prefetch={false}
+              prefetch={demo}
               href={forumHref(
                 forumId,
                 workspace.mode === "demo",
@@ -208,15 +211,8 @@ export function ForumView({ state }: { state: ForumState }) {
         );
         setMarked(next);
       } else {
-        const response = await fetch(
-          `/api/forums/${forumId}/threads/${thread.id}/read`,
-          { method: "POST" },
-        );
-        if (!response.ok)
-          throw new Error(
-            (await response.json()).error || "Could not update read status.",
-          );
-        startTransition(() => router.refresh());
+        const result = await markThreadRead(forumId, thread.id);
+        if (result.error) throw new Error(result.error);
       }
       toast.success(
         demo ? "Marked read in this demo" : "Discussion marked read in ILIAS",
@@ -259,7 +255,7 @@ export function ForumView({ state }: { state: ForumState }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Button variant="ghost" className="w-fit" asChild>
           <Link
-            prefetch={false}
+            prefetch={demo}
             href={
               thread
                 ? forumHref(forumId, demo)
@@ -312,6 +308,25 @@ export function ForumView({ state }: { state: ForumState }) {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button
+            variant="ghost"
+            disabled={pending}
+            onClick={() =>
+              startTransition(async () => {
+                try {
+                  await refreshWorkspace();
+                } catch {
+                  toast.error("Could not refresh. Try again.");
+                }
+              })
+            }
+          >
+            <RefreshCw
+              data-icon="inline-start"
+              className={cn(pending && "animate-spin")}
+            />
+            Refresh
+          </Button>
           {thread ? (
             <>
               {firstUnread && (
@@ -444,7 +459,7 @@ export function ForumView({ state }: { state: ForumState }) {
                     <div key={topic.id} role="listitem">
                       <Item asChild>
                         <Link
-                          prefetch={false}
+                          prefetch={demo}
                           href={forumHref(forumId, demo, topic.id)}
                           className="py-5"
                         >
@@ -746,7 +761,7 @@ export function ForumView({ state }: { state: ForumState }) {
                       asChild
                     >
                       <Link
-                        prefetch={false}
+                        prefetch={demo}
                         href={forumHref(forumId, demo, topic.id)}
                         aria-current={
                           topic.id === thread.id ? "page" : undefined
@@ -760,7 +775,7 @@ export function ForumView({ state }: { state: ForumState }) {
                 </CardContent>
                 <CardFooter>
                   <Button variant="link" asChild>
-                    <Link prefetch={false} href={forumHref(forumId, demo)}>
+                    <Link prefetch={demo} href={forumHref(forumId, demo)}>
                       All discussions
                       <ArrowRight data-icon="inline-end" />
                     </Link>

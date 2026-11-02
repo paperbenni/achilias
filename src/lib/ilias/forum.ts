@@ -160,3 +160,20 @@ export async function getForumState(
     return { ...base, forum: null, thread: null };
   }
 }
+
+export async function markForumThreadRead(
+  session: Session,
+  forumId: string,
+  threadId: string,
+) {
+  if (!validForumId(forumId) || !validForumId(threadId))
+    throw new IliasError("Invalid discussion.", 400);
+  // Mutations always rediscover the authorized action from a fresh ILIAS page.
+  const { thread } = await fetchForum(session, forumId, threadId);
+  if (!thread?.markReadUrl)
+    throw new IliasError(
+      "This discussion is already read, or ILIAS has not offered that action. Refresh to see its current status.",
+      409,
+    );
+  await fetchAuthenticatedHtml(session, thread.markReadUrl);
+}

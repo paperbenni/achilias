@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   distDir: process.env.ACHILIAS_BUILD_DIR || ".next",
+  // Reuse visited pages briefly in this browser. No shared server data cache.
+  experimental: { staleTimes: { dynamic: 30, static: 30 } },
   serverExternalPackages: ["playwright", "playwright-core"],
   turbopack: {
     rules: { "*.css": { loaders: ["@tailwindcss/turbopack"], as: "*.css" } },

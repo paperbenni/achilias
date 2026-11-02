@@ -1,0 +1,29 @@
+import { mock } from "bun:test";
+import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
+const id = randomUUID();
+mock.module("next/headers", () => ({
+  cookies: async () => ({ get: () => ({ value: id }) }),
+}));
+const { saveSession } = await import("../../src/lib/ilias/session");
+await saveSession({
+  id,
+  instance: "https://ilias.uni-freiburg.de/",
+  status: "connected",
+  createdAt: Date.now(),
+  userName: "Metadata example account",
+});
+let requests = 0;
+globalThis.fetch = (async () => {
+  requests++;
+  throw new Error("Settings and Saved must not fetch ILIAS");
+}) as unknown as typeof fetch;
+const { getWorkspaceMetadata } = await import("../../src/lib/ilias/workspace");
+const first = await getWorkspaceMetadata(false);
+const next = await getWorkspaceMetadata(false);
+assert.equal(first.mode, "live");
+assert.equal(first.userName, "Metadata example account");
+assert.equal(requests, 0);
+assert.equal(next.storageKey, first.storageKey);
+assert.equal(first.page.items.length, 0);
+console.log("verified");

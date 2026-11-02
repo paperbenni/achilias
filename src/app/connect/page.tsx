@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,7 +9,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 export default function ClaimSession() {
-  const router = useRouter();
   const started = useRef(false);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -29,13 +27,12 @@ export default function ClaimSession() {
     })
       .then(async (res) => {
         if (!res.ok) throw new Error((await res.json()).error);
-        router.replace("/");
-        router.refresh();
+        window.location.replace("/");
       })
       .catch((e) =>
         setError(e instanceof Error ? e.message : "Could not connect."),
       );
-  }, [router]);
+  }, []);
   return (
     <main className="flex min-h-screen items-center justify-center p-6">
       <Card className="w-full max-w-md">

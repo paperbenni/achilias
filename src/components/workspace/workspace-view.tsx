@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -112,6 +112,8 @@ import {
   type Workspace,
 } from "@/lib/ilias/types";
 import { cn } from "@/lib/utils";
+import { ItemAction } from "@/components/navigation/item-action";
+import { refreshWorkspace } from "@/app/actions/workspace";
 
 type View = "home" | "browse" | "saved" | "settings" | "forum";
 type LocalState = { saved: Item[]; recent: Item[] };
@@ -130,6 +132,7 @@ const iconFor = (type: string) =>
 function Brand({ demo = false }: { demo?: boolean }) {
   return (
     <Link
+      prefetch={demo}
       href={demo ? "/?demo=1" : "/"}
       className="flex items-center gap-2.5"
       aria-label="Achilias home"
@@ -239,7 +242,10 @@ function Navigation({
                   title: "My courses",
                   icon: GraduationCap,
                   href: "/?section=courses",
-                  active: view === "browse" || view === "forum" || section === "courses",
+                  active:
+                    view === "browse" ||
+                    view === "forum" ||
+                    section === "courses",
                 },
                 {
                   title: "Saved for later",
@@ -251,6 +257,7 @@ function Navigation({
                 <SidebarMenuItem key={nav.title}>
                   <SidebarMenuButton isActive={nav.active} asChild>
                     <Link
+                      prefetch={data.mode === "demo" || nav.href === "/saved"}
                       href={`${nav.href}${suffix ? (nav.href.includes("?") ? "&demo=1" : suffix) : ""}`}
                       onClick={() => setOpenMobile(false)}
                     >
@@ -274,6 +281,7 @@ function Navigation({
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link
+                  prefetch={true}
                   href={`/settings${suffix}`}
                   onClick={() => setOpenMobile(false)}
                 >
@@ -348,8 +356,8 @@ function Navigation({
                         return;
                       }
                     }
-                    router.replace("/");
-                    router.refresh();
+                    // Drop all prefetched/visited content at an account boundary.
+                    window.location.replace("/");
                   }}
                 >
                   <LogOut />
@@ -383,7 +391,7 @@ export function WorkspaceView({
   const [localReady, setLocalReady] = useState(false);
   const [selected, setSelected] = useState<Item | null>(null);
   const [downloading, setDownloading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
+  const [refreshing, startRefresh] = useTransition();
   const demo = data.mode === "demo";
   const suffix = demo ? "?demo=1" : "";
   const storageKey = `achilias:${data.storageKey || data.mode}:v1`;
@@ -408,9 +416,6 @@ export function WorkspaceView({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
-  useEffect(() => {
-    setRefreshing(false);
-  }, [data]);
   function updateLocal(next: LocalState) {
     setLocal(next);
     try {
@@ -544,13 +549,16 @@ export function WorkspaceView({
                   {typeNames[item.type] || "ILIAS object"}
                 </CardDescription>
                 <CardTitle>
-                  <Button
+                  <ItemAction
                     variant="link"
                     className="course-title"
-                    onClick={() => openItem(item)}
+                    item={item}
+                    demo={demo}
+                    onOpen={openItem}
+                    onVisit={remember}
                   >
                     {item.title}
-                  </Button>
+                  </ItemAction>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -564,14 +572,17 @@ export function WorkspaceView({
                   {item.meta ||
                     (demo ? "Example course" : "From your ILIAS dashboard")}
                 </span>
-                <Button
+                <ItemAction
                   variant="ghost"
                   size="icon-sm"
                   aria-label={`Open ${item.title}`}
-                  onClick={() => openItem(item)}
+                  item={item}
+                  demo={demo}
+                  onOpen={openItem}
+                  onVisit={remember}
                 >
                   <ArrowUpRight />
-                </Button>
+                </ItemAction>
               </CardFooter>
             </Card>
           ) : (
@@ -583,13 +594,16 @@ export function WorkspaceView({
                 <Icon className="size-5" />
               </span>
               <div className="min-w-0 flex-1">
-                <Button
+                <ItemAction
                   variant="link"
                   className="resource-title"
-                  onClick={() => openItem(item)}
+                  item={item}
+                  demo={demo}
+                  onOpen={openItem}
+                  onVisit={remember}
                 >
                   {item.title}
-                </Button>
+                </ItemAction>
                 <p className="truncate text-xs text-muted-foreground">
                   {item.meta ||
                     item.description ||
@@ -619,14 +633,17 @@ export function WorkspaceView({
               >
                 <Bookmark className={cn(isSaved && "fill-current")} />
               </Button>
-              <Button
+              <ItemAction
                 variant="ghost"
                 size="icon-sm"
                 aria-label={`Open ${item.title}`}
-                onClick={() => openItem(item)}
+                item={item}
+                demo={demo}
+                onOpen={openItem}
+                onVisit={remember}
               >
                 <ChevronRight />
-              </Button>
+              </ItemAction>
             </div>
           );
         })}
@@ -943,7 +960,7 @@ export function WorkspaceView({
                       <ArrowUpRight data-icon="inline-end" />
                     </Button>
                     <Button size="lg" variant="outline" asChild>
-                      <Link href="/?demo=1">
+                      <Link prefetch={true} href="/?demo=1">
                         Take a look around
                         <ArrowRight data-icon="inline-end" />
                       </Link>
@@ -1013,7 +1030,7 @@ export function WorkspaceView({
                   </div>
                 </div>
                 <Button variant="link" asChild>
-                  <Link href="/settings">
+                  <Link prefetch={true} href="/settings">
                     See supported features
                     <ArrowRight data-icon="inline-end" />
                   </Link>
@@ -1068,10 +1085,15 @@ export function WorkspaceView({
                       <Button
                         variant="ghost"
                         disabled={refreshing}
-                        onClick={() => {
-                          setRefreshing(true);
-                          router.refresh();
-                        }}
+                        onClick={() =>
+                          startRefresh(async () => {
+                            try {
+                              await refreshWorkspace();
+                            } catch {
+                              toast.error("Could not refresh. Try again.");
+                            }
+                          })
+                        }
                       >
                         <Loader2
                           data-icon="inline-start"
@@ -1127,26 +1149,32 @@ export function WorkspaceView({
                             <Card key={keyOf(item)} size="sm">
                               <CardHeader>
                                 <CardTitle>
-                                  <Button
+                                  <ItemAction
                                     variant="link"
                                     className="resource-title"
-                                    onClick={() => openItem(item)}
+                                    item={item}
+                                    demo={demo}
+                                    onOpen={openItem}
+                                    onVisit={remember}
                                   >
                                     {item.title}
-                                  </Button>
+                                  </ItemAction>
                                 </CardTitle>
                                 <CardDescription>
                                   {typeNames[item.type] || "ILIAS object"}
                                 </CardDescription>
                                 <CardAction>
-                                  <Button
+                                  <ItemAction
                                     variant="ghost"
                                     size="icon"
                                     aria-label={`Continue ${item.title}`}
-                                    onClick={() => openItem(item)}
+                                    item={item}
+                                    demo={demo}
+                                    onOpen={openItem}
+                                    onVisit={remember}
                                   >
                                     <ArrowUpRight />
-                                  </Button>
+                                  </ItemAction>
                                 </CardAction>
                               </CardHeader>
                             </Card>
@@ -1376,7 +1404,7 @@ export function WorkspaceView({
                       </CardHeader>
                       <CardFooter className="justify-between">
                         <Button variant="link" asChild>
-                          <Link href={`/settings${suffix}`}>
+                          <Link prefetch={true} href={`/settings${suffix}`}>
                             What’s supported
                             <ArrowRight data-icon="inline-end" />
                           </Link>

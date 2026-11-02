@@ -18,7 +18,7 @@ try {
     .getByRole("link", { name: "Saved for later", exact: true })
     .click();
   await page
-    .getByRole("button", { name: "Questions & discussion", exact: true })
+    .getByRole("link", { name: "Questions & discussion", exact: true })
     .click();
   await page
     .getByRole("heading", { name: "Questions & discussion", exact: true })

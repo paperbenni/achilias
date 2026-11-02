@@ -1,3 +1,4 @@
+import { fileControllerReference } from "./file-reference";
 import type { Item } from "./types";
 
 // Add object support here so routing and capability badges agree everywhere.
@@ -77,4 +78,12 @@ export function itemOpenHref(item: Item, demo = false) {
 }
 export function isFileItem(item: Item) {
   return item.available && item.type === "file";
+}
+
+/** Repair legacy icon-based classifications, including saved and recent items. */
+export function normalizeItemType(item: Item): Item {
+  if (item.type !== "unknown" && objectTypes[item.type]) return item;
+  return fileControllerReference(item.sourceUrl) === item.id
+    ? { ...item, type: "file" }
+    : item;
 }

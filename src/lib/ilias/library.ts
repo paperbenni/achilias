@@ -1,5 +1,5 @@
 import type { Item } from "./types";
-import { itemKey } from "./items";
+import { itemKey, normalizeItemType } from "./items";
 import { validObjectId } from "./identifiers";
 
 export type Library = { saved: Item[]; recent: Item[] };
@@ -35,7 +35,8 @@ function validItem(value: unknown): value is Item {
 export function mergeItems(...sources: Item[][]): Item[] {
   const items = new Map<string, Item>();
   for (const source of sources)
-    for (const item of source) {
+    for (const raw of source) {
+      const item = normalizeItemType(raw);
       const key = itemKey(item);
       const current = items.get(key);
       if (!current) items.set(key, item);

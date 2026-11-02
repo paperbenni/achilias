@@ -1,3 +1,4 @@
+import { fileControllerReference } from "./file-reference";
 import { profileName } from "./profile-name";
 import { cleanText as clean } from "./text";
 import { load, type CheerioAPI } from "cheerio";
@@ -127,8 +128,9 @@ export function parsePage(html: string, sourceUrl: string): IliasPage {
         u.searchParams.get("target")?.match(/^([a-z]+)_(\d+)/i) ||
         u.pathname.match(/\/goto\.php\/([a-z]+)\/(\d+)/i) ||
         u.pathname.match(/goto_(?:[^_]+_)?([a-z]+)_(\d+)/i);
-      targetType = target?.[1];
-      id = target?.[2] || u.searchParams.get("ref_id") || undefined;
+      const fileId = fileControllerReference(u);
+      targetType = target?.[1] || (fileId ? "file" : undefined);
+      id = target?.[2] || fileId || u.searchParams.get("ref_id") || undefined;
     }
     id ||= (row.attr("id") || row.attr("data-list-item-id") || "").match(
       /(?:lg_div_|item_)(\d+)/,

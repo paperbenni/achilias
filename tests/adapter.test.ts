@@ -50,6 +50,20 @@ describe("ILIAS 10 template adapter", () => {
     expect(page.hasMore).toBe(true);
     expect(page.items[4].sourceUrl).not.toContain("javascript:");
   });
+  test("keeps the real page title when an upload dropzone renders its dialog first", () => {
+    const page = parsePage(
+      `<a href="logout.php">Logout</a>
+      <div class="ui-dropzone ui-dropzone-wrapper">
+        <dialog class="c-modal"><h1 class="modal-title">Dateien hochladen</h1></dialog>
+        <div class="media il_HeaderInner">
+          <h1 class="il-page-content-header media-heading ilHeader">Algorithms</h1>
+        </div>
+      </div>
+      <h1 class="ilc_heading1">Dateien hochladen</h1>`,
+      FREIBURG + "ilias.php?ref_id=12",
+    );
+    expect(page.title).toBe("Algorithms");
+  });
   test("reads repository cards and standard items on the dashboard", async () => {
     const page = parsePage(
       await fixture("dashboard"),

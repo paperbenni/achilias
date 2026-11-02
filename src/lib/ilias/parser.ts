@@ -18,6 +18,25 @@ const hiddenSubtree = ($: CheerioAPI, el: AnyNode) =>
     .toArray()
     .some((node) => hasHiddenStyle($(node).attr("style")));
 
+// ILIAS 10 renders the page title in the content header. Pages that allow
+// drag-and-drop uploads wrap that header in a file dropzone, whose hidden
+// upload dialog comes first in the document and is titled "Dateien hochladen".
+// Prefer the real header so the dialog's h1 never becomes the page title.
+export function readPageTitle($: CheerioAPI): string {
+  const header = $(".il-page-content-header").first();
+  if (header.length) return clean(header.text());
+  const legacy = $("#ilHeader, h1.ilHeader").first();
+  if (legacy.length) return clean(legacy.text());
+  return clean(
+    $("h1")
+      .filter(
+        (_, el) => !hiddenSubtree($, el) && !$(el).hasClass("modal-title"),
+      )
+      .first()
+      .text(),
+  );
+}
+
 // ILIAS' container and dashboard templates expose the same list-item structure.
 // Keep selectors here so a theme/version adaptation does not leak into the UI.
 export function parsePage(html: string, sourceUrl: string): IliasPage {
@@ -185,7 +204,7 @@ export function parsePage(html: string, sourceUrl: string): IliasPage {
       .find(Boolean) || "";
   return {
     title:
-      clean($("#ilHeader, .ilHeader h1, h1.ilHeader, h1").first().text()) ||
+      readPageTitle($) ||
       clean($("title").text()).replace(/:.*$/, "") ||
       "Learning space",
     description: clean($("#il_description, .ilHeaderDesc").first().text()),

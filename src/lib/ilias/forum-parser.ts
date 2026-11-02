@@ -1,6 +1,7 @@
 import { validObjectId } from "./identifiers";
 import { load, type CheerioAPI } from "cheerio";
 import { cleanText as clean } from "./text";
+import { readPageTitle } from "./parser";
 import { upstreamLink } from "./links";
 import { sanitizeIliasHtml } from "./html";
 export { sanitizeIliasHtml as sanitizeForumBody } from "./html";
@@ -143,7 +144,7 @@ export function parseForumOverview(
   });
   return {
     id: forumId,
-    title: clean($("#ilHeader, h1").first().text()) || "Discussion forum",
+    title: readPageTitle($) || "Discussion forum",
     description: clean($("#il_description, .ilHeaderDesc").first().text()),
     topics,
     sourceUrl,
@@ -251,7 +252,7 @@ export function parseForumThread(
     );
     posts.at(-1)!.replyUrl = reply?.url;
   });
-  const rawTitle = clean($("#ilHeader, h1").first().text());
+  const rawTitle = readPageTitle($);
   const title =
     rawTitle.replace(/^(?:thread|topic|thema)\s*["“„»](.*?)["”«]\s*$/i, "$1") ||
     posts[0]?.title ||

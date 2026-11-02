@@ -1,6 +1,11 @@
 import type { Browser } from "playwright";
 import { browserLogin } from "./browser-login";
-import { saveSession, readSession, type Session } from "./session";
+import {
+  saveSession,
+  readSession,
+  withSessionLock,
+  type Session,
+} from "./session";
 const globalJobs = globalThis as typeof globalThis & {
   achiliasLoginJobs?: Map<string, Browser | null>;
 };
@@ -35,19 +40,31 @@ async function runLogin(session: Session) {
         jobs.set(session.id, browser);
       },
     });
-    if (!jobs.has(session.id) || !(await readSession(session.id))) return;
-    session.jar = result.jar;
-    session.userName = result.userName;
-    session.status = "connected";
-    await saveSession(session);
+    await finishLogin(session.id, {
+      jar: result.jar,
+      userName: result.userName,
+      status: "connected",
+    });
   } catch {
-    if (jobs.has(session.id) && (await readSession(session.id))) {
-      session.status = "failed";
-      session.error =
-        "Sign-in could not finish. Keep the university browser open until you reach ILIAS. If this server has no desktop, choose “On my computer” and use the local helper. For a server browser, install Chromium with bun run browser:install.";
-      await saveSession(session);
-    }
+    await finishLogin(session.id, {
+      status: "failed",
+      error:
+        "Sign-in could not finish. Keep the university browser open until you reach ILIAS. If this server has no desktop, choose “On my computer” and use the local helper. For a server browser, install Chromium with bun run browser:install.",
+    });
   } finally {
     jobs.delete(session.id);
   }
+}
+
+async function finishLogin(
+  id: string,
+  result:
+    | { status: "connected"; jar: Session["jar"]; userName: string }
+    | { status: "failed"; error: string },
+) {
+  await withSessionLock(id, async () => {
+    const current = await readSession(id);
+    if (!jobs.has(id) || current?.status !== "pending") return;
+    await saveSession({ ...current, ...result });
+  });
 }

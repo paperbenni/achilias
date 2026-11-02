@@ -8,6 +8,7 @@ import { mkdir, readFile, writeFile, rename, unlink } from "node:fs/promises";
 import path from "node:path";
 import { cookies } from "next/headers";
 import type { SerializedCookieJar } from "tough-cookie";
+import { parsePairingCode, verifyPairing } from "./pairing";
 
 export const SESSION_COOKIE = "achilias_session";
 const dir = path.resolve(
@@ -180,4 +181,29 @@ export function requireSameOrigin(request: Request) {
   ) {
     throw new Error("Request origin is not allowed.");
   }
+}
+
+export const invalidClaimMessage =
+  "This connection link is invalid, already used, or expired. Run the connection command again.";
+
+/** Claim under the same per-session lock used by cancellation and remote sign-in. */
+export async function claimSession(token: unknown) {
+  const parsed = parsePairingCode(token);
+  if (!parsed) throw new Error(invalidClaimMessage);
+  return withSessionLock(parsed.id, async () => {
+    const session = await readSession(parsed.id);
+    if (
+      !session?.pairing ||
+      session.status !== "connected" ||
+      !verifyPairing(
+        parsed.secret,
+        session.pairing.digest,
+        session.pairing.expiresAt,
+      )
+    )
+      throw new Error(invalidClaimMessage);
+    delete session.pairing;
+    await saveSession(session);
+    return session.id;
+  });
 }

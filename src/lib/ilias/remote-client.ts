@@ -1,3 +1,4 @@
+import { parsePairingCode } from "./pairing";
 export function remoteServerUrl(value: string) {
   const url = new URL(value);
   const loopback = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
@@ -20,7 +21,7 @@ export async function remoteRequest(
   code: string,
   cookies?: unknown,
 ) {
-  if (!/^[a-f0-9-]{36}\.[A-Za-z0-9_-]{43}$/.test(code))
+  if (!parsePairingCode(code))
     throw new Error("Paste the complete connection code shown by Achilias.");
   let response: Response;
   try {

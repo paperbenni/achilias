@@ -1,7 +1,5 @@
 import { expect, mock, test, afterEach } from "bun:test";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
+import { runWithIsolatedSessions } from "./helpers/isolated-sessions";
 import { importInstanceCookies } from "../src/lib/ilias/cookie-import";
 import { remoteServerUrl, remoteRequest } from "../src/lib/ilias/remote-client";
 import { serverLoginMode } from "../src/lib/ilias/login";
@@ -11,28 +9,7 @@ afterEach(() => {
   globalThis.fetch = originalFetch;
 });
 test("remote transfers verify accounts, filter IdP cookies, expire, reject replay and survive cancellation", async () => {
-  const dir = await mkdtemp(path.join(tmpdir(), "achilias-remote-test-"));
-  try {
-    const proc = Bun.spawn(
-      [process.execPath, "tests/helpers/remote-session.ts"],
-      {
-        cwd: process.cwd(),
-        env: { ...process.env, ACHILIAS_DATA_DIR: dir },
-        stdout: "pipe",
-        stderr: "pipe",
-      },
-    );
-    const [output, error, code] = await Promise.all([
-      new Response(proc.stdout).text(),
-      new Response(proc.stderr).text(),
-      proc.exited,
-    ]);
-    expect(error).toBe("");
-    expect(code).toBe(0);
-    expect(output.trim()).toBe("verified");
-  } finally {
-    await rm(dir, { recursive: true });
-  }
+  await runWithIsolatedSessions("tests/helpers/remote-session.ts");
 });
 test("cookie imports are limited to the ILIAS host and reject malformed names and paths", async () => {
   const instance = "https://ilias.uni-freiburg.de/";

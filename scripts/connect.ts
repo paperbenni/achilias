@@ -1,8 +1,11 @@
-import { dashboardUrl } from "../src/lib/ilias/config";
 import { readFile } from "node:fs/promises";
 import { createInterface } from "node:readline/promises";
 import { randomUUID } from "node:crypto";
-import { assertInstance, FREIBURG } from "../src/lib/ilias/config";
+import {
+  assertInstance,
+  dashboardUrl,
+  FREIBURG,
+} from "../src/lib/ilias/config";
 import { browserLogin } from "../src/lib/ilias/browser-login";
 import { importInstanceCookies } from "../src/lib/ilias/cookie-import";
 import { remoteRequest, remoteServerUrl } from "../src/lib/ilias/remote-client";

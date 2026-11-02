@@ -1,6 +1,11 @@
 import { CookieJar } from "tough-cookie";
 import { upstreamUrl } from "./config";
-import { saveSession, type Session } from "./session";
+import {
+  readSession,
+  saveSession,
+  withSessionLock,
+  type Session,
+} from "./session";
 import { parsePage } from "./parser";
 export class IliasError extends Error {
   constructor(
@@ -16,6 +21,7 @@ export async function fetchUpstream(
   file = false,
 ) {
   const jar = session.jar ? CookieJar.fromJSON(session.jar) : new CookieJar();
+  const rotations: { cookie: string; url: string }[] = [];
   let url = upstreamUrl(session.instance, target);
   for (let redirect = 0; redirect < 10; redirect++) {
     let response: Response;
@@ -35,8 +41,10 @@ export async function fetchUpstream(
         "ILIAS could not be reached. Check your connection and try again.",
       );
     }
-    for (const cookie of response.headers.getSetCookie())
+    for (const cookie of response.headers.getSetCookie()) {
       await jar.setCookie(cookie, url.href, { ignoreError: true });
+      rotations.push({ cookie, url: url.href });
+    }
     if ([301, 302, 303, 307, 308].includes(response.status)) {
       const location = response.headers.get("location");
       await response.body?.cancel();
@@ -68,7 +76,21 @@ export async function fetchUpstream(
     }
     session.jar = jar.serializeSync();
     // Only persist a previously created session; tests/public probes need no disk state.
-    if (session.status === "connected") await saveSession(session);
+    if (session.status === "connected" && rotations.length)
+      await withSessionLock(session.id, async () => {
+        const current = await readSession(session.id);
+        if (current?.status !== "connected") return;
+        // Merge only this response's changes into the latest jar. Concurrent
+        // requests must not overwrite each other's cookies or resurrect logout.
+        const latest = current.jar
+          ? CookieJar.fromJSON(current.jar)
+          : new CookieJar();
+        for (const { cookie, url } of rotations)
+          await latest.setCookie(cookie, url, { ignoreError: true });
+        current.jar = latest.serializeSync();
+        await saveSession(current);
+        session.jar = current.jar;
+      });
     return { response, url: url.href };
   }
   throw new IliasError(

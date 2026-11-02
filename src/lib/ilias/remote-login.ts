@@ -5,7 +5,7 @@ import {
   withSessionLock,
   type Session,
 } from "./session";
-import { newPairing, verifyPairing } from "./pairing";
+import { newPairing, parsePairingCode, verifyPairing } from "./pairing";
 import { importInstanceCookies } from "./cookie-import";
 import { fetchPage } from "./client";
 export const remoteLifetime = 10 * 60_000;
@@ -38,12 +38,13 @@ export class RemoteLoginError extends Error {
   }
 }
 export async function remoteSession(code: string) {
-  if (!/^[a-f0-9-]{36}\.[A-Za-z0-9_-]{43}$/.test(code))
+  const parsed = parsePairingCode(code);
+  if (!parsed)
     throw new RemoteLoginError(
       "The connection code is invalid or expired.",
       401,
     );
-  const [id, secret] = code.split(".");
+  const { id, secret } = parsed;
   const session = await readSession(id);
   if (
     !session ||

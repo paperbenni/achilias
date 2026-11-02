@@ -18,3 +18,14 @@ export function verifyPairing(
     Buffer.from(digest, "hex"),
   );
 }
+
+/** Shared wire format for single-use links and remote helper codes. */
+export function parsePairingCode(code: unknown) {
+  if (
+    typeof code !== "string" ||
+    !/^[a-f0-9-]{36}\.[A-Za-z0-9_-]{43}$/.test(code)
+  )
+    return null;
+  const [id, secret] = code.split(".");
+  return { id, secret };
+}

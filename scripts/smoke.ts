@@ -1,8 +1,12 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
+import { newPairing } from "../src/lib/ilias/pairing";
+import { saveSession, deleteSession } from "../src/lib/ilias/session";
 const origin = process.env.ACHILIAS_TEST_URL || "http://127.0.0.1:3000";
 const browser = await chromium.launch({ headless: true });
 const errors: string[] = [];
+const testSessionId = randomUUID();
 try {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
@@ -114,10 +118,60 @@ try {
     data: { token: "invalid" },
   });
   assert.equal(pairing.status(), 400);
+  const claim = newPairing();
+  await saveSession({
+    id: testSessionId,
+    instance: "https://ilias.uni-freiburg.de/",
+    createdAt: Date.now(),
+    status: "connected",
+    pairing: { digest: claim.digest, expiresAt: claim.expiresAt },
+  });
+  const token = `${testSessionId}.${claim.secret}`;
+  // Exercise the actual fragment-to-POST pairing flow without a real account.
+  await page.goto(`${origin}/connect#${token}`);
+  await page.waitForURL(origin + "/");
+  assert.equal(new URL(page.url()).hash, "");
+  const connected = await page.request.get(origin + "/api/session");
+  assert.equal((await connected.json()).status, "connected");
+  const replay = await page.request.post(origin + "/api/session/import", {
+    headers: { Origin: origin },
+    data: { token },
+  });
+  assert.equal(
+    replay.status(),
+    400,
+    "One-time connection link was accepted twice",
+  );
+  // The deliberately credential-free session must produce a useful expiry state.
+  await page
+    .getByText("Couldn’t load this learning space", { exact: true })
+    .waitFor();
+  await page
+    .getByRole("button", { name: "Reconnect account", exact: true })
+    .click();
+  await page
+    .getByRole("heading", { name: "Connect your learning space", exact: true })
+    .waitFor();
+  await page.waitForTimeout(2200);
+  assert.equal(
+    await page.getByRole("dialog").count(),
+    1,
+    "Reconnect dialog closed because an old local session exists",
+  );
+  await page.getByRole("button", { name: "Close", exact: true }).click();
+  const disconnected = await page.request.delete(origin + "/api/session", {
+    headers: { Origin: origin },
+  });
+  assert.equal(disconnected.status(), 200);
+  assert.equal(
+    (await (await page.request.get(origin + "/api/session")).json()).status,
+    "disconnected",
+  );
   assert.deepEqual(errors, []);
   console.log(
-    "Passed: onboarding, navigation, saved-item persistence, filtering, list view, course tabs, activity handoff, folders, PDF download, quick search, mobile navigation/layout, API origin checks, unauthenticated download, invalid pairing.",
+    "Passed: onboarding, navigation, saved-item persistence, filtering, list view, course tabs, activity handoff, folders, PDF download, quick search, mobile navigation/layout, API origin checks, unauthenticated download, invalid pairing, one-time connection claim, expired-session state, reconnect dialog, disconnect.",
   );
 } finally {
+  await deleteSession(testSessionId);
   await browser.close();
 }

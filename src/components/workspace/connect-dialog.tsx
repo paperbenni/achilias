@@ -46,10 +46,7 @@ export function ConnectDialog({
         if (!res.ok) return;
         const data = await res.json();
         if (cancelled) return;
-        if (
-          data.status === "connected" &&
-          (status === "pending" || status === "starting")
-        ) {
+        if (data.status === "connected" && status === "pending") {
           setStatus("idle");
           router.replace("/");
           router.refresh();

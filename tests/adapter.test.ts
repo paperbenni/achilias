@@ -10,7 +10,7 @@ import {
 } from "../src/lib/ilias/config";
 import { CookieJar } from "tough-cookie";
 import { fetchPage, fetchUpstream } from "../src/lib/ilias/client";
-import type { Session } from "../src/lib/ilias/session";
+import { requireSameOrigin, type Session } from "../src/lib/ilias/session";
 import { newPairing, verifyPairing } from "../src/lib/ilias/pairing";
 const originalFetch = globalThis.fetch;
 afterEach(() => {
@@ -163,4 +163,31 @@ describe("instance and credential boundaries", () => {
     expect(verifyPairing(p.secret + "x", p.digest, p.expiresAt)).toBe(false);
     expect(verifyPairing(p.secret, p.digest, Date.now() - 1)).toBe(false);
   });
+});
+
+test("origin checks allow local Host normalization and reject foreign mutations", () => {
+  expect(() =>
+    requireSameOrigin(
+      new Request("http://localhost:3000/api/session", {
+        headers: { origin: "http://127.0.0.1:3000", host: "127.0.0.1:3000" },
+      }),
+    ),
+  ).not.toThrow();
+  expect(() =>
+    requireSameOrigin(
+      new Request("http://localhost:3000/api/session", {
+        headers: { origin: "https://other.example", host: "127.0.0.1:3000" },
+      }),
+    ),
+  ).toThrow();
+  expect(() =>
+    requireSameOrigin(
+      new Request("http://localhost:3000/api/session", {
+        headers: {
+          origin: "http://localhost:3000",
+          "sec-fetch-site": "cross-site",
+        },
+      }),
+    ),
+  ).toThrow();
 });

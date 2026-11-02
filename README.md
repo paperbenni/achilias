@@ -58,14 +58,14 @@ Run this command from the same checkout and with the same `ACHILIAS_DATA_DIR` as
 
 Copy `.env.example` to `.env.local` when changing defaults. Bun loads `.env.local` for the connection command too.
 
-| Variable                 | Purpose                                                                                                                                                                           |
-| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ILIAS_INSTANCES`        | Comma-separated additional HTTPS base URLs, including an installation subdirectory when applicable. Freiburg is always allowed. Only explicitly configured instances are fetched. |
-| `ACHILIAS_DATA_DIR`      | Directory for encrypted sessions and the encryption key. Default: `.local/` in the checkout.                                                                                      |
-| `ACHILIAS_ORIGIN`        | Exact browser-visible app origin for mutation origin checks, especially behind a reverse proxy. Default: request origin.                                                          |
-| `ACHILIAS_SECURE_COOKIE` | Set `true` when serving over HTTPS. Leave unset for local HTTP.                                                                                                                   |
-| `ACHILIAS_BROWSER_PATH`  | Optional path to a compatible local Chromium executable.                                                                                                                          |
-| `ACHILIAS_BUILD_DIR`     | Optional separate build output directory, useful while `next dev` is running.                                                                                                     |
+| Variable                 | Purpose                                                                                                                                                                               |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ILIAS_INSTANCES`        | Comma-separated additional HTTPS base URLs, including an installation subdirectory when applicable. Freiburg is always allowed. Only explicitly configured instances are fetched.     |
+| `ACHILIAS_DATA_DIR`      | Directory for encrypted sessions and the encryption key. Default: `.local/` in the checkout.                                                                                          |
+| `ACHILIAS_ORIGIN`        | Exact browser-visible app origin for mutation origin checks, especially behind a reverse proxy. Defaults to the local browser-visible host; configure this explicitly for remote use. |
+| `ACHILIAS_SECURE_COOKIE` | Set `true` when serving over HTTPS. Leave unset for local HTTP.                                                                                                                       |
+| `ACHILIAS_BROWSER_PATH`  | Optional path to a compatible local Chromium executable.                                                                                                                              |
+| `ACHILIAS_BUILD_DIR`     | Optional separate build output directory, useful while `next dev` is running.                                                                                                         |
 
 Restart the server after configuration changes. Additional instances appear through the URL field in the connection dialog; their specific themes/authentication have not been verified.
 
@@ -89,7 +89,7 @@ bun run build
 bun run start --hostname 127.0.0.1
 ```
 
-`bun run test` checks ILIAS template parsing, restricted/unsupported content, cookie rotation, redirect credential boundaries, expired sessions, pairing validation, and encrypted session persistence. `bun run test:e2e` checks the demo flows in Chromium, including download, bookmarks across reloads, quick search, and mobile navigation. Set `ACHILIAS_TEST_URL` to test another local port.
+`bun run test` checks ILIAS template parsing, restricted/unsupported content, cookie rotation, redirect credential boundaries, expired sessions, pairing validation, and encrypted session persistence. `bun run test:e2e` checks the demo flows in Chromium, including download, bookmarks across reloads, quick search, mobile navigation, single-use connection claims, session expiry, and reconnect/disconnect behavior. The last checks use a deliberately credential-free test session against the public Freiburg endpoint; they do not sign in to a real account. Set `ACHILIAS_TEST_URL` to test another local port.
 
 While `next dev` is running, use `ACHILIAS_BUILD_DIR=.next-build bun run build` to preserve its `.next` directory. Start that build with the same variable if you want to run it.
 

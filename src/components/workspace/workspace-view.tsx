@@ -1,0 +1,1507 @@
+"use client";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  ArrowDownToLine,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUpRight,
+  BookOpen,
+  Bookmark,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  CircleHelp,
+  ExternalLink,
+  FileText,
+  Folder,
+  GraduationCap,
+  Home,
+  LayoutGrid,
+  List,
+  Loader2,
+  LogOut,
+  MessageSquare,
+  Search,
+  Settings2,
+  ShieldCheck,
+  Sparkles,
+  University,
+} from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarTrigger,
+  useSidebar,
+} from "@/components/ui/sidebar";
+import {
+  Command,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { ConnectDialog } from "./connect-dialog";
+import {
+  containers,
+  itemHref,
+  typeNames,
+  type Item,
+  type Workspace,
+} from "@/lib/ilias/types";
+import { cn } from "@/lib/utils";
+
+type View = "home" | "browse" | "saved" | "settings";
+type LocalState = { saved: Item[]; recent: Item[] };
+const emptyLocal: LocalState = { saved: [], recent: [] };
+const keyOf = (item: Item) => `${item.type}:${item.id}`;
+const iconFor = (type: string) =>
+  type === "file"
+    ? FileText
+    : type === "frm"
+      ? MessageSquare
+      : containers.has(type)
+        ? type === "crs"
+          ? BookOpen
+          : Folder
+        : ExternalLink;
+function Brand({ demo = false }: { demo?: boolean }) {
+  return (
+    <Link
+      href={demo ? "/?demo=1" : "/"}
+      className="flex items-center gap-2.5"
+      aria-label="Achilias home"
+    >
+      <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+          className="size-6"
+        >
+          <path
+            d="M4 18 11.5 5 19 18M7 13h9M16 5l4 7"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </span>
+      <span className="text-xl font-semibold tracking-tight">
+        achilias<span className="text-primary">.</span>
+      </span>
+    </Link>
+  );
+}
+function OriginalLink({
+  href,
+  children = "Open in ILIAS",
+  compact = false,
+}: {
+  href: string;
+  children?: React.ReactNode;
+  compact?: boolean;
+}) {
+  return (
+    <Button variant="outline" size={compact ? "sm" : "default"} asChild>
+      <a href={href} target="_blank" rel="noopener noreferrer">
+        {children}
+        <ArrowUpRight data-icon="inline-end" />
+      </a>
+    </Button>
+  );
+}
+function Navigation({
+  data,
+  view,
+  section,
+  openSearch,
+  connect,
+}: {
+  data: Workspace;
+  view: View;
+  section?: string;
+  openSearch: () => void;
+  connect: () => void;
+}) {
+  const router = useRouter();
+  const { setOpenMobile } = useSidebar();
+  const suffix = data.mode === "demo" ? "?demo=1" : "";
+  return (
+    <Sidebar collapsible="offcanvas">
+      <SidebarHeader className="px-5 pt-7 pb-6">
+        <Brand demo={data.mode === "demo"} />
+        <div className="mt-5 flex items-center gap-2.5 rounded-lg border bg-background px-3 py-3">
+          <University className="size-4 text-primary" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-medium">{data.instanceName}</p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              {data.mode === "live"
+                ? "Your connected campus"
+                : data.mode === "demo"
+                  ? "Demo workspace"
+                  : "Your campus, reimagined"}
+            </p>
+          </div>
+        </div>
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton onClick={openSearch}>
+                  <Search />
+                  <span>Quick search</span>
+                  <kbd className="ml-auto text-[10px] text-muted-foreground">
+                    ⌘ K
+                  </kbd>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel>WORKSPACE</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {[
+                {
+                  title: "Overview",
+                  icon: Home,
+                  href: "/",
+                  active: view === "home" && !section,
+                },
+                {
+                  title: "My courses",
+                  icon: GraduationCap,
+                  href: "/?section=courses",
+                  active: view === "browse" || section === "courses",
+                },
+                {
+                  title: "Saved for later",
+                  icon: Bookmark,
+                  href: "/saved",
+                  active: view === "saved",
+                },
+              ].map((nav) => (
+                <SidebarMenuItem key={nav.title}>
+                  <SidebarMenuButton isActive={nav.active} asChild>
+                    <Link
+                      href={`${nav.href}${suffix ? (nav.href.includes("?") ? "&demo=1" : suffix) : ""}`}
+                      onClick={() => setOpenMobile(false)}
+                    >
+                      <nav.icon />
+                      <span>{nav.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup className="mt-auto">
+          <SidebarGroupLabel>A LITTLE MORE CLARITY</SidebarGroupLabel>
+          <div className="px-2 pt-2 pb-5 text-xs leading-relaxed text-muted-foreground">
+            Your materials, without the maze.
+            <br />
+            Built around the way you learn.
+          </div>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link
+                  href={`/settings${suffix}`}
+                  onClick={() => setOpenMobile(false)}
+                >
+                  <CircleHelp />
+                  <span>Features & connection</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <a
+                  href={data.instance}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <ArrowUpRight />
+                  <span>Original ILIAS</span>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
+      </SidebarContent>
+      <SidebarFooter className="p-4">
+        <Separator className="mb-2" />
+        {data.mode === "disconnected" ? (
+          <Button variant="outline" onClick={connect}>
+            <ShieldCheck data-icon="inline-start" />
+            Connect account
+          </Button>
+        ) : (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className="h-auto justify-start gap-3 py-2"
+              >
+                <Avatar className="size-8">
+                  <AvatarFallback>
+                    {data.mode === "demo"
+                      ? "AL"
+                      : (data.userName || "You").slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="flex flex-1 flex-col items-start">
+                  <span>{data.userName || "Your account"}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {data.mode === "demo"
+                      ? "Exploring the demo"
+                      : "Connected to ILIAS"}
+                  </span>
+                </span>
+                <ChevronDown />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="start">
+              <DropdownMenuGroup>
+                <DropdownMenuItem
+                  onSelect={() => router.push(`/settings${suffix}`)}
+                >
+                  <Settings2 />
+                  Connection settings
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={async () => {
+                    if (data.mode === "live") {
+                      const response = await fetch("/api/session", {
+                        method: "DELETE",
+                      });
+                      if (!response.ok) {
+                        toast.error("Could not disconnect. Please try again.");
+                        return;
+                      }
+                    }
+                    router.replace("/");
+                    router.refresh();
+                  }}
+                >
+                  <LogOut />
+                  {data.mode === "demo" ? "Leave demo" : "Disconnect account"}
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </SidebarFooter>
+    </Sidebar>
+  );
+}
+export function WorkspaceView({
+  data,
+  view = "home",
+  section,
+}: {
+  data: Workspace;
+  view?: View;
+  section?: string;
+}) {
+  const router = useRouter();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [connectOpen, setConnectOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [layout, setLayout] = useState("grid");
+  const [local, setLocal] = useState<LocalState>(emptyLocal);
+  const [localReady, setLocalReady] = useState(false);
+  const [selected, setSelected] = useState<Item | null>(null);
+  const [downloading, setDownloading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const demo = data.mode === "demo";
+  const suffix = demo ? "?demo=1" : "";
+  const storageKey = `achilias:${data.storageKey || data.mode}:v1`;
+  useEffect(() => {
+    try {
+      const value = JSON.parse(localStorage.getItem(storageKey) || "null");
+      if (value && Array.isArray(value.saved) && Array.isArray(value.recent))
+        setLocal(value);
+      else setLocal(emptyLocal);
+    } catch {
+      setLocal(emptyLocal);
+    }
+    setLocalReady(true);
+  }, [storageKey]);
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === "k") {
+        event.preventDefault();
+        setSearchOpen((value) => !value);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+  useEffect(() => {
+    setRefreshing(false);
+  }, [data]);
+  function updateLocal(next: LocalState) {
+    setLocal(next);
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(next));
+    } catch {
+      toast.error("Your browser could not save this change.");
+    }
+  }
+  function toggleSave(item: Item) {
+    const exists = local.saved.some((i) => keyOf(i) === keyOf(item));
+    updateLocal({
+      ...local,
+      saved: exists
+        ? local.saved.filter((i) => keyOf(i) !== keyOf(item))
+        : [...local.saved, item],
+    });
+    toast.success(exists ? "Removed from saved items" : "Saved for later");
+  }
+  function remember(item: Item) {
+    updateLocal({
+      ...local,
+      recent: [
+        item,
+        ...local.recent.filter((i) => keyOf(i) !== keyOf(item)),
+      ].slice(0, 12),
+    });
+  }
+  function openItem(item: Item) {
+    setSearchOpen(false);
+    if (!item.available) {
+      setSelected(item);
+      return;
+    }
+    remember(item);
+    if (containers.has(item.type)) router.push(itemHref(item, demo));
+    else setSelected(item);
+  }
+  async function download(item: Item) {
+    setDownloading(true);
+    try {
+      const response = await fetch(itemHref(item, demo));
+      if (!response.ok) {
+        const result = await response.json();
+        throw new Error(result.error || "Download failed.");
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const disposition = response.headers.get("content-disposition") || "";
+      const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+      a.download =
+        (encoded
+          ? decodeURIComponent(encoded)
+          : disposition.match(/filename="?([^";]+)/i)?.[1]) || item.title;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 30_000);
+      toast.success("Download ready");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Download failed.");
+    } finally {
+      setDownloading(false);
+    }
+  }
+  const allItems = useMemo(
+    () => [
+      ...new Map(
+        [...data.page.items, ...local.saved, ...local.recent].map((item) => [
+          keyOf(item),
+          item,
+        ]),
+      ).values(),
+    ],
+    [data.page.items, local],
+  );
+  const items = (view === "saved" ? local.saved : data.page.items).filter(
+    (item) =>
+      `${item.title} ${item.description} ${item.meta}`
+        .toLowerCase()
+        .includes(query.toLowerCase()),
+  );
+  const courses = items.filter(
+    (item) => item.type === "crs" || item.type === "grp",
+  );
+  const rest = items.filter(
+    (item) => item.type !== "crs" && item.type !== "grp",
+  );
+  const unsupported = data.page.items.filter(
+    (item) => !containers.has(item.type) && item.type !== "file",
+  );
+  const source = data.page.sourceUrl;
+  function renderItems(list: Item[], grid = false) {
+    return (
+      <div
+        className={cn(
+          grid && layout === "grid"
+            ? "grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
+            : "flex flex-col gap-2",
+        )}
+      >
+        {list.map((item, index) => {
+          const Icon = iconFor(item.type);
+          const isSaved = local.saved.some((i) => keyOf(i) === keyOf(item));
+          return grid && layout === "grid" ? (
+            <Card key={keyOf(item)} className="course-card group">
+              <CardHeader>
+                <div className="mb-5 flex items-start justify-between">
+                  <span className="course-monogram" data-tone={index % 3}>
+                    <Icon className="size-6" />
+                  </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={`${isSaved ? "Unsave" : "Save"} ${item.title}`}
+                        aria-pressed={isSaved}
+                        onClick={() => toggleSave(item)}
+                      >
+                        <Bookmark className={cn(isSaved && "fill-current")} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {isSaved ? "Remove from saved" : "Save for later"}
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <CardDescription>
+                  {typeNames[item.type] || "ILIAS object"}
+                </CardDescription>
+                <CardTitle>
+                  <Button
+                    variant="link"
+                    className="course-title"
+                    onClick={() => openItem(item)}
+                  >
+                    {item.title}
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="line-clamp-2 min-h-10 text-sm leading-relaxed text-muted-foreground">
+                  {item.description ||
+                    "Open this learning space to find your materials."}
+                </p>
+              </CardContent>
+              <CardFooter className="justify-between">
+                <span className="truncate text-xs text-muted-foreground">
+                  {item.meta ||
+                    (demo ? "Example course" : "From your ILIAS dashboard")}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={`Open ${item.title}`}
+                  onClick={() => openItem(item)}
+                >
+                  <ArrowUpRight />
+                </Button>
+              </CardFooter>
+            </Card>
+          ) : (
+            <div
+              key={keyOf(item)}
+              className="resource-row group flex min-w-0 items-center gap-3 rounded-xl border px-4 py-3"
+            >
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-primary">
+                <Icon className="size-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <Button
+                  variant="link"
+                  className="resource-title"
+                  onClick={() => openItem(item)}
+                >
+                  {item.title}
+                </Button>
+                <p className="truncate text-xs text-muted-foreground">
+                  {item.meta ||
+                    item.description ||
+                    typeNames[item.type] ||
+                    item.type}
+                </p>
+              </div>
+              {!item.available ? (
+                <Badge variant="outline">Restricted</Badge>
+              ) : !containers.has(item.type) && item.type !== "file" ? (
+                <Badge variant="outline" className="hidden sm:inline-flex">
+                  In ILIAS <ArrowUpRight />
+                </Badge>
+              ) : (
+                <Badge variant="secondary" className="hidden sm:inline-flex">
+                  {typeNames[item.type]}
+                </Badge>
+              )}
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => toggleSave(item)}
+                aria-label={`${isSaved ? "Unsave" : "Save"} ${item.title}`}
+                aria-pressed={isSaved}
+              >
+                <Bookmark className={cn(isSaved && "fill-current")} />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={`Open ${item.title}`}
+                onClick={() => openItem(item)}
+              >
+                <ChevronRight />
+              </Button>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+  function nothing(
+    title = "Nothing here yet",
+    description = "When your ILIAS space has content, it will appear here.",
+  ) {
+    return (
+      <Empty className="min-h-48 border">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <BookOpen />
+          </EmptyMedia>
+          <EmptyTitle>{title}</EmptyTitle>
+          <EmptyDescription>{description}</EmptyDescription>
+        </EmptyHeader>
+        {view !== "saved" && data.mode === "live" && (
+          <EmptyContent>
+            <OriginalLink href={source}>Check in ILIAS</OriginalLink>
+          </EmptyContent>
+        )}
+      </Empty>
+    );
+  }
+  return (
+    <SidebarProvider>
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-background focus:p-3"
+      >
+        Skip to content
+      </a>
+      <Navigation
+        data={data}
+        view={view}
+        section={section}
+        openSearch={() => setSearchOpen(true)}
+        connect={() => setConnectOpen(true)}
+      />
+      <SidebarInset>
+        <header className="flex h-20 shrink-0 items-center justify-between gap-4 border-b px-5 lg:px-10">
+          <div className="flex min-w-0 items-center gap-3">
+            <SidebarTrigger className="md:hidden" />
+            <span className="text-sm text-muted-foreground">Workspace</span>
+            <ChevronRight className="size-3 text-muted-foreground" />
+            <span className="truncate text-sm font-medium">
+              {view === "home"
+                ? "Overview"
+                : view === "saved"
+                  ? "Saved for later"
+                  : view === "settings"
+                    ? "Features & connection"
+                    : data.page.title}
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Quick search"
+              onClick={() => setSearchOpen(true)}
+            >
+              <Search />
+            </Button>
+            <Separator orientation="vertical" className="h-5" />
+            {data.mode === "disconnected" ? (
+              <Button size="sm" onClick={() => setConnectOpen(true)}>
+                Connect account
+                <ArrowUpRight data-icon="inline-end" />
+              </Button>
+            ) : (
+              <Badge variant={demo ? "secondary" : "outline"}>
+                {demo ? (
+                  "Demo workspace"
+                ) : (
+                  <>
+                    <span className="size-1.5 rounded-full bg-primary" />
+                    Connected
+                  </>
+                )}
+              </Badge>
+            )}
+          </div>
+        </header>
+        <main
+          id="main-content"
+          className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-5 py-8 lg:px-10 lg:py-10"
+        >
+          {demo && (
+            <Alert>
+              <Sparkles />
+              <AlertTitle>You’re exploring a demo</AlertTitle>
+              <AlertDescription>
+                <span>These courses and materials are examples. </span>
+                <Button
+                  variant="link"
+                  size="sm"
+                  onClick={() => setConnectOpen(true)}
+                >
+                  Connect your account
+                  <ArrowRight data-icon="inline-end" />
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+          {view === "settings" ? (
+            <>
+              <div>
+                <p className="eyebrow">MAKE YOURSELF AT HOME</p>
+                <h1 className="page-title mt-3">
+                  A clear view of what’s here.
+                </h1>
+                <p className="mt-3 text-muted-foreground">
+                  Your connection, your data, and what Achilias can do today.
+                </p>
+              </div>
+              <div className="grid gap-6 lg:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Your ILIAS connection</CardTitle>
+                    <CardDescription>{data.instanceName}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex flex-col gap-4">
+                    <p className="break-all font-mono text-xs text-muted-foreground">
+                      {data.instance}
+                    </p>
+                    <Badge className="w-fit" variant="secondary">
+                      {data.mode === "live"
+                        ? "Connected"
+                        : demo
+                          ? "Demo · no account connected"
+                          : "Not connected"}
+                    </Badge>
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      Sign-in happens on the university’s own page. Only ILIAS
+                      cookies are copied; university identity-provider cookies
+                      stay in the sign-in browser. Sessions are encrypted on the
+                      server and expire here after 12 hours or earlier if ILIAS
+                      ends them.
+                    </p>
+                  </CardContent>
+                  <CardFooter>
+                    <Button onClick={() => setConnectOpen(true)}>
+                      <ShieldCheck data-icon="inline-start" />
+                      {data.mode === "live"
+                        ? "Reconnect account"
+                        : "Connect account"}
+                    </Button>
+                  </CardFooter>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Saved on this browser</CardTitle>
+                    <CardDescription>
+                      A small, personal layer over ILIAS.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      Saved items and recently opened materials stay in this
+                      browser. They don’t change your ILIAS favorites or
+                      learning progress. They are separate for each connection
+                      and for the demo.
+                    </p>
+                  </CardContent>
+                  <CardFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        updateLocal(emptyLocal);
+                        toast.success("Saved items and recent history cleared");
+                      }}
+                    >
+                      Clear saved items & history
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>What works here</CardTitle>
+                  <CardDescription>
+                    Start with everyday learning. Keep the full platform within
+                    reach.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col divide-y">
+                    {[
+                      [
+                        "Courses & groups",
+                        "Browse the items exposed on your dashboard and open their content.",
+                        true,
+                      ],
+                      [
+                        "Folders & categories",
+                        "Navigate nested materials and read plain-text course information.",
+                        true,
+                      ],
+                      [
+                        "Files",
+                        "Download files through your authenticated ILIAS session.",
+                        true,
+                      ],
+                      [
+                        "Search & saved items",
+                        "Search this page, recently opened content, and items saved in this browser.",
+                        true,
+                      ],
+                      [
+                        "Assignments, tests & surveys",
+                        "Visible in course content. Complete submissions, attempts, and surveys in ILIAS.",
+                        false,
+                      ],
+                      [
+                        "Forums, wikis & learning modules",
+                        "Visible as objects; discussions and interactive content open in ILIAS.",
+                        false,
+                      ],
+                      [
+                        "Calendar, mail, grades & administration",
+                        "Use the original ILIAS interface. These areas are not synchronized here.",
+                        false,
+                      ],
+                      [
+                        "Rich content, pagination & custom plugins",
+                        "Plain-text content is shown. Layouts, embedded media, additional pages, and custom tools may require ILIAS.",
+                        false,
+                      ],
+                    ].map(([title, description, supported]) => (
+                      <div
+                        key={String(title)}
+                        className="flex items-start gap-4 py-4"
+                      >
+                        <span className="mt-0.5 text-primary">
+                          {supported ? (
+                            <Check className="size-4" />
+                          ) : (
+                            <ArrowUpRight className="size-4" />
+                          )}
+                        </span>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">{title}</p>
+                          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                            {description}
+                          </p>
+                        </div>
+                        <Badge variant={supported ? "secondary" : "outline"}>
+                          {supported ? "Available" : "In ILIAS"}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <OriginalLink href={data.instance} />
+                </CardFooter>
+              </Card>
+            </>
+          ) : data.mode === "disconnected" ? (
+            <>
+              <section className="welcome-hero relative overflow-hidden rounded-2xl border bg-card px-6 py-10 sm:px-10 sm:py-14">
+                <div className="relative z-10 max-w-lg">
+                  <Badge variant="outline" className="mb-6">
+                    <span className="size-1.5 rounded-full bg-primary" />
+                    MADE FOR YOUR LEARNING
+                  </Badge>
+                  <h1 className="hero-title">
+                    Less friction.
+                    <br />
+                    <span className="text-primary">More learning.</span>
+                  </h1>
+                  <p className="mt-6 max-w-md text-base leading-relaxed text-muted-foreground">
+                    A calmer home for your ILIAS courses. Find your materials,
+                    pick up where you left off, and get on with learning.
+                  </p>
+                  <div className="mt-8 flex flex-wrap items-center gap-3">
+                    <Button size="lg" onClick={() => setConnectOpen(true)}>
+                      Connect your ILIAS
+                      <ArrowUpRight data-icon="inline-end" />
+                    </Button>
+                    <Button size="lg" variant="outline" asChild>
+                      <Link href="/?demo=1">
+                        Take a look around
+                        <ArrowRight data-icon="inline-end" />
+                      </Link>
+                    </Button>
+                  </div>
+                  <p className="mt-5 flex items-center gap-2 text-xs text-muted-foreground">
+                    <ShieldCheck className="size-3.5" />
+                    Sign in securely through your university.
+                  </p>
+                </div>
+                <div className="hero-art hidden lg:block" aria-hidden="true">
+                  <div className="art-orbit orbit-one" />
+                  <div className="art-orbit orbit-two" />
+                  <div className="art-orbit orbit-three" />
+                  <div className="art-book">
+                    <BookOpen className="size-14" />
+                    <span>
+                      A little more
+                      <br />
+                      room to learn.
+                    </span>
+                  </div>
+                  <span className="art-star star-one">✳</span>
+                  <span className="art-star star-two">✳</span>
+                  <span className="art-dot" />
+                </div>
+              </section>
+              <div className="grid gap-6 md:grid-cols-3">
+                {[
+                  {
+                    icon: GraduationCap,
+                    title: "Your courses, together",
+                    text: "One clear starting point for the spaces and materials you use every day.",
+                  },
+                  {
+                    icon: Bookmark,
+                    title: "Keep the useful things close",
+                    text: "Save a lecture, a folder, or a reading. Come back without retracing your steps.",
+                  },
+                  {
+                    icon: ArrowUpRight,
+                    title: "The whole campus is still there",
+                    text: "When a feature needs ILIAS, you’ll see it here with a direct way to open it.",
+                  },
+                ].map(({ icon: Icon, title, text }) => (
+                  <Card key={title}>
+                    <CardHeader>
+                      <Icon className="mb-3 size-5 text-primary" />
+                      <CardTitle>{title}</CardTitle>
+                      <CardDescription className="leading-relaxed">
+                        {text}
+                      </CardDescription>
+                    </CardHeader>
+                  </Card>
+                ))}
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-4 py-3">
+                <div className="flex items-center gap-3">
+                  <University className="size-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">
+                      Ready for the University of Freiburg
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Works with your existing ILIAS account and myLogin.
+                    </p>
+                  </div>
+                </div>
+                <Button variant="link" asChild>
+                  <Link href="/settings">
+                    See supported features
+                    <ArrowRight data-icon="inline-end" />
+                  </Link>
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              {view === "browse" && (
+                <Button
+                  variant="ghost"
+                  className="w-fit"
+                  onClick={() => {
+                    if (window.history.length > 1) router.back();
+                    else router.push(`/${suffix}`);
+                  }}
+                >
+                  <ArrowLeft data-icon="inline-start" />
+                  Back to your space
+                </Button>
+              )}
+              <div className="flex flex-wrap items-end justify-between gap-5">
+                <div className="max-w-2xl">
+                  <p className="eyebrow">
+                    {view === "saved"
+                      ? "THE GOOD STUFF, WITHIN REACH"
+                      : view === "browse"
+                        ? "YOUR LEARNING MATERIALS"
+                        : "A LITTLE LESS SEARCHING. A LITTLE MORE LEARNING."}
+                  </p>
+                  <h1 className="page-title mt-3">
+                    {view === "saved"
+                      ? "Saved for later."
+                      : view === "browse"
+                        ? data.page.title
+                        : data.userName
+                          ? `Welcome back, ${data.userName.replace(/^Avatar\s*/i, "")}.`
+                          : "Your learning space."}
+                  </h1>
+                  <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                    {view === "saved"
+                      ? "The courses and materials you’ve kept close. Saved only in this browser."
+                      : view === "browse"
+                        ? data.page.description ||
+                          "Everything in this space, with a clearer way through."
+                        : "Settle in. Everything you need is a little closer."}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  {view !== "saved" && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        disabled={refreshing}
+                        onClick={() => {
+                          setRefreshing(true);
+                          router.refresh();
+                        }}
+                      >
+                        <Loader2
+                          data-icon="inline-start"
+                          className={cn(refreshing && "animate-spin")}
+                        />
+                        {refreshing ? "Refreshing" : "Refresh"}
+                      </Button>
+                      <OriginalLink href={source} />
+                    </>
+                  )}
+                </div>
+              </div>
+              {data.error ? (
+                <Alert variant="destructive">
+                  <CircleHelp />
+                  <AlertTitle>Couldn’t load this learning space</AlertTitle>
+                  <AlertDescription>
+                    {data.error}
+                    <div className="mt-3 flex gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => setConnectOpen(true)}
+                      >
+                        Reconnect account
+                      </Button>
+                      <OriginalLink href={source} />
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <>
+                  {data.page.notices.map((notice, i) => (
+                    <Alert key={i}>
+                      <CircleHelp />
+                      <AlertDescription>{notice}</AlertDescription>
+                    </Alert>
+                  ))}
+                  {view === "home" &&
+                    !section &&
+                    localReady &&
+                    local.recent.length > 0 && (
+                      <section className="flex flex-col gap-4">
+                        <div className="flex items-center justify-between">
+                          <h2 className="section-title">
+                            Pick up where you left off
+                          </h2>
+                          <span className="text-xs text-muted-foreground">
+                            Recently opened on this browser
+                          </span>
+                        </div>
+                        <div className="grid gap-3 md:grid-cols-2">
+                          {local.recent.slice(0, 2).map((item) => (
+                            <Card key={keyOf(item)} size="sm">
+                              <CardHeader>
+                                <CardTitle>
+                                  <Button
+                                    variant="link"
+                                    className="resource-title"
+                                    onClick={() => openItem(item)}
+                                  >
+                                    {item.title}
+                                  </Button>
+                                </CardTitle>
+                                <CardDescription>
+                                  {typeNames[item.type] || "ILIAS object"}
+                                </CardDescription>
+                                <CardAction>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    aria-label={`Continue ${item.title}`}
+                                    onClick={() => openItem(item)}
+                                  >
+                                    <ArrowUpRight />
+                                  </Button>
+                                </CardAction>
+                              </CardHeader>
+                            </Card>
+                          ))}
+                        </div>
+                      </section>
+                    )}
+                  {view === "browse" &&
+                    (data.page.tools.length > 1 || unsupported.length > 0) && (
+                      <Alert>
+                        <ArrowUpRight />
+                        <AlertTitle>This course has more in ILIAS</AlertTitle>
+                        <AlertDescription>
+                          Interactive activities and course tools open in the
+                          original platform. They’re labeled “In ILIAS” below.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  {view === "browse" && (
+                    <Tabs defaultValue="materials">
+                      <TabsList>
+                        <TabsTrigger value="materials">
+                          Materials{" "}
+                          <Badge variant="secondary">
+                            {data.page.items.length}
+                          </Badge>
+                        </TabsTrigger>
+                        <TabsTrigger value="information">
+                          Course information
+                        </TabsTrigger>
+                        <TabsTrigger value="tools">
+                          ILIAS tools <ArrowUpRight />
+                        </TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="information" className="mt-6">
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>From your course page</CardTitle>
+                            <CardDescription>
+                              Plain text from ILIAS. Open the original for
+                              links, media, and the full layout.
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent className="flex flex-col gap-4">
+                            {data.page.text.length ? (
+                              data.page.text.map((p, i) => (
+                                <p
+                                  key={i}
+                                  className="text-sm leading-relaxed text-muted-foreground"
+                                >
+                                  {p}
+                                </p>
+                              ))
+                            ) : (
+                              <p className="text-sm text-muted-foreground">
+                                No introductory text was found on this page.
+                              </p>
+                            )}
+                          </CardContent>
+                          <CardFooter>
+                            <OriginalLink href={source} />
+                          </CardFooter>
+                        </Card>
+                      </TabsContent>
+                      <TabsContent value="tools" className="mt-6">
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>
+                              Keep the full course within reach
+                            </CardTitle>
+                            <CardDescription>
+                              These tools use the original ILIAS interface.
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent className="flex flex-wrap gap-3">
+                            {data.page.tools.map((tool) => (
+                              <OriginalLink
+                                key={tool.title}
+                                href={demo ? data.instance : tool.url}
+                              >
+                                {tool.title}
+                              </OriginalLink>
+                            ))}
+                            {!data.page.tools.length && (
+                              <OriginalLink href={source} />
+                            )}
+                          </CardContent>
+                        </Card>
+                      </TabsContent>
+                      <TabsContent value="materials" className="mt-6">
+                        <div className="mb-5 max-w-md">
+                          <InputGroup>
+                            <InputGroupAddon>
+                              <Search />
+                            </InputGroupAddon>
+                            <InputGroupInput
+                              placeholder="Find something in this space…"
+                              aria-label="Filter materials"
+                              value={query}
+                              onChange={(e) => setQuery(e.target.value)}
+                            />
+                          </InputGroup>
+                        </div>
+                        {items.length
+                          ? renderItems(items)
+                          : nothing(
+                              query
+                                ? "No matching materials"
+                                : "No materials found",
+                              query
+                                ? "Try a different word or clear the filter."
+                                : "This space may be empty, restricted, or use a layout Achilias cannot read yet. Check the original ILIAS page.",
+                            )}
+                      </TabsContent>
+                    </Tabs>
+                  )}
+                  {view !== "browse" && (
+                    <section className="flex flex-col gap-5" id="courses">
+                      <div className="flex flex-wrap items-center justify-between gap-4">
+                        <div className="flex items-center gap-2">
+                          <h2 className="section-title">
+                            {view === "saved"
+                              ? "Your saved items"
+                              : "Your courses"}
+                          </h2>
+                          <Badge variant="secondary">
+                            {view === "saved" ? items.length : courses.length}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="w-44 sm:w-56">
+                            <InputGroup>
+                              <InputGroupAddon>
+                                <Search />
+                              </InputGroupAddon>
+                              <InputGroupInput
+                                aria-label="Filter courses and materials"
+                                placeholder="Find a course or material…"
+                                value={query}
+                                onChange={(e) => setQuery(e.target.value)}
+                              />
+                            </InputGroup>
+                          </div>
+                          <ToggleGroup
+                            type="single"
+                            value={layout}
+                            onValueChange={(v) => v && setLayout(v)}
+                            variant="outline"
+                            spacing={0}
+                            aria-label="Content layout"
+                          >
+                            <ToggleGroupItem
+                              value="grid"
+                              aria-label="Grid view"
+                            >
+                              <LayoutGrid />
+                            </ToggleGroupItem>
+                            <ToggleGroupItem
+                              value="list"
+                              aria-label="List view"
+                            >
+                              <List />
+                            </ToggleGroupItem>
+                          </ToggleGroup>
+                        </div>
+                      </div>
+                      {view === "saved"
+                        ? items.length
+                          ? renderItems(items)
+                          : nothing(
+                              query
+                                ? "No matching saved items"
+                                : "Make a little space for later",
+                              query
+                                ? "Try a different search."
+                                : "Use the bookmark beside any course or material to save it here.",
+                            )
+                        : courses.length
+                          ? renderItems(courses, true)
+                          : nothing(
+                              query
+                                ? "No matching courses"
+                                : "Your courses will appear here",
+                              query
+                                ? "Try a different search."
+                                : "Achilias shows course and group links from your ILIAS dashboard. Add courses to your dashboard in ILIAS if they’re missing here.",
+                            )}
+                    </section>
+                  )}
+                  {view === "home" && rest.length > 0 && (
+                    <section className="flex flex-col gap-5">
+                      <h2 className="section-title">
+                        Also in your learning space
+                      </h2>
+                      {renderItems(rest)}
+                    </section>
+                  )}
+                  {data.page.hasMore && (
+                    <Alert>
+                      <CircleHelp />
+                      <AlertTitle>
+                        There may be more on the original page
+                      </AlertTitle>
+                      <AlertDescription>
+                        This ILIAS listing has pagination. Achilias currently
+                        shows the first page.
+                        <div className="mt-2">
+                          <OriginalLink href={source}>
+                            View all in ILIAS
+                          </OriginalLink>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  {view === "home" && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <ArrowUpRight className="size-4 text-primary" />
+                          Still connected to the whole campus.
+                        </CardTitle>
+                        <CardDescription>
+                          Assignments, quizzes, discussions, mail, and your
+                          calendar are available in ILIAS. Course activities
+                          appear here with a clear handoff.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardFooter className="justify-between">
+                        <Button variant="link" asChild>
+                          <Link href={`/settings${suffix}`}>
+                            What’s supported
+                            <ArrowRight data-icon="inline-end" />
+                          </Link>
+                        </Button>
+                        <OriginalLink href={data.instance} compact>
+                          Go to ILIAS
+                        </OriginalLink>
+                      </CardFooter>
+                    </Card>
+                  )}
+                </>
+              )}
+            </>
+          )}
+          <footer className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t pt-6 text-xs text-muted-foreground">
+            <span>A calmer way to ILIAS.</span>
+            <span>
+              Independent frontend ·{" "}
+              {data.fetchedAt
+                ? `Fetched ${new Date(data.fetchedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" })} Berlin time`
+                : demo
+                  ? "Example content, real possibilities."
+                  : "Built for the everyday."}
+            </span>
+          </footer>
+        </main>
+      </SidebarInset>
+      <CommandDialog
+        open={searchOpen}
+        onOpenChange={setSearchOpen}
+        title="Find a course or material"
+        description="Search this page, saved items, and recently opened content."
+      >
+        <Command>
+          <CommandInput placeholder="Search courses, folders, and materials…" />
+          <CommandList>
+            <CommandEmpty>
+              No match. Search covers this page, your saved items, and recent
+              history.
+            </CommandEmpty>
+            <CommandGroup heading="Navigate">
+              <CommandItem
+                onSelect={() => {
+                  setSearchOpen(false);
+                  router.push(`/${suffix}`);
+                }}
+              >
+                <Home />
+                Overview
+              </CommandItem>
+              <CommandItem
+                onSelect={() => {
+                  setSearchOpen(false);
+                  router.push(`/saved${suffix}`);
+                }}
+              >
+                <Bookmark />
+                Saved for later
+              </CommandItem>
+              <CommandItem
+                onSelect={() => {
+                  setSearchOpen(false);
+                  router.push(`/settings${suffix}`);
+                }}
+              >
+                <Settings2 />
+                Features & connection
+              </CommandItem>
+            </CommandGroup>
+            <CommandGroup heading="Courses & materials">
+              {allItems.map((item) => {
+                const Icon = iconFor(item.type);
+                return (
+                  <CommandItem
+                    key={keyOf(item)}
+                    value={`${item.title} ${item.description} ${item.id}`}
+                    onSelect={() => openItem(item)}
+                  >
+                    <Icon />
+                    <span className="flex-1">{item.title}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {typeNames[item.type] || "In ILIAS"}
+                    </span>
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+        <div className="border-t px-3 py-2 text-xs text-muted-foreground">
+          Searches this page, saved items, and recent history.
+        </div>
+      </CommandDialog>
+      <ConnectDialog
+        open={connectOpen}
+        onOpenChange={setConnectOpen}
+        instance={data.instance}
+      />
+      <Dialog
+        open={!!selected}
+        onOpenChange={(value) => {
+          if (!value) setSelected(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <Badge variant="secondary" className="mb-2 w-fit">
+              {selected && (typeNames[selected.type] || "ILIAS object")}
+            </Badge>
+            <DialogTitle>{selected?.title}</DialogTitle>
+            <DialogDescription>
+              {selected?.description ||
+                "This item is part of your ILIAS learning space."}
+            </DialogDescription>
+          </DialogHeader>
+          {selected && (
+            <div className="flex flex-col gap-5">
+              <p className="text-sm text-muted-foreground">
+                {!selected.available
+                  ? "ILIAS has restricted this object or it is not currently available. Check the original page for access requirements."
+                  : selected.type === "file"
+                    ? selected.meta ||
+                      "Download using your connected ILIAS session."
+                    : demo
+                      ? "This is an example activity. In a connected account, the original ILIAS activity opens here."
+                      : `This ${typeNames[selected.type]?.toLowerCase() || "activity"} is not implemented in Achilias yet. Open ILIAS to use the full feature. Your work stays on the original platform.`}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {selected.type === "file" && selected.available && (
+                  <Button
+                    onClick={() => download(selected)}
+                    disabled={downloading}
+                  >
+                    {downloading ? (
+                      <Loader2
+                        data-icon="inline-start"
+                        className="animate-spin"
+                      />
+                    ) : (
+                      <ArrowDownToLine data-icon="inline-start" />
+                    )}
+                    {downloading
+                      ? "Preparing download"
+                      : demo
+                        ? "Download example PDF"
+                        : "Download file"}
+                  </Button>
+                )}
+                <OriginalLink href={demo ? data.instance : selected.sourceUrl}>
+                  {demo ? "Visit Freiburg ILIAS" : "Open in ILIAS"}
+                </OriginalLink>
+                <Button variant="ghost" onClick={() => toggleSave(selected)}>
+                  <Bookmark data-icon="inline-start" />
+                  {local.saved.some((i) => keyOf(i) === keyOf(selected))
+                    ? "Unsave"
+                    : "Save for later"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </SidebarProvider>
+  );
+}

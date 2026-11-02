@@ -80,9 +80,7 @@ try {
     "/",
     "Bookmark click navigated the card",
   );
-  await page
-    .getByRole("link", { name: "Bookmarks", exact: true })
-    .click();
+  await page.getByRole("link", { name: "Bookmarks", exact: true }).click();
   await page
     .getByRole("heading", { name: "Bookmarks.", exact: true })
     .waitFor();
@@ -97,7 +95,10 @@ try {
   const otherTab = await context.newPage();
   await otherTab.goto(origin + "/?demo=1");
   await otherTab
-    .getByRole("button", { name: "Remove bookmark Linear Algebra I", exact: true })
+    .getByRole("button", {
+      name: "Remove bookmark Linear Algebra I",
+      exact: true,
+    })
     .click();
   await page
     .getByRole("link", { name: "Linear Algebra I", exact: true })
@@ -121,7 +122,9 @@ try {
   await page.getByRole("radio", { name: "List view" }).click();
   assert.equal(await page.locator(".resource-row").count(), 4);
   await page.getByRole("link", { name: "My courses", exact: true }).click();
-  await page.getByRole("heading", { name: "Your courses.", exact: true }).waitFor();
+  await page
+    .getByRole("heading", { name: "Your courses.", exact: true })
+    .waitFor();
   assert.equal(await page.locator(".course-card").count(), 4);
   await page.getByRole("link", { name: "Overview", exact: true }).click();
   await page.getByRole("heading", { name: "Overview", exact: true }).waitFor();
@@ -150,15 +153,20 @@ try {
   await page
     .getByRole("heading", { name: "Lecture materials", exact: true })
     .waitFor();
+  const pdfOpened = page.waitForEvent("popup");
   await page
-    .getByRole("button", { name: "01 — Getting started.pdf", exact: true })
+    .getByRole("link", { name: "01 — Getting started.pdf", exact: true })
     .click();
-  const downloaded = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Download example PDF" }).click();
-  const download = await downloaded;
-  assert.equal(download.suggestedFilename(), "achilias-example.pdf");
-  assert.equal(await download.failure(), null);
-  await page.getByRole("button", { name: "Close", exact: true }).click();
+  const pdfPage = await pdfOpened;
+  await pdfPage.waitForURL(/\/api\/files\/.*view=1/);
+  assert.equal(await page.getByRole("dialog").count(), 0);
+  const response = await context.request.get(pdfPage.url());
+  assert.match(response.headers()["content-disposition"], /^inline/);
+  assert.equal(response.headers()["content-type"], "application/pdf");
+  assert.ok(
+    (await response.body()).subarray(0, 5).equals(Buffer.from("%PDF-")),
+  );
+  await pdfPage.close();
   await page.keyboard.press("Control+k");
   await page.getByRole("combobox").fill("linear");
   await page.getByRole("option", { name: /Linear Algebra I/ }).click();
@@ -179,9 +187,7 @@ try {
   await page.keyboard.press("Escape");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "Toggle Sidebar" }).click();
-  await page
-    .getByRole("link", { name: "Bookmarks", exact: true })
-    .click();
+  await page.getByRole("link", { name: "Bookmarks", exact: true }).click();
   await page.getByRole("heading", { name: "Bookmarks." }).waitFor();
   assert.equal(
     await page.evaluate(

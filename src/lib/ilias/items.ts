@@ -69,3 +69,12 @@ export function itemHref(item: Item, demo = false) {
       return item.sourceUrl;
   }
 }
+
+/** File titles open the browser viewer; explicit download actions use itemHref. */
+export function itemOpenHref(item: Item, demo = false) {
+  const href = itemHref(item, demo);
+  return item.type === "file" ? `${href}${demo ? "&" : "?"}view=1` : href;
+}
+export function isFileItem(item: Item) {
+  return item.available && item.type === "file";
+}

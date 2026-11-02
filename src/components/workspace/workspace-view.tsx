@@ -17,6 +17,8 @@ import { useLibrary } from "@/hooks/use-library";
 import { mergeItems } from "@/lib/ilias/library";
 import {
   isExternalItem,
+  isFileItem,
+  itemOpenHref,
   isSupportedItemType,
   isNavigableItem,
   itemKey,
@@ -94,22 +96,31 @@ export function WorkspaceView({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
-  function openItem(item: Item) {
+  function contextualItem(item: Item) {
     const onPage = data.page.items.some(
       (pageItem) => itemKey(pageItem) === itemKey(item),
     );
-    const enriched =
-      item.context || view !== "browse" || !onPage
-        ? item
-        : { ...item, context: data.page.title };
+    return item.context || view !== "browse" || !onPage
+      ? item
+      : { ...item, context: data.page.title };
+  }
+  function rememberItem(item: Item) {
+    remember(contextualItem(item));
+  }
+  function openItem(item: Item) {
+    const enriched = contextualItem(item);
     setSearchOpen(false);
     if (!enriched.available) {
       setSelected(enriched);
       return;
     }
     remember(enriched);
-    if (isExternalItem(enriched)) {
-      window.open(enriched.sourceUrl, "_blank", "noopener,noreferrer");
+    if (isExternalItem(enriched) || isFileItem(enriched)) {
+      window.open(
+        itemOpenHref(enriched, demo),
+        "_blank",
+        "noopener,noreferrer",
+      );
     } else if (isNavigableItem(enriched)) {
       router.push(itemHref(enriched, demo));
     } else {
@@ -152,7 +163,7 @@ export function WorkspaceView({
     saved: local.saved,
     demo,
     onOpen: openItem,
-    onVisit: remember,
+    onVisit: rememberItem,
     onToggleSave: toggleSave,
   };
   const renderEmpty = (
@@ -370,59 +381,57 @@ export function WorkspaceView({
                 </>
               ) : (
                 <>
-                  {view === "home" &&
-                    localReady &&
-                    local.recent.length > 0 && (
-                      <section className="flex flex-col gap-4">
-                        <div className="flex items-center justify-between">
-                          <h2 className="section-title">
-                            Pick up where you left off
-                          </h2>
-                        </div>
-                        <div className="grid gap-3 md:grid-cols-2">
-                          {local.recent.slice(0, 2).map((item) => (
-                            <Card
-                              key={itemKey(item)}
-                              size="sm"
-                              className="relative"
-                            >
-                              <CardHeader>
-                                <CardTitle>
-                                  <ItemAction
-                                    variant="link"
-                                    className="resource-title px-0 after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
-                                    item={item}
-                                    demo={demo}
-                                    onOpen={openItem}
-                                    onVisit={remember}
-                                  >
-                                    {item.title}
-                                  </ItemAction>
-                                </CardTitle>
-                                <CardDescription>
-                                  {item.context ||
-                                    typeNames[item.type] ||
-                                    "ILIAS object"}
-                                </CardDescription>
-                                <CardAction className="relative z-10">
-                                  <ItemAction
-                                    variant="ghost"
-                                    size="icon"
-                                    aria-label={`Continue ${item.title}`}
-                                    item={item}
-                                    demo={demo}
-                                    onOpen={openItem}
-                                    onVisit={remember}
-                                  >
-                                    <ArrowUpRight />
-                                  </ItemAction>
-                                </CardAction>
-                              </CardHeader>
-                            </Card>
-                          ))}
-                        </div>
-                      </section>
-                    )}
+                  {view === "home" && localReady && local.recent.length > 0 && (
+                    <section className="flex flex-col gap-4">
+                      <div className="flex items-center justify-between">
+                        <h2 className="section-title">
+                          Pick up where you left off
+                        </h2>
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        {local.recent.slice(0, 2).map((item) => (
+                          <Card
+                            key={itemKey(item)}
+                            size="sm"
+                            className="relative"
+                          >
+                            <CardHeader>
+                              <CardTitle>
+                                <ItemAction
+                                  variant="link"
+                                  className="resource-title px-0 after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
+                                  item={item}
+                                  demo={demo}
+                                  onOpen={openItem}
+                                  onVisit={rememberItem}
+                                >
+                                  {item.title}
+                                </ItemAction>
+                              </CardTitle>
+                              <CardDescription>
+                                {item.context ||
+                                  typeNames[item.type] ||
+                                  "ILIAS object"}
+                              </CardDescription>
+                              <CardAction className="relative z-10">
+                                <ItemAction
+                                  variant="ghost"
+                                  size="icon"
+                                  aria-label={`Continue ${item.title}`}
+                                  item={item}
+                                  demo={demo}
+                                  onOpen={openItem}
+                                  onVisit={rememberItem}
+                                >
+                                  <ArrowUpRight />
+                                </ItemAction>
+                              </CardAction>
+                            </CardHeader>
+                          </Card>
+                        ))}
+                      </div>
+                    </section>
+                  )}
                   {view === "browse" && (
                     <BrowseTabs
                       data={data}
@@ -509,7 +518,10 @@ export function WorkspaceView({
                       </CardHeader>
                       <CardFooter className="justify-between">
                         <Button variant="link" asChild>
-                          <Link prefetch={true} href={demoHref("/settings", demo)}>
+                          <Link
+                            prefetch={true}
+                            href={demoHref("/settings", demo)}
+                          >
                             What’s supported
                             <ArrowRight data-icon="inline-end" />
                           </Link>

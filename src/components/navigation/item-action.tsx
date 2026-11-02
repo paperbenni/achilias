@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import {
   isContainerType,
   isExternalItem,
+  isFileItem,
+  itemOpenHref,
   isNavigableItem,
   itemHref,
 } from "@/lib/ilias/items";
@@ -36,11 +38,11 @@ export function ItemAction({
   children: React.ReactNode;
   textLink?: boolean;
 } & Omit<React.ComponentProps<typeof Button>, "onClick" | "asChild">) {
-  if (isExternalItem(item)) {
+  if (isExternalItem(item) || isFileItem(item)) {
     if (textLink)
       return (
         <a
-          href={item.sourceUrl}
+          href={itemOpenHref(item, demo)}
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => onVisit(item)}
@@ -53,7 +55,7 @@ export function ItemAction({
     return (
       <Button {...props} asChild>
         <a
-          href={item.sourceUrl}
+          href={itemOpenHref(item, demo)}
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => onVisit(item)}

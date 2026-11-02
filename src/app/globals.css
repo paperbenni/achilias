@@ -73,6 +73,10 @@
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
+  --course-warm-background: oklch(0.94 0.025 80);
+  --course-warm-foreground: oklch(0.45 0.06 70);
+  --course-cool-background: oklch(0.94 0.018 265);
+  --course-cool-foreground: oklch(0.45 0.06 265);
   --sidebar: oklch(0.965 0.008 95);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -84,6 +88,10 @@
 }
 
 .dark {
+  --course-warm-background: oklch(0.28 0.025 80);
+  --course-warm-foreground: oklch(0.84 0.06 70);
+  --course-cool-background: oklch(0.28 0.025 265);
+  --course-cool-foreground: oklch(0.84 0.06 265);
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
@@ -151,12 +159,12 @@
     @apply flex size-12 items-center justify-center rounded-xl bg-accent text-accent-foreground;
   }
   .course-monogram[data-tone="1"] {
-    background: oklch(0.94 0.025 80);
-    color: oklch(0.45 0.06 70);
+    background: var(--course-warm-background);
+    color: var(--course-warm-foreground);
   }
   .course-monogram[data-tone="2"] {
-    background: oklch(0.94 0.018 265);
-    color: oklch(0.45 0.06 265);
+    background: var(--course-cool-background);
+    color: var(--course-cool-foreground);
   }
   .resource-row {
     @apply bg-card transition-colors hover:bg-muted/40;

@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "browser:install": "playwright install chromium",
     "connect": "bun scripts/connect.ts",
-    "test:e2e": "bun scripts/smoke.ts && bun scripts/forum-smoke.ts && bun scripts/headless-smoke.ts && bun scripts/exercise-smoke.ts && bun scripts/multi-user-smoke.ts && bun scripts/form-serialization-smoke.ts",
+    "test:e2e": "bun scripts/smoke.ts && bun scripts/forum-smoke.ts && bun scripts/headless-smoke.ts && bun scripts/exercise-smoke.ts && bun scripts/multi-user-smoke.ts && bun scripts/form-serialization-smoke.ts && bun scripts/pdf-theme-smoke.ts",
     "screenshots": "bun scripts/screenshots.ts",
     "test:forums": "bun scripts/forum-smoke.ts",
     "test:headless": "bun scripts/headless-smoke.ts",
@@ -20,7 +20,8 @@
     "test:exercises": "bun scripts/exercise-smoke.ts",
     "test:multi-user": "bun scripts/multi-user-smoke.ts",
     "test:forms": "bun scripts/form-serialization-smoke.ts",
-    "test:search": "bun scripts/search-smoke.ts"
+    "test:search": "bun scripts/search-smoke.ts",
+    "test:pdf-theme": "bun scripts/pdf-theme-smoke.ts"
   },
   "dependencies": {
     "acorn": "^8.19.0",
@@ -29,6 +30,7 @@
     "class-variance-authority": "^0.7.1",
     "cmdk": "^1.1.1",
     "cn": "^0.5.2",
+    "content-disposition": "^3.0.0",
     "ipaddr.js": "^2.5.0",
     "lucide-react": "^1.66.0",
     "next": "16.4.3",

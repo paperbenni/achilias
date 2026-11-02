@@ -1,3 +1,4 @@
+import { fileName } from "./file-disposition";
 /** Download through the app while keeping expired-session and permission errors in the UI. */
 export async function downloadFile(href: string, fallbackName: string) {
   const response = await fetch(href, { cache: "no-store" });
@@ -14,16 +15,10 @@ export async function downloadFile(href: string, fallbackName: string) {
   }
   const blob = await response.blob();
   const objectUrl = URL.createObjectURL(blob);
-  const disposition = response.headers.get("content-disposition") || "";
-  let filename = disposition.match(/filename="?([^";]+)/i)?.[1] || fallbackName;
-  const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
-  if (encoded) {
-    try {
-      filename = decodeURIComponent(encoded);
-    } catch {
-      /* Use the plain filename. */
-    }
-  }
+  const filename = fileName(
+    response.headers.get("content-disposition"),
+    fallbackName,
+  );
   const anchor = document.createElement("a");
   anchor.hidden = true;
   anchor.href = objectUrl;

@@ -32,13 +32,18 @@ export async function GET(
 ) {
   const { id } = await params;
   const headers = downloadHeaders();
+  const inlinePdf = new URL(request.url).searchParams.get("view") === "1";
   if (new URL(request.url).searchParams.get("demo") === "1") {
     headers.set("Content-Type", "application/pdf");
     headers.set(
       "Content-Disposition",
       'attachment; filename="achilias-example.pdf"',
     );
-    return new Response(examplePdf(), { headers });
+    return downloadResponse(
+      new Response(examplePdf(), { headers }),
+      "achilias-example.pdf",
+      { inlinePdf },
+    );
   }
   const session = await currentSession();
   if (session?.status !== "connected")
@@ -52,7 +57,7 @@ export async function GET(
       objectUrl(session.instance, "file", id, true),
       { file: true },
     );
-    return await downloadResponse(response, `ilias-file-${id}`);
+    return await downloadResponse(response, `ilias-file-${id}`, { inlinePdf });
   } catch (e) {
     return Response.json(
       { error: e instanceof Error ? e.message : "Download failed." },

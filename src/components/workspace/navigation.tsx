@@ -1,4 +1,5 @@
 "use client";
+import { AppearanceMenu } from "@/components/navigation/appearance-menu";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -9,6 +10,7 @@ import {
   LogOut,
   Search,
   Settings2,
+  Palette,
   ShieldCheck,
   University,
 } from "lucide-react";
@@ -36,6 +38,7 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
 import { Separator } from "@/components/ui/separator";
@@ -178,10 +181,23 @@ export function Navigation({
       <SidebarFooter className="p-4">
         <Separator className="mb-2" />
         {data.mode === "disconnected" ? (
-          <Button variant="outline" onClick={connect}>
-            <ShieldCheck data-icon="inline-start" />
-            Connect account
-          </Button>
+          <>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="justify-start">
+                  <Palette />
+                  Appearance
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="top" align="start">
+                <AppearanceMenu />
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button variant="outline" onClick={connect}>
+              <ShieldCheck data-icon="inline-start" />
+              Connect account
+            </Button>
+          </>
         ) : (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -208,6 +224,8 @@ export function Navigation({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="top" align="start">
+              <AppearanceMenu />
+              <DropdownMenuSeparator />
               <DropdownMenuGroup>
                 <DropdownMenuItem
                   onSelect={() => router.push(demoHref("/settings", demo))}

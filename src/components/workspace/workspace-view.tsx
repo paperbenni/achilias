@@ -29,9 +29,14 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUpRight,
+  Bookmark,
   ChevronRight,
   CircleHelp,
+  GraduationCap,
+  Home,
+  LayoutDashboard,
   Search,
+  Settings2,
   Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -171,10 +176,53 @@ export function WorkspaceView({
         <header className="flex h-20 shrink-0 items-center justify-between gap-4 border-b px-5 lg:px-10">
           <div className="flex min-w-0 items-center gap-3">
             <SidebarTrigger className="md:hidden" />
+            <LayoutDashboard
+              className="size-3.5 shrink-0 text-muted-foreground"
+              aria-hidden="true"
+            />
             <span className="text-sm text-muted-foreground">Workspace</span>
-            <ChevronRight className="size-3 text-muted-foreground" />
+            <ChevronRight className="size-3 shrink-0 text-muted-foreground" />
+            {view === "browse" && (
+              <>
+                <GraduationCap
+                  className="size-3.5 shrink-0 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <Link
+                  prefetch={demo}
+                  href={demoHref("/courses", demo)}
+                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  My courses
+                </Link>
+                <ChevronRight className="size-3 shrink-0 text-muted-foreground" />
+              </>
+            )}
+            {view === "home" ? (
+              <Home
+                className="size-3.5 shrink-0 text-muted-foreground"
+                aria-hidden="true"
+              />
+            ) : view === "saved" ? (
+              <Bookmark
+                className="size-3.5 shrink-0 text-muted-foreground"
+                aria-hidden="true"
+              />
+            ) : view === "settings" ? (
+              <Settings2
+                className="size-3.5 shrink-0 text-muted-foreground"
+                aria-hidden="true"
+              />
+            ) : (
+              <GraduationCap
+                className="size-3.5 shrink-0 text-muted-foreground"
+                aria-hidden="true"
+              />
+            )}
             <span className="truncate text-sm font-medium">
-              {crumbFor(view, data.page.title)}
+              {view === "browse"
+                ? data.page.title
+                : crumbFor(view, data.page.title)}
             </span>
           </div>
           <div className="flex items-center gap-3">
@@ -221,11 +269,6 @@ export function WorkspaceView({
           {(view === "forum" || view === "exercise") &&
           data.mode !== "disconnected" ? (
             <>
-              <ParsedHtmlNotice
-                feature={view === "exercise" ? "exercise" : "forum"}
-                sourceUrl={demo ? data.instance : source}
-                demo={demo}
-              />
               {data.error ? (
                 <LoadErrorAlert
                   title={
@@ -240,6 +283,11 @@ export function WorkspaceView({
               ) : (
                 children
               )}
+              <ParsedHtmlNotice
+                feature={view === "exercise" ? "exercise" : "forum"}
+                sourceUrl={demo ? data.instance : source}
+                demo={demo}
+              />
             </>
           ) : view === "settings" ? (
             <SettingsView
@@ -272,14 +320,6 @@ export function WorkspaceView({
                   data={data}
                 />
               )}
-              {view !== "saved" && view !== "browse" && (
-                <ParsedHtmlNotice
-                  compact
-                  feature="dashboard"
-                  sourceUrl={demo ? data.instance : source}
-                  demo={demo}
-                />
-              )}
               {data.error ? (
                 <>
                   <LoadErrorAlert
@@ -299,12 +339,6 @@ export function WorkspaceView({
                 </>
               ) : (
                 <>
-                  {data.page.notices.map((notice, i) => (
-                    <Alert key={i}>
-                      <CircleHelp />
-                      <AlertDescription>{notice}</AlertDescription>
-                    </Alert>
-                  ))}
                   {view === "home" &&
                     localReady &&
                     local.recent.length > 0 && (
@@ -316,12 +350,16 @@ export function WorkspaceView({
                         </div>
                         <div className="grid gap-3 md:grid-cols-2">
                           {local.recent.slice(0, 2).map((item) => (
-                            <Card key={itemKey(item)} size="sm">
+                            <Card
+                              key={itemKey(item)}
+                              size="sm"
+                              className="relative"
+                            >
                               <CardHeader>
                                 <CardTitle>
                                   <ItemAction
                                     variant="link"
-                                    className="resource-title"
+                                    className="resource-title px-0 after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
                                     item={item}
                                     demo={demo}
                                     onOpen={openItem}
@@ -335,7 +373,7 @@ export function WorkspaceView({
                                     typeNames[item.type] ||
                                     "ILIAS object"}
                                 </CardDescription>
-                                <CardAction>
+                                <CardAction className="relative z-10">
                                   <ItemAction
                                     variant="ghost"
                                     size="icon"
@@ -353,17 +391,6 @@ export function WorkspaceView({
                           ))}
                         </div>
                       </section>
-                    )}
-                  {view === "browse" &&
-                    (data.page.tools.length > 1 || unsupported.length > 0) && (
-                      <Alert>
-                        <ArrowUpRight />
-                        <AlertTitle>This course has more in ILIAS</AlertTitle>
-                        <AlertDescription>
-                          Interactive activities and course tools open in the
-                          original platform. They’re labeled “In ILIAS” below.
-                        </AlertDescription>
-                      </Alert>
                     )}
                   {view === "browse" && (
                     <BrowseTabs
@@ -400,6 +427,23 @@ export function WorkspaceView({
                       <ItemList {...itemListProps} items={rest} />
                     </section>
                   )}
+                  {data.page.notices.map((notice, i) => (
+                    <Alert key={i}>
+                      <CircleHelp />
+                      <AlertDescription>{notice}</AlertDescription>
+                    </Alert>
+                  ))}
+                  {view === "browse" &&
+                    (data.page.tools.length > 1 || unsupported.length > 0) && (
+                      <Alert>
+                        <ArrowUpRight />
+                        <AlertTitle>This course has more in ILIAS</AlertTitle>
+                        <AlertDescription>
+                          Interactive activities and course tools open in the
+                          original platform. They’re labeled “In ILIAS” below.
+                        </AlertDescription>
+                      </Alert>
+                    )}
                   {data.page.hasMore && (
                     <Alert>
                       <CircleHelp />
@@ -452,6 +496,16 @@ export function WorkspaceView({
                     />
                   )}
                 </>
+              )}
+              {/* The parser notice is the escape hatch, so it also stays on
+                  pages that failed to load. */}
+              {view !== "saved" && view !== "browse" && (
+                <ParsedHtmlNotice
+                  compact
+                  feature="dashboard"
+                  sourceUrl={demo ? data.instance : source}
+                  demo={demo}
+                />
               )}
             </>
           )}

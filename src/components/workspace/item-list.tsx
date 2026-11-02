@@ -20,7 +20,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-import { isSupportedItemType, itemKey, typeNames } from "@/lib/ilias/items";
+import {
+  isContainerType,
+  isSupportedItemType,
+  itemKey,
+  typeNames,
+} from "@/lib/ilias/items";
 import type { Item } from "@/lib/ilias/types";
 import { cn } from "@/lib/utils";
 import {
@@ -66,6 +71,8 @@ export function ItemList({
       {list.map((item, index) => {
         const Icon = iconFor(item.type);
         const isSaved = saved.some((i) => itemKey(i) === itemKey(item));
+        const summary =
+          item.meta || (isContainerType(item.type) ? "" : item.description);
         return grid && layout === "grid" ? (
           <Card
             key={itemKey(item)}
@@ -148,16 +155,16 @@ export function ItemList({
             key={itemKey(item)}
             role="listitem"
             variant="outline"
-            className="resource-row min-w-0 flex-nowrap"
+            className="resource-row relative min-w-0 flex-nowrap"
           >
-            <ItemMedia variant="icon">
+            <ItemMedia variant="icon" className="self-center">
               <Icon />
             </ItemMedia>
             <ItemContent className="min-w-0">
               <ItemTitle className="max-w-full">
                 <ItemAction
                   variant="link"
-                  className="resource-title"
+                  className="resource-title px-0 after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
                   item={item}
                   demo={demo}
                   onOpen={onOpen}
@@ -166,12 +173,13 @@ export function ItemList({
                   {item.title}
                 </ItemAction>
               </ItemTitle>
-              <ItemDescription className="line-clamp-1">
-                {item.meta ||
-                  item.description ||
-                  typeNames[item.type] ||
-                  item.type}
-              </ItemDescription>
+              {/* A container's ILIAS description is often an instruction, not a
+                  summary; its own page repeats it in the heading. */}
+              {summary && (
+                <ItemDescription className="line-clamp-1">
+                  {summary}
+                </ItemDescription>
+              )}
               {item.context && (
                 <p
                   className="line-clamp-1 text-xs text-muted-foreground/80"
@@ -181,18 +189,14 @@ export function ItemList({
                 </p>
               )}
             </ItemContent>
-            <ItemActions>
+            <ItemActions className="relative z-10">
               {!item.available ? (
                 <Badge variant="outline">Restricted</Badge>
               ) : !isSupportedItemType(item.type) ? (
                 <Badge variant="outline" className="hidden sm:inline-flex">
                   In ILIAS <ArrowUpRight />
                 </Badge>
-              ) : (
-                <Badge variant="secondary" className="hidden sm:inline-flex">
-                  {typeNames[item.type]}
-                </Badge>
-              )}
+              ) : null}
               <Button
                 variant="ghost"
                 size="icon-sm"

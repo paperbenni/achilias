@@ -2,7 +2,11 @@
 import Link, { useLinkStatus } from "next/link";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { isNavigableItem, itemHref } from "@/lib/ilias/items";
+import {
+  isContainerType,
+  isNavigableItem,
+  itemHref,
+} from "@/lib/ilias/items";
 import type { Item } from "@/lib/ilias/types";
 export function NavigationHint() {
   const { pending } = useLinkStatus();
@@ -37,11 +41,15 @@ export function ItemAction({
         {children}
       </Button>
     );
+  // Prefetch the full ILIAS-backed route once the link is visible or hovered.
+  // Forum pages stay out: an upstream GET can record read state, unlike
+  // course, folder, and exercise pages.
+  const prefetch = demo || isContainerType(item.type) || item.type === "exc";
   if (textLink)
     return (
       <Link
         href={itemHref(item, demo)}
-        prefetch={demo}
+        prefetch={prefetch}
         onClick={() => onVisit(item)}
         className={props.className}
         aria-label={props["aria-label"]}
@@ -54,7 +62,7 @@ export function ItemAction({
     <Button {...props} asChild>
       <Link
         href={itemHref(item, demo)}
-        prefetch={demo}
+        prefetch={prefetch}
         onClick={() => onVisit(item)}
       >
         {children}

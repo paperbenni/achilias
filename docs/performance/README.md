@@ -25,7 +25,7 @@ The raw reports are [before](navigation-before.json) and [after](navigation-afte
 - Course/folder/forum navigation uses actual Next.js Links instead of click-only buttons. The demo can fully prefetch its examples.
 - Settings and Saved use local session metadata, without fetching the upstream ILIAS dashboard. These pages can be fully prefetched safely.
 - Next's client router reuses recently visited pages for 30 seconds. This stays in the current browser; no personal content is cached in a shared server data cache.
-- Fresh live ILIAS-backed destinations still disable background data prefetch. Fetching those pages can record visits/read events or alter forum view preferences.
+- Live course, folder, and exercise destinations prefetch in full once their links are visible. Fetching those pages can record visits/read events or alter forum view preferences; forum links therefore stay unprefetched.
 - Refresh and the forum UI's mark-read action invalidate cached navigation using a Server Action. Signing in or disconnecting performs a full navigation to discard the previous account's client router state.
 
 The 30-second reuse currently uses Next 16.4.3's documented experimental `staleTimes` setting. Keep the production navigation regression test when upgrading Next. Automatic prefetching is a production optimization; `bun run dev` does not demonstrate its final behavior.
@@ -35,6 +35,7 @@ The 30-second reuse currently uses Next 16.4.3's documented experimental `staleT
 The table above predates the following changes and was not re-run after them. They are listed so the measurements are not mistaken for results of the current build.
 
 - Workspace pages are reused for 30 seconds per session on the server, keyed by session and upstream URL. Overview and My courses share one dashboard download and parse; Refresh and mark-read clear the reuse. Forum and exercise pages are excluded.
+- Visible course, folder, and exercise links prefetch their full routes in production; previously only demo pages did. Forum links still do not prefetch because an upstream GET can record read state.
 - The exercise loader requests the editor catalog and the members page in parallel instead of one after the other, removing one upstream round trip from exercise pages.
 
 ## Reproduce

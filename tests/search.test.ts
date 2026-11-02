@@ -144,6 +144,80 @@ test("repository search rediscovers once when ILIAS ignores a stale token", asyn
   expect(found.results).toHaveLength(2);
 });
 
+test("repository search returns every parsed result instead of truncating", async () => {
+  const many =
+    `<a href="logout.php">Logout</a>` +
+    Array.from(
+      { length: 45 },
+      (_, i) =>
+        `<div class="il-item"><span class="il-item-title"><a href="goto.php?target=file_${700 + i}">File ${i}</a></span></div>`,
+    ).join("");
+  const requests: string[] = [];
+  upstreamTransport.fetch = mock(
+    async (url: Parameters<typeof fetch>[0]) => {
+      requests.push(String(url));
+      return new Response(requests.length === 1 ? dashboard : many, {
+        headers: { "content-type": "text/html; charset=utf-8" },
+      });
+    },
+  ) as unknown as typeof fetch;
+  const found = await searchRepository(session(), "File");
+  expect(found.results).toHaveLength(45);
+});
+
+test("repository search fetches the next ILIAS result page on demand", async () => {
+  const next = `<a href="logout.php">Logout</a><h1>Search results</h1>
+    <div class="il-item">
+      <span class="il-item-title"><a href="goto.php?target=grp_603">Gruppe 02</a></span>
+      <span class="il-item-property-name">Path</span><span class="il-item-property-value">Linear Algebra I › Exercise groups</span>
+    </div>`;
+  const requests: { url: string; method?: string }[] = [];
+  upstreamTransport.fetch = mock(
+    async (url: Parameters<typeof fetch>[0], init?: RequestInit) => {
+      requests.push({ url: String(url), method: init?.method });
+      const body =
+        requests.length === 1
+          ? dashboard
+          : requests.length === 2
+            ? results
+            : next;
+      return new Response(body, {
+        headers: { "content-type": "text/html; charset=utf-8" },
+      });
+    },
+  ) as unknown as typeof fetch;
+  const first = await searchRepository(session(), "Gruppe 02");
+  expect(first.page).toBe(1);
+  expect(first.hasMore).toBe(true);
+  const second = await searchRepository(session(), "Gruppe 02", 2);
+  expect(requests.map((request) => request.method)).toEqual([
+    "GET",
+    "POST",
+    "GET",
+  ]);
+  const action = new URL(requests[2].url);
+  expect(action.searchParams.get("cmd")).toBe("switchResultPage");
+  expect(action.searchParams.get("page_number")).toBe("1");
+  expect(action.searchParams.get("rtoken")).toBe("secret");
+  expect(second.page).toBe(2);
+  expect(second.results.map((item) => item.id)).toEqual(["603"]);
+  expect(second.sourceUrl).toContain("cmd=switchResultPage");
+});
+
+test("repository search rejects a page that does not belong to a live search", async () => {
+  const request = mock(
+    async () =>
+      new Response(dashboard, {
+        headers: { "content-type": "text/html; charset=utf-8" },
+      }),
+  );
+  upstreamTransport.fetch = request as unknown as typeof fetch;
+  await expect(searchRepository(session(), "Gruppe 02", 2)).rejects.toThrow(
+    "expired",
+  );
+  expect(request).not.toHaveBeenCalled();
+});
+
 test("repository search reports a missing ILIAS search form without posting", async () => {
   const request = mock(
     async () =>

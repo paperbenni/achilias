@@ -7,6 +7,8 @@ export const runtime = "nodejs";
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const query = (url.searchParams.get("q") || "").trim();
+  const pageParam = url.searchParams.get("page");
+  const page = pageParam === null ? 1 : Number(pageParam);
   if (query.length < 2 || query.length > 200)
     return Response.json(
       { error: "Enter between 2 and 200 characters to search." },
@@ -24,7 +26,7 @@ export async function GET(request: Request) {
         { error: "Connect your account to search all your courses." },
         { status: 401, headers: noStore },
       );
-    const result = await searchRepository(session, query);
+    const result = await searchRepository(session, query, page);
     return Response.json(
       { query, ...result, demo: false },
       { headers: noStore },

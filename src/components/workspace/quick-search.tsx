@@ -5,6 +5,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type UIEvent,
 } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -37,6 +38,7 @@ type DeepSearch = {
   results: Item[];
   sourceUrl: string;
   hasMore: boolean;
+  page: number;
 };
 
 function searchResultIcon(type: string) {
@@ -107,6 +109,9 @@ export function QuickSearch({
     query: string;
     message: string;
   } | null>(null);
+  const [deepMoreLoading, setDeepMoreLoading] = useState(false);
+  const [deepMoreError, setDeepMoreError] = useState("");
+  const loadingMore = useRef(false);
   const searchRequest = useRef(0);
   const searchAbort = useRef<AbortController | null>(null);
   const wasOpen = useRef(false);
@@ -118,6 +123,9 @@ export function QuickSearch({
     setDeep(null);
     setDeepLoadingQuery(null);
     setDeepError(null);
+    loadingMore.current = false;
+    setDeepMoreLoading(false);
+    setDeepMoreError("");
   };
   // Opening the palette starts fresh, however it was opened.
   useEffect(() => {
@@ -135,6 +143,8 @@ export function QuickSearch({
     searchAbort.current = controller;
     setDeepLoadingQuery(term);
     setDeepError(null);
+    setDeepMoreLoading(false);
+    setDeepMoreError("");
     try {
       const response = await fetch(
         `/api/search?q=${encodeURIComponent(term)}${demo ? "&demo=1" : ""}`,
@@ -145,6 +155,7 @@ export function QuickSearch({
         results?: Item[];
         sourceUrl?: string;
         hasMore?: boolean;
+        page?: number;
       };
       if (!response.ok)
         throw new Error(body.error || "ILIAS search failed.");
@@ -154,6 +165,7 @@ export function QuickSearch({
         results: Array.isArray(body.results) ? body.results : [],
         sourceUrl: body.sourceUrl || data.page.sourceUrl,
         hasMore: Boolean(body.hasMore),
+        page: body.page || 1,
       });
     } catch (error) {
       if (request !== searchRequest.current || controller.signal.aborted) return;
@@ -176,6 +188,65 @@ export function QuickSearch({
     return matches.slice(0, 16);
   }, [allItems, recent, pageItems, trimmedQuery]);
   const deepForQuery = deep?.query === trimmedQuery ? deep : null;
+  // ILIAS pages search results through its own result view, so reaching the
+  // bottom of the list asks for the next page instead of sending the user away.
+  async function loadMore() {
+    if (!deepForQuery || !deepForQuery.hasMore || loadingMore.current) return;
+    const term = deepForQuery.query;
+    loadingMore.current = true;
+    const request = searchRequest.current;
+    const controller = new AbortController();
+    searchAbort.current?.abort();
+    searchAbort.current = controller;
+    setDeepMoreLoading(true);
+    setDeepMoreError("");
+    try {
+      const response = await fetch(
+        `/api/search?q=${encodeURIComponent(term)}&page=${deepForQuery.page + 1}${demo ? "&demo=1" : ""}`,
+        { cache: "no-store", signal: controller.signal },
+      );
+      const body = (await response.json()) as {
+        error?: string;
+        results?: Item[];
+        hasMore?: boolean;
+        page?: number;
+      };
+      if (!response.ok)
+        throw new Error(body.error || "Could not load more results.");
+      if (request !== searchRequest.current) return;
+      setDeep((current) => {
+        if (!current || current.query !== term) return current;
+        const seen = new Set(current.results.map(itemKey));
+        const added = (Array.isArray(body.results) ? body.results : []).filter(
+          (item) => {
+            if (seen.has(itemKey(item))) return false;
+            seen.add(itemKey(item));
+            return true;
+          },
+        );
+        return {
+          ...current,
+          results: [...current.results, ...added],
+          page: body.page || current.page + 1,
+          hasMore: Boolean(body.hasMore) && added.length > 0,
+        };
+      });
+    } catch (error) {
+      if (request !== searchRequest.current || controller.signal.aborted) return;
+      setDeepMoreError(
+        error instanceof Error ? error.message : "Could not load more results.",
+      );
+    } finally {
+      loadingMore.current = false;
+      if (searchAbort.current === controller) searchAbort.current = null;
+      if (request === searchRequest.current) setDeepMoreLoading(false);
+    }
+  }
+  function onListScroll(event: UIEvent<HTMLDivElement>) {
+    const list = event.currentTarget;
+    if (list.scrollTop + list.clientHeight >= list.scrollHeight - 120)
+      void loadMore();
+  }
   const localKeys = new Set(localSearchResults.map(itemKey));
   const deepContext = new Map<string, string>();
   for (const item of deepForQuery?.results || [])
@@ -213,7 +284,10 @@ export function QuickSearch({
           value={searchQuery}
           onValueChange={setSearchQuery}
         />
-        <CommandList className="min-h-0 flex-1 max-h-none">
+        <CommandList
+          className="min-h-0 flex-1 max-h-none"
+          onScroll={onListScroll}
+        >
           {navigationResults.length > 0 && (
             <CommandGroup heading="Navigate">
               {navigationResults.map(({ title, icon: Icon, href }) => (
@@ -254,7 +328,10 @@ export function QuickSearch({
             </div>
           )}
           {trimmedQuery &&
-            (deepForQuery && deepResults.length > 0 ? (
+            (deepForQuery &&
+            (deepResults.length > 0 ||
+              deepForQuery.hasMore ||
+              Boolean(deepMoreError)) ? (
               <CommandGroup heading="Other matches in ILIAS">
                 {deepResults.map((item) => (
                   <SearchResultOption
@@ -264,8 +341,24 @@ export function QuickSearch({
                   />
                 ))}
                 {deepForQuery.hasMore && (
-                  <div className="px-3 py-2 text-xs text-muted-foreground">
-                    Showing the first matches. Open ILIAS search for the rest.
+                  <CommandItem
+                    value="load-more-results"
+                    disabled={deepMoreLoading}
+                    onSelect={() => void loadMore()}
+                  >
+                    {deepMoreLoading ? (
+                      <Loader2 className="animate-spin" />
+                    ) : (
+                      <Search />
+                    )}
+                    {deepMoreLoading
+                      ? "Loading more results…"
+                      : "Load more results"}
+                  </CommandItem>
+                )}
+                {deepMoreError && (
+                  <div className="px-3 py-2 text-xs text-destructive">
+                    {deepMoreError}
                   </div>
                 )}
               </CommandGroup>

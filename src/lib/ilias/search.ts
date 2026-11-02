@@ -17,6 +17,7 @@ export type SearchResults = {
   results: Item[];
   sourceUrl: string;
   hasMore: boolean;
+  page: number;
 };
 
 export const searchResultLimit = 40;
@@ -34,15 +35,21 @@ type SearchForm = {
 const searchFormTtl = 5 * 60_000;
 const searchForms = new Map<string, { form: SearchForm; expiresAt: number }>();
 const discovering = new Map<string, Promise<SearchForm>>();
+/** `switchResultPage` renders whatever search ILIAS has cached for the
+ * session, so a later page must belong to the query the user is looking at. */
+const lastSearches = new Map<string, { query: string; at: number }>();
+const maxSearchPage = 5;
 
 export function clearSearchFormCache(sessionId?: string) {
   if (sessionId === undefined) {
     searchForms.clear();
     discovering.clear();
+    lastSearches.clear();
     return;
   }
   searchForms.delete(sessionId);
   discovering.delete(sessionId);
+  lastSearches.delete(sessionId);
 }
 
 /** Demo search deliberately includes duplicate names in different course paths. */
@@ -51,7 +58,7 @@ export function searchDemo(
   instance = FREIBURG,
 ): SearchResults {
   if (!query.trim())
-    return { results: [], sourceUrl: instance, hasMore: false };
+    return { results: [], sourceUrl: instance, hasMore: false, page: 1 };
   const terms = searchTerms(query);
   const seen = new Set<string>();
   const matches = demoSearchItems().filter((item) => {
@@ -66,6 +73,7 @@ export function searchDemo(
     results: ranked.slice(0, searchResultLimit),
     sourceUrl: instance,
     hasMore: ranked.length > searchResultLimit,
+    page: 1,
   };
 }
 
@@ -190,24 +198,72 @@ function echoedTerm(html: string) {
   );
 }
 
+/** ILIAS pages search results through `switchResultPage`, a read-only command
+ * that re-renders the cached search at another offset. Only the ILIAS 10
+ * controller shape keeps the executed command in the action URL; older
+ * releases leave it to ilCtrl's `fallbackCmd`, so they stay on the single page
+ * ILIAS returned and keep the handoff to the original search. */
+function pagingAction(form: SearchForm, page: number) {
+  if (page < 2) return null;
+  const action = new URL(form.action);
+  if (
+    action.searchParams.get("baseClass")?.toLowerCase() !== "ilsearchcontrollergui"
+  )
+    return null;
+  action.searchParams.set("cmd", "switchResultPage");
+  action.searchParams.delete("fallbackCmd");
+  // ILIAS' view control is 0-indexed while its search cache is 1-indexed.
+  action.searchParams.set("page_number", String(page - 1));
+  return action;
+}
+
 /**
  * Use ILIAS' own main-menu search instead of crawling every course. The search
  * form action is discovered from the authenticated dashboard; its POST is
  * read-only and is the only form the upstream client may submit without a
- * write allowlist.
+ * write allowlist. Further result pages are read-only GETs of the same search.
  */
 export async function searchRepository(
   session: Session,
   query: string,
+  pageNumber = 1,
 ): Promise<SearchResults> {
-  let form = await discoverSearchForm(session);
-  let results = await readSearchResults(await submitSearch(session, form, query));
+  if (
+    !Number.isInteger(pageNumber) ||
+    pageNumber < 1 ||
+    pageNumber > maxSearchPage
+  )
+    throw new IliasError("That search page does not exist.", 400);
+  if (pageNumber > 1) {
+    const last = lastSearches.get(session.id);
+    if (
+      !last ||
+      last.query !== query ||
+      Date.now() - last.at > searchFormTtl
+    )
+      throw new IliasError("That search expired. Start it again.", 409);
+  }
+  const form = await discoverSearchForm(session);
+  const action = pagingAction(form, pageNumber);
+  if (pageNumber > 1 && !action)
+    throw new IliasError("That search expired. Start it again.", 409);
+  let upstream =
+    pageNumber > 1 && action
+      ? await fetchUpstream(session, action.href)
+      : await submitSearch(session, form, query);
+  if (pageNumber === 1)
+    lastSearches.set(session.id, { query, at: Date.now() });
+  let results = await readSearchResults(upstream);
   const echoed = echoedTerm(results.html);
   if (echoed !== null && echoed !== query) {
-    // Re-discover once, then trust the second response.
+    // ilCtrl falls back to the saved search when it ignores the token; never
+    // pass that page off as this query's results.
+    if (pageNumber > 1)
+      throw new IliasError("That search expired. Start it again.", 409);
     clearSearchFormCache(session.id);
-    form = await discoverSearchForm(session);
-    results = await readSearchResults(await submitSearch(session, form, query));
+    upstream = await submitSearch(session, await discoverSearchForm(session), query);
+    lastSearches.set(session.id, { query, at: Date.now() });
+    results = await readSearchResults(upstream);
   }
   const page = parsePage(results.html, results.url);
   if (!page.authenticated)
@@ -216,8 +272,12 @@ export async function searchRepository(
       401,
     );
   return {
-    results: page.items.slice(0, searchResultLimit),
+    results: page.items,
     sourceUrl: results.url,
-    hasMore: page.hasMore || page.items.length > searchResultLimit,
+    hasMore:
+      Boolean(pagingAction(form, pageNumber + 1)) &&
+      page.items.length > 0 &&
+      pageNumber < maxSearchPage,
+    page: pageNumber,
   };
 }

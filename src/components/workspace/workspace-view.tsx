@@ -113,7 +113,7 @@ import {
 } from "@/lib/ilias/types";
 import { cn } from "@/lib/utils";
 
-type View = "home" | "browse" | "saved" | "settings";
+type View = "home" | "browse" | "saved" | "settings" | "forum";
 type LocalState = { saved: Item[]; recent: Item[] };
 const emptyLocal: LocalState = { saved: [], recent: [] };
 const keyOf = (item: Item) => `${item.type}:${item.id}`;
@@ -239,7 +239,7 @@ function Navigation({
                   title: "My courses",
                   icon: GraduationCap,
                   href: "/?section=courses",
-                  active: view === "browse" || section === "courses",
+                  active: view === "browse" || view === "forum" || section === "courses",
                 },
                 {
                   title: "Saved for later",
@@ -367,7 +367,9 @@ export function WorkspaceView({
   data,
   view = "home",
   section,
+  children,
 }: {
+  children?: React.ReactNode;
   data: Workspace;
   view?: View;
   section?: string;
@@ -443,7 +445,8 @@ export function WorkspaceView({
       return;
     }
     remember(item);
-    if (containers.has(item.type)) router.push(itemHref(item, demo));
+    if (containers.has(item.type) || item.type === "frm")
+      router.push(itemHref(item, demo));
     else setSelected(item);
   }
   async function download(item: Item) {
@@ -497,7 +500,8 @@ export function WorkspaceView({
     (item) => item.type !== "crs" && item.type !== "grp",
   );
   const unsupported = data.page.items.filter(
-    (item) => !containers.has(item.type) && item.type !== "file",
+    (item) =>
+      !containers.has(item.type) && item.type !== "file" && item.type !== "frm",
   );
   const source = data.page.sourceUrl;
   function renderItems(list: Item[], grid = false) {
@@ -595,7 +599,9 @@ export function WorkspaceView({
               </div>
               {!item.available ? (
                 <Badge variant="outline">Restricted</Badge>
-              ) : !containers.has(item.type) && item.type !== "file" ? (
+              ) : !containers.has(item.type) &&
+                item.type !== "file" &&
+                item.type !== "frm" ? (
                 <Badge variant="outline" className="hidden sm:inline-flex">
                   In ILIAS <ArrowUpRight />
                 </Badge>
@@ -729,7 +735,28 @@ export function WorkspaceView({
               </AlertDescription>
             </Alert>
           )}
-          {view === "settings" ? (
+          {view === "forum" && data.mode !== "disconnected" ? (
+            data.error ? (
+              <Alert variant="destructive">
+                <CircleHelp />
+                <AlertTitle>Couldn’t load this discussion</AlertTitle>
+                <AlertDescription>
+                  {data.error}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setConnectOpen(true)}
+                    >
+                      Reconnect account
+                    </Button>
+                    <OriginalLink href={data.page.sourceUrl} />
+                  </div>
+                </AlertDescription>
+              </Alert>
+            ) : (
+              children
+            )
+          ) : view === "settings" ? (
             <>
               <div>
                 <p className="eyebrow">MAKE YOURSELF AT HOME</p>
@@ -839,8 +866,18 @@ export function WorkspaceView({
                         false,
                       ],
                       [
-                        "Forums, wikis & learning modules",
-                        "Visible as objects; discussions and interactive content open in ILIAS.",
+                        "Forum reading",
+                        "Browse discussions, read formatted replies, navigate pages, and mark a thread read.",
+                        true,
+                      ],
+                      [
+                        "Forum posting, subscriptions & moderation",
+                        "Reply and new-topic links open the original editor. Attachments and media also use ILIAS.",
+                        false,
+                      ],
+                      [
+                        "Wikis & learning modules",
+                        "Visible as objects; interactive content opens in ILIAS.",
                         false,
                       ],
                       [
@@ -1332,9 +1369,9 @@ export function WorkspaceView({
                           Still connected to the whole campus.
                         </CardTitle>
                         <CardDescription>
-                          Assignments, quizzes, discussions, mail, and your
-                          calendar are available in ILIAS. Course activities
-                          appear here with a clear handoff.
+                          Assignments, quizzes, mail, and your calendar are
+                          available in ILIAS. Course activities appear here with
+                          a clear handoff.
                         </CardDescription>
                       </CardHeader>
                       <CardFooter className="justify-between">

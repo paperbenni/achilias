@@ -11,8 +11,9 @@
     "typecheck": "tsc --noEmit",
     "browser:install": "playwright install chromium",
     "connect": "bun scripts/connect.ts",
-    "test:e2e": "bun scripts/smoke.ts",
-    "screenshots": "bun scripts/screenshots.ts"
+    "test:e2e": "bun scripts/smoke.ts && bun scripts/forum-smoke.ts",
+    "screenshots": "bun scripts/screenshots.ts",
+    "test:forums": "bun scripts/forum-smoke.ts"
   },
   "dependencies": {
     "cheerio": "^1.2.0",

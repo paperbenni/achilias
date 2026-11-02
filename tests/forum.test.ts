@@ -166,3 +166,11 @@ test("authenticated forum requests discover the real controller before loading a
   expect(new URL(calls.at(-1)!).searchParams.get("page")).toBe("1");
   expect(calls).toHaveLength(3);
 });
+
+test("links written inside a post cannot impersonate ILIAS action controls", () => {
+  const html = `<ul id="ilFrmPostList"><li><div class="ilFrmPostContentContainer"><a id="1001"></a><div class="ilFrmPostContent"><a href="ilias.php?ref_id=402&thr_pk=901&cmd=viewThread&mark_read=1">Mark read</a><a href="ilias.php?ref_id=402&thr_pk=901&cmd=createTopLevelPost">Reply</a><a href="ilias.php?ref_id=402&thr_pk=901&pos_pk=1001&cmd=viewThread&action=showreply">Reply to post</a></div></div></li></ul>`;
+  const thread = parseForumThread(html, url + "&thr_pk=901", "901");
+  expect(thread.markReadUrl).toBeUndefined();
+  expect(thread.replyUrl).toBeUndefined();
+  expect(thread.posts[0].replyUrl).toBeUndefined();
+});

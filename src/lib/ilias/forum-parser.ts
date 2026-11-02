@@ -27,6 +27,7 @@ export function forumLink(href: string, sourceUrl: string) {
 function targets($: CheerioAPI, selector: string, sourceUrl: string) {
   return $(selector)
     .toArray()
+    .filter((el) => !$(el).closest(".ilFrmPostContent").length)
     .flatMap((el) => {
       const url = forumLink(
         $(el).attr("href") || $(el).attr("data-action") || "",
@@ -326,10 +327,6 @@ export function parseForumThread(
         raw.find("img, iframe, video, audio, object, embed, svg, math").length >
         0,
       sourceUrl: permalink.href,
-      replyUrl: action(rowDoc, sourceUrl, ["viewthread"], {
-        threadId,
-        postId: id,
-      }),
     });
     // viewThread alone is not a reply action. Match ILIAS' action=showreply explicitly.
     const reply = targets(
@@ -338,6 +335,9 @@ export function parseForumThread(
       sourceUrl,
     ).find(
       ({ params }) =>
+        (params.get("cmd") || "").toLowerCase() === "viewthread" &&
+        params.get("ref_id") ===
+          new URL(sourceUrl).searchParams.get("ref_id") &&
         params.get("action") === "showreply" &&
         params.get("thr_pk") === threadId &&
         params.get("pos_pk") === id,
@@ -351,6 +351,7 @@ export function parseForumThread(
     "Discussion";
   const markRead = targets($, "a[href], button[data-action]", sourceUrl).find(
     ({ params }) =>
+      params.get("ref_id") === new URL(sourceUrl).searchParams.get("ref_id") &&
       params.get("mark_read") === "1" &&
       params.get("thr_pk") === threadId &&
       (params.get("cmd") || "").toLowerCase() === "viewthread",

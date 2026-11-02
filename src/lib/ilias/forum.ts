@@ -132,6 +132,11 @@ export async function getForumState(
       hasMore: false,
     },
   };
+  if (threadId) {
+    const fallback = new URL(workspace.page.sourceUrl);
+    fallback.searchParams.set("target", `frm_${forumId}_${threadId}`);
+    workspace.page.sourceUrl = fallback.href;
+  }
   const base = { workspace, forumId, threadId, page, order };
   if (demo) {
     const forum = demoForum();

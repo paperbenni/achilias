@@ -245,3 +245,68 @@
     background: var(--primary);
   }
 }
+
+@layer components {
+  .forum-prose {
+    @apply min-w-0 break-words text-sm leading-7 text-foreground;
+    overflow-wrap: anywhere;
+  }
+  .forum-prose > * + * {
+    @apply mt-4;
+  }
+  .forum-prose p {
+    @apply my-3;
+  }
+  .forum-prose p:first-child {
+    @apply mt-0;
+  }
+  .forum-prose p:last-child {
+    @apply mb-0;
+  }
+  .forum-prose a {
+    @apply text-primary underline underline-offset-4;
+  }
+  .forum-prose strong,
+  .forum-prose b {
+    @apply font-semibold;
+  }
+  .forum-prose pre {
+    @apply my-4 max-w-full overflow-x-auto rounded-lg bg-muted p-4 font-mono text-xs leading-6;
+  }
+  .forum-prose code {
+    @apply rounded bg-muted px-1 py-0.5 font-mono text-xs;
+  }
+  .forum-prose pre code {
+    @apply rounded-none bg-transparent p-0;
+  }
+  .forum-prose blockquote {
+    @apply my-4 border-l-2 border-primary/30 pl-4 text-muted-foreground;
+  }
+  .forum-prose ul {
+    @apply list-disc pl-5;
+  }
+  .forum-prose ol {
+    @apply list-decimal pl-5;
+  }
+  .forum-prose li + li {
+    @apply mt-1;
+  }
+  .forum-prose h2,
+  .forum-prose h3,
+  .forum-prose h4 {
+    @apply mt-5 font-semibold;
+  }
+  .forum-prose h2 {
+    @apply text-lg;
+  }
+  .forum-prose table {
+    @apply my-4 block max-w-full overflow-x-auto border-collapse text-left;
+  }
+  .forum-prose th,
+  .forum-prose td {
+    @apply border px-3 py-2;
+  }
+  .forum-prose th {
+    @apply bg-muted font-medium;
+  }
+}

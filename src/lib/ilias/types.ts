@@ -55,6 +55,7 @@ export const typeNames: Record<string, string> = {
   unknown: "ILIAS object",
 };
 export function itemHref(item: Item, demo = false) {
+  if (item.type === "frm") return `/forums/${item.id}${demo ? "?demo=1" : ""}`;
   if (containers.has(item.type))
     return `/browse/${item.type}/${item.id}${demo ? "?demo=1" : ""}`;
   if (item.type === "file")

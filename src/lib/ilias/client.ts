@@ -11,16 +11,36 @@ import { parsePage } from "./parser";
 import { IliasError } from "./errors";
 import { requireLiveWrite } from "./write-policy";
 export { IliasError } from "./errors";
+/** The main-menu search form is the only form we may submit without a write allowlist. */
+function isReadOnlySearchAction(action: URL) {
+  const parameter = (name: string) =>
+    (action.searchParams.get(name) || "").toLowerCase();
+  return (
+    /\/ilias\.php$/i.test(action.pathname) &&
+    parameter("baseClass") === "ilsearchcontroller" &&
+    parameter("fallbackCmd") === "remotesearch" &&
+    (!action.searchParams.has("cmd") || parameter("cmd") === "post")
+  );
+}
 export async function fetchUpstream(
   session: Session,
   target: string,
-  options: { file?: boolean; form?: URLSearchParams } = {},
+  options: { file?: boolean; form?: URLSearchParams; readOnlyForm?: true } = {},
 ) {
   if (options.form) {
     const action = upstreamUrl(session.instance, target);
-    const id = action.searchParams.get("ref_id") || "";
-    requireLiveWrite(session.instance, "exc", id);
+    if (options.readOnlyForm) {
+      if (!isReadOnlySearchAction(action))
+        throw new IliasError(
+          "This form action is not an ILIAS repository search.",
+          403,
+        );
+    } else {
+      const id = action.searchParams.get("ref_id") || "";
+      requireLiveWrite(session.instance, "exc", id);
+    }
   }
+  const readOnly = Boolean(options.readOnlyForm);
   let form = options.form;
   const jar = session.jar ? CookieJar.fromJSON(session.jar) : new CookieJar();
   const rotations: { cookie: string; url: string }[] = [];
@@ -49,9 +69,11 @@ export async function fetchUpstream(
       });
     } catch {
       throw new IliasError(
-        options.form
-          ? "The ILIAS request did not finish. Changes may already have been saved; check ILIAS before retrying."
-          : "ILIAS could not be reached. Check your connection and try again.",
+        readOnly
+          ? "ILIAS search did not finish. Try again."
+          : options.form
+            ? "The ILIAS request did not finish. Changes may already have been saved; check ILIAS before retrying."
+            : "ILIAS could not be reached. Check your connection and try again.",
       );
     }
     for (const cookie of response.headers.getSetCookie()) {
@@ -62,8 +84,10 @@ export async function fetchUpstream(
       if (form && [307, 308].includes(response.status)) {
         await response.body?.cancel();
         throw new IliasError(
-          "ILIAS requested a repeated POST. Achilias did not replay it. Changes may already have been saved; check the original before retrying.",
-          409,
+          readOnly
+            ? "ILIAS did not return the search results. Try again."
+            : "ILIAS requested a repeated POST. Achilias did not replay it. Changes may already have been saved; check the original before retrying.",
+          readOnly ? 502 : 409,
         );
       }
       const location = response.headers.get("location");

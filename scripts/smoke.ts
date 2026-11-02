@@ -120,6 +120,11 @@ try {
     .fill("");
   await page.getByRole("radio", { name: "List view" }).click();
   assert.equal(await page.locator(".resource-row").count(), 4);
+  await page.getByRole("link", { name: "My courses", exact: true }).click();
+  await page.getByRole("heading", { name: "Your courses.", exact: true }).waitFor();
+  assert.equal(await page.locator(".course-card").count(), 4);
+  await page.getByRole("link", { name: "Overview", exact: true }).click();
+  await page.getByRole("heading", { name: "Overview", exact: true }).waitFor();
   await page
     .getByRole("link", {
       name: "Introduction to Computer Science",
@@ -160,6 +165,21 @@ try {
   await page
     .getByRole("heading", { name: "Linear Algebra I", exact: true })
     .waitFor();
+  // Deep search goes through ILIAS' repository search and shows course paths.
+  await page.keyboard.press("Control+k");
+  await page.getByRole("combobox").fill("gruppe");
+  await page
+    .getByRole("option", { name: /Search all your courses/ })
+    .click();
+  await page
+    .getByText("Introduction to Computer Science › Exercise groups")
+    .waitFor();
+  assert.equal(
+    await page.getByRole("option", { name: /Gruppe 02/ }).count(),
+    3,
+    "Duplicate group names should be distinguishable by course path",
+  );
+  await page.keyboard.press("Escape");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "Toggle Sidebar" }).click();
   await page

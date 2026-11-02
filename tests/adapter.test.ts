@@ -61,6 +61,40 @@ describe("ILIAS 10 template adapter", () => {
     ]);
     expect(page.authenticated).toBe(true);
   });
+  test("reads search result paths while keeping hidden dialog items out", () => {
+    const page = parsePage(
+      `<a href="logout.php">Logout</a><h1>Search results</h1>
+      <div class="il-item il-std-item">
+        <span class="il-item-title"><a href="goto.php?target=grp_601">Gruppe 02</a></span>
+        <div class="il-item-description">Exercise group</div>
+        <span class="il-item-property-name">Path</span><span class="il-item-property-value">Introduction to Computer Science › Exercise groups</span>
+        <span class="il-item-property-name">Created</span><span class="il-item-property-value">Yesterday</span>
+      </div>
+      <div class="il-item il-std-item">
+        <span class="il-item-title"><a href="goto.php?target=grp_602">Gruppe 02</a></span>
+        <span class="il-item-property-name">Path</span><span class="il-item-property-value">Linear Algebra I › Exercise groups</span>
+      </div>
+      <div role="dialog">
+        <div class="il-item il-std-item">
+          <span class="il-item-title"><a href="goto.php?target=grp_999">Hidden dialog item</a></span>
+        </div>
+      </div>`,
+      FREIBURG + "ilias.php?baseClass=ilSearchController",
+    );
+    expect(
+      page.items.map((item) => [item.id, item.type, item.title, item.context]),
+    ).toEqual([
+      [
+        "601",
+        "grp",
+        "Gruppe 02",
+        "Introduction to Computer Science › Exercise groups",
+      ],
+      ["602", "grp", "Gruppe 02", "Linear Algebra I › Exercise groups"],
+    ]);
+    expect(page.items[0].description).toBe("Exercise group");
+    expect(page.items[0].meta).toBe("Created: Yesterday");
+  });
   test("does not mistake a public page or login form for a signed-in session", () => {
     expect(parsePage("<h1>Public course</h1>", FREIBURG).authenticated).toBe(
       false,

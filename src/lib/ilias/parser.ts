@@ -43,6 +43,23 @@ export function parsePage(html: string, sourceUrl: string): IliasPage {
   );
   nodes.each((_, el) => {
     const row = $(el);
+    // Dashboard/search pages can contain item templates inside untriggered
+    // dialogs. They are not visible content and must not enter search results.
+    if (
+      row.closest(
+        'template, dialog, [role="dialog"], .modal, .il-modal, [hidden], [aria-hidden="true"], .hidden, .d-none',
+      ).length ||
+      row
+        .parents()
+        .addBack()
+        .toArray()
+        .some((node) =>
+          /(?:display\s*:\s*none|visibility\s*:\s*hidden)/i.test(
+            $(node).attr("style") || "",
+          ),
+        )
+    )
+      return;
     // Avoid processing the inner wrapper of an already parsed list item.
     if (row.parents(".ilContainerListItemOuter").length) return;
     const titleNode = row
@@ -86,19 +103,46 @@ export function parsePage(html: string, sourceUrl: string): IliasPage {
     const key = `${type}:${id}`;
     if (seen.has(key)) return;
     seen.add(key);
+    // Standard ILIAS search results and shy items expose labelled properties.
+    // The repository path is what distinguishes identically named objects.
+    const properties: { name: string; value: string }[] = [];
+    row.find(".il-item-property-name").each((_, node) => {
+      const name = clean($(node).text()).replace(/:$/, "");
+      const value = clean($(node).next(".il-item-property-value").text());
+      if (name && value) properties.push({ name, value });
+    });
+    const context = properties.find((property) =>
+      /^(?:path|pfad)$/i.test(property.name),
+    )?.value;
+    const propertyDescription = properties.find((property) =>
+      /^(?:description|beschreibung)$/i.test(property.name),
+    )?.value;
+    const propertyMeta = properties
+      .filter(
+        (property) =>
+          !/^(?:path|pfad|description|beschreibung)$/i.test(property.name),
+      )
+      .map((property) => `${property.name}: ${property.value}`)
+      .join(" · ");
     items.push({
       id,
       type,
       title,
-      description: clean(
-        row
-          .find(".il_Description, .il-item-description, .il-card-description")
-          .first()
-          .text(),
-      ),
-      meta: clean(
-        row.find(".il_ItemProperties, .il-item-properties").first().text(),
-      ),
+      description:
+        clean(
+          row
+            .find(".il_Description, .il-item-description, .il-card-description")
+            .first()
+            .text(),
+        ) ||
+        propertyDescription ||
+        "",
+      meta:
+        propertyMeta ||
+        clean(
+          row.find(".il_ItemProperties, .il-item-properties").first().text(),
+        ),
+      ...(context ? { context: context.slice(0, 1000) } : {}),
       sourceUrl: href || sourceUrl,
       available: Boolean(titleNode.length && href),
     });

@@ -6,7 +6,7 @@ import { downloadFile } from "@/lib/browser-download";
 import { useLibrary } from "@/hooks/use-library";
 import { mergeItems } from "@/lib/ilias/library";
 import { iconFor } from "./item-icon";
-import { useEffect, useMemo, useState } from "react";
+import { createElement, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -58,7 +58,6 @@ import {
 import {
   Command,
   CommandDialog,
-  CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
@@ -95,22 +94,84 @@ import { ParsedHtmlNotice } from "@/components/navigation/parsed-html-notice";
 import { OriginalLink } from "@/components/navigation/original-link";
 import { RefreshButton } from "@/components/navigation/refresh-button";
 
+type DeepSearch = {
+  query: string;
+  results: Item[];
+  sourceUrl: string;
+  hasMore: boolean;
+};
+
+function searchMatches(item: Item, terms: string[]) {
+  const haystack = [
+    item.title,
+    item.description,
+    item.meta,
+    item.context,
+    item.id,
+    typeNames[item.type],
+  ]
+    .join(" ")
+    .toLowerCase();
+  return terms.every((term) => haystack.includes(term));
+}
+
+function searchResultIcon(type: string) {
+  return createElement(iconFor(type), { className: "mt-0.5" });
+}
+
+function SearchResultOption({
+  item,
+  onSelect,
+}: {
+  item: Item;
+  onSelect: (item: Item) => void;
+}) {
+  return (
+    <CommandItem
+      value={itemKey(item)}
+      onSelect={() => onSelect(item)}
+      className="items-start py-2"
+    >
+      {searchResultIcon(item.type)}
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="truncate font-medium">{item.title}</span>
+        <span className="truncate text-xs text-muted-foreground">
+          {item.context ||
+            item.description ||
+            item.meta ||
+            "Open this item in ILIAS"}
+        </span>
+      </span>
+      <span className="shrink-0 self-center text-xs text-muted-foreground">
+        {!item.available ? "Restricted" : typeNames[item.type] || "In ILIAS"}
+      </span>
+    </CommandItem>
+  );
+}
+
 export function WorkspaceView({
   data,
   view = "home",
-  section,
   children,
 }: {
   children?: React.ReactNode;
   data: Workspace;
   view?: WorkspaceViewName;
-  section?: string;
 }) {
   const router = useRouter();
   const [searchOpen, setSearchOpen] = useState(false);
   const [connectOpen, setConnectOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [layout, setLayout] = useState("grid");
+  const [deep, setDeep] = useState<DeepSearch | null>(null);
+  const [deepLoadingQuery, setDeepLoadingQuery] = useState<string | null>(null);
+  const [deepError, setDeepError] = useState<{
+    query: string;
+    message: string;
+  } | null>(null);
+  const searchRequest = useRef(0);
+  const searchOpenRef = useRef(false);
   const {
     library: local,
     ready: localReady,
@@ -122,25 +183,47 @@ export function WorkspaceView({
   const [downloading, setDownloading] = useState(false);
   const demo = data.mode === "demo";
   const suffix = demo ? "?demo=1" : "";
+  const resetSearchState = useCallback(() => {
+    searchRequest.current++;
+    setSearchQuery("");
+    setDeep(null);
+    setDeepLoadingQuery(null);
+    setDeepError(null);
+  }, []);
+  const changeSearchOpen = useCallback(
+    (open: boolean) => {
+      searchOpenRef.current = open;
+      if (open) resetSearchState();
+      setSearchOpen(open);
+    },
+    [resetSearchState],
+  );
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key === "k") {
         event.preventDefault();
-        setSearchOpen((value) => !value);
+        changeSearchOpen(!searchOpenRef.current);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [changeSearchOpen]);
   function openItem(item: Item) {
-    setSearchOpen(false);
-    if (!item.available) {
-      setSelected(item);
+    const onPage = data.page.items.some(
+      (pageItem) => itemKey(pageItem) === itemKey(item),
+    );
+    const enriched =
+      item.context || view !== "browse" || !onPage
+        ? item
+        : { ...item, context: data.page.title };
+    changeSearchOpen(false);
+    if (!enriched.available) {
+      setSelected(enriched);
       return;
     }
-    remember(item);
-    if (isNavigableItem(item)) router.push(itemHref(item, demo));
-    else setSelected(item);
+    remember(enriched);
+    if (isNavigableItem(enriched)) router.push(itemHref(enriched, demo));
+    else setSelected(enriched);
   }
   async function download(item: Item) {
     setDownloading(true);
@@ -153,15 +236,61 @@ export function WorkspaceView({
       setDownloading(false);
     }
   }
-  const allItems = useMemo(
-    () => mergeItems(data.page.items, local.saved, local.recent),
-    [data.page.items, local],
+  async function runDeepSearch() {
+    const term = searchQuery.trim();
+    if (term.length < 2) return;
+    const request = ++searchRequest.current;
+    setDeepLoadingQuery(term);
+    setDeepError(null);
+    try {
+      const response = await fetch(
+        `/api/search?q=${encodeURIComponent(term)}${demo ? "&demo=1" : ""}`,
+        { cache: "no-store" },
+      );
+      const body = (await response.json()) as {
+        error?: string;
+        results?: Item[];
+        sourceUrl?: string;
+        hasMore?: boolean;
+      };
+      if (!response.ok)
+        throw new Error(body.error || "ILIAS search failed.");
+      if (request !== searchRequest.current) return;
+      setDeep({
+        query: term,
+        results: Array.isArray(body.results) ? body.results : [],
+        sourceUrl: body.sourceUrl || data.page.sourceUrl,
+        hasMore: Boolean(body.hasMore),
+      });
+    } catch (error) {
+      if (request === searchRequest.current)
+        setDeepError({
+          query: term,
+          message:
+            error instanceof Error ? error.message : "ILIAS search failed.",
+        });
+    } finally {
+      if (request === searchRequest.current) setDeepLoadingQuery(null);
+    }
+  }
+  const pageItems = useMemo(
+    () =>
+      view === "browse"
+        ? data.page.items.map((item) =>
+            item.context ? item : { ...item, context: data.page.title },
+          )
+        : data.page.items,
+    [data.page.items, data.page.title, view],
   );
-  const items = (view === "saved" ? local.saved : data.page.items).filter(
-    (item) =>
-      `${item.title} ${item.description} ${item.meta}`
-        .toLowerCase()
-        .includes(query.toLowerCase()),
+  const allItems = useMemo(
+    () => mergeItems(pageItems, local.saved, local.recent),
+    [pageItems, local],
+  );
+  const normalizedFilter = query.toLowerCase();
+  const items = (view === "saved" ? local.saved : pageItems).filter((item) =>
+    `${item.title} ${item.description} ${item.meta} ${item.context || ""}`
+      .toLowerCase()
+      .includes(normalizedFilter),
   );
   const courses = items.filter(
     (item) => item.type === "crs" || item.type === "grp",
@@ -169,8 +298,56 @@ export function WorkspaceView({
   const rest = items.filter(
     (item) => item.type !== "crs" && item.type !== "grp",
   );
-  const unsupported = data.page.items.filter(
+  const unsupported = pageItems.filter(
     (item) => !isSupportedItemType(item.type),
+  );
+  const trimmedQuery = searchQuery.trim();
+  const localSearchResults = useMemo(() => {
+    const terms = trimmedQuery.toLowerCase().split(/\s+/).filter(Boolean);
+    const matches = terms.length
+      ? allItems.filter((item) => searchMatches(item, terms))
+      : mergeItems(local.recent, pageItems);
+    return matches.slice(0, 16);
+  }, [allItems, local.recent, pageItems, trimmedQuery]);
+  const deepForQuery = deep?.query === trimmedQuery ? deep : null;
+  const localKeys = new Set(localSearchResults.map(itemKey));
+  const deepContext = new Map<string, string>();
+  for (const item of deepForQuery?.results || [])
+    if (item.context) deepContext.set(itemKey(item), item.context);
+  const localResults = localSearchResults.map((item) => {
+    const context = item.context || deepContext.get(itemKey(item));
+    return context && !item.context ? { ...item, context } : item;
+  });
+  const deepResults =
+    deepForQuery?.results.filter((item) => !localKeys.has(itemKey(item))) || [];
+  const deepLoading = deepLoadingQuery === trimmedQuery;
+  const currentDeepError =
+    deepError?.query === trimmedQuery ? deepError.message : "";
+  const navigationResults = [
+    {
+      title: "Overview",
+      icon: Home,
+      href: "/",
+    },
+    {
+      title: "My courses",
+      icon: GraduationCap,
+      href: "/courses",
+    },
+    {
+      title: "Saved for later",
+      icon: Bookmark,
+      href: "/saved",
+    },
+    {
+      title: "Features & connection",
+      icon: Settings2,
+      href: "/settings",
+    },
+  ].filter(
+    (entry) =>
+      !trimmedQuery ||
+      entry.title.toLowerCase().includes(trimmedQuery.toLowerCase()),
   );
   const source = data.page.sourceUrl;
   const itemListProps = {
@@ -213,8 +390,7 @@ export function WorkspaceView({
       <Navigation
         data={data}
         view={view}
-        section={section}
-        openSearch={() => setSearchOpen(true)}
+        openSearch={() => changeSearchOpen(true)}
         connect={() => setConnectOpen(true)}
       />
       <SidebarInset>
@@ -228,9 +404,11 @@ export function WorkspaceView({
                 ? "Overview"
                 : view === "saved"
                   ? "Saved for later"
-                  : view === "settings"
-                    ? "Features & connection"
-                    : data.page.title}
+                  : view === "courses"
+                    ? "Courses"
+                    : view === "settings"
+                      ? "Features & connection"
+                      : data.page.title}
             </span>
           </div>
           <div className="flex items-center gap-3">
@@ -238,7 +416,7 @@ export function WorkspaceView({
               variant="ghost"
               size="icon"
               aria-label="Quick search"
-              onClick={() => setSearchOpen(true)}
+              onClick={() => changeSearchOpen(true)}
             >
               <Search />
             </Button>
@@ -433,19 +611,21 @@ export function WorkspaceView({
               ) : (
                 <div className="flex flex-wrap items-end justify-between gap-5">
                   <div className="max-w-2xl">
-                    <p className="eyebrow">
-                      {view === "saved"
-                        ? "THE GOOD STUFF, WITHIN REACH"
-                        : view === "browse"
-                          ? "YOUR LEARNING MATERIALS"
-                          : ""}
-                    </p>
+                    {(view === "saved" || view === "courses") && (
+                      <p className="eyebrow">
+                        {view === "saved"
+                          ? "THE GOOD STUFF, WITHIN REACH"
+                          : "EVERY COURSE, ONE PLACE"}
+                      </p>
+                    )}
                     <h1 className="page-title mt-3">
                       {view === "saved"
                         ? "Saved for later."
                         : view === "browse"
                           ? data.page.title
-                          : "Overview"}
+                          : view === "courses"
+                            ? "Your courses."
+                            : "Overview"}
                     </h1>
                     <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
                       {view === "saved"
@@ -453,7 +633,9 @@ export function WorkspaceView({
                         : view === "browse"
                           ? data.page.description ||
                             "Everything in this space, with a clearer way through."
-                          : ""}
+                          : view === "courses"
+                            ? "Every course and group from your ILIAS dashboard, with a clearer way in."
+                            : ""}
                     </p>
                   </div>
                   <div className="flex gap-2">
@@ -461,31 +643,41 @@ export function WorkspaceView({
                   </div>
                 </div>
               )}
-              {view !== "saved" && (
+              {view !== "saved" && view !== "browse" && (
                 <ParsedHtmlNotice
-                  compact={view === "home"}
-                  feature={view === "browse" ? "materials" : "dashboard"}
+                  compact
+                  feature="dashboard"
                   sourceUrl={demo ? data.instance : source}
                   demo={demo}
                 />
               )}
               {data.error ? (
-                <Alert variant="destructive">
-                  <CircleHelp />
-                  <AlertTitle>Couldn’t load this learning space</AlertTitle>
-                  <AlertDescription>
-                    {data.error}
-                    <div className="mt-3 flex gap-2">
-                      <Button
-                        variant="outline"
-                        onClick={() => setConnectOpen(true)}
-                      >
-                        Reconnect account
-                      </Button>
-                      <OriginalLink href={source} />
-                    </div>
-                  </AlertDescription>
-                </Alert>
+                <>
+                  <Alert variant="destructive">
+                    <CircleHelp />
+                    <AlertTitle>Couldn’t load this learning space</AlertTitle>
+                    <AlertDescription>
+                      {data.error}
+                      <div className="mt-3 flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => setConnectOpen(true)}
+                        >
+                          Reconnect account
+                        </Button>
+                        <OriginalLink href={source} />
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                  {view === "browse" && (
+                    <ParsedHtmlNotice
+                      compact
+                      feature="materials"
+                      sourceUrl={demo ? data.instance : source}
+                      demo={demo}
+                    />
+                  )}
+                </>
               ) : (
                 <>
                   {data.page.notices.map((notice, i) => (
@@ -495,7 +687,6 @@ export function WorkspaceView({
                     </Alert>
                   ))}
                   {view === "home" &&
-                    !section &&
                     localReady &&
                     local.recent.length > 0 && (
                       <section className="flex flex-col gap-4">
@@ -521,7 +712,9 @@ export function WorkspaceView({
                                   </ItemAction>
                                 </CardTitle>
                                 <CardDescription>
-                                  {typeNames[item.type] || "ILIAS object"}
+                                  {item.context ||
+                                    typeNames[item.type] ||
+                                    "ILIAS object"}
                                 </CardDescription>
                                 <CardAction>
                                   <ItemAction
@@ -559,7 +752,7 @@ export function WorkspaceView({
                         <TabsTrigger value="materials">
                           Materials{" "}
                           <Badge variant="secondary">
-                            {data.page.items.length}
+                            {pageItems.length}
                           </Badge>
                         </TabsTrigger>
                         <TabsTrigger value="information">
@@ -661,16 +854,40 @@ export function WorkspaceView({
                     <section className="flex flex-col gap-5" id="courses">
                       <div className="flex flex-wrap items-center justify-between gap-4">
                         <div className="flex items-center gap-2">
-                          <h2 className="section-title">
-                            {view === "saved"
-                              ? "Your saved items"
-                              : "Your courses"}
-                          </h2>
+                          {view === "home" ? (
+                            <h2 className="section-title">
+                              <Link
+                                prefetch={demo}
+                                href={`/courses${suffix}`}
+                                className="inline-flex items-center gap-1.5 transition-colors hover:text-primary"
+                              >
+                                Your courses
+                                <ArrowRight
+                                  className="size-4"
+                                  aria-hidden="true"
+                                />
+                              </Link>
+                            </h2>
+                          ) : (
+                            <h2 className="section-title">
+                              {view === "saved"
+                                ? "Your saved items"
+                                : "Your courses"}
+                            </h2>
+                          )}
                           <Badge variant="secondary">
                             {view === "saved" ? items.length : courses.length}
                           </Badge>
                         </div>
                         <div className="flex flex-wrap items-center gap-3">
+                          {view === "home" && (
+                            <Button variant="ghost" size="sm" asChild>
+                              <Link prefetch={demo} href={`/courses${suffix}`}>
+                                All courses
+                                <ArrowRight data-icon="inline-end" />
+                              </Link>
+                            </Button>
+                          )}
                           {view === "home" && <RefreshButton />}
                           <div className="w-44 sm:w-56">
                             <InputGroup>
@@ -679,7 +896,11 @@ export function WorkspaceView({
                               </InputGroupAddon>
                               <InputGroupInput
                                 aria-label="Filter courses and materials"
-                                placeholder="Find a course or material…"
+                                placeholder={
+                                  view === "saved"
+                                    ? "Find a saved item…"
+                                    : "Find a course or group…"
+                                }
                                 value={query}
                                 onChange={(e) => setQuery(e.target.value)}
                               />
@@ -786,6 +1007,14 @@ export function WorkspaceView({
                       </CardFooter>
                     </Card>
                   )}
+                  {view === "browse" && (
+                    <ParsedHtmlNotice
+                      compact
+                      feature="materials"
+                      sourceUrl={demo ? data.instance : source}
+                      demo={demo}
+                    />
+                  )}
                 </>
               )}
             </>
@@ -805,68 +1034,152 @@ export function WorkspaceView({
       </SidebarInset>
       <CommandDialog
         open={searchOpen}
-        onOpenChange={setSearchOpen}
+        onOpenChange={changeSearchOpen}
         title="Find a course or material"
-        description="Search this page, saved items, and recently opened content."
+        description="Search this page, saved items, recent history, and all your courses in ILIAS."
+        className="top-1/2 h-[min(88svh,52rem)] max-h-[calc(100svh-2rem)] w-[calc(100%-2rem)] max-w-[calc(100%-2rem)] -translate-y-1/2 gap-0 overflow-hidden p-0 sm:max-w-4xl"
       >
-        <Command>
-          <CommandInput placeholder="Search courses, folders, and materials…" />
-          <CommandList>
-            <CommandEmpty>
-              No match. Search covers this page, your saved items, and recent
-              history.
-            </CommandEmpty>
-            <CommandGroup heading="Navigate">
-              <CommandItem
-                onSelect={() => {
-                  setSearchOpen(false);
-                  router.push(`/${suffix}`);
-                }}
-              >
-                <Home />
-                Overview
-              </CommandItem>
-              <CommandItem
-                onSelect={() => {
-                  setSearchOpen(false);
-                  router.push(`/saved${suffix}`);
-                }}
-              >
-                <Bookmark />
-                Saved for later
-              </CommandItem>
-              <CommandItem
-                onSelect={() => {
-                  setSearchOpen(false);
-                  router.push(`/settings${suffix}`);
-                }}
-              >
-                <Settings2 />
-                Features & connection
-              </CommandItem>
-            </CommandGroup>
-            <CommandGroup heading="Courses & materials">
-              {allItems.map((item) => {
-                const Icon = iconFor(item.type);
-                return (
+        <Command shouldFilter={false} className="h-auto min-h-0 flex-1">
+          <CommandInput
+            placeholder="Search courses, groups, folders, and materials…"
+            value={searchQuery}
+            onValueChange={setSearchQuery}
+          />
+          <CommandList className="min-h-0 flex-1 max-h-none">
+            {navigationResults.length > 0 && (
+              <CommandGroup heading="Navigate">
+                {navigationResults.map(({ title, icon: Icon, href }) => (
                   <CommandItem
-                    key={itemKey(item)}
-                    value={`${item.title} ${item.description} ${item.id}`}
-                    onSelect={() => openItem(item)}
+                    key={href}
+                    value={href}
+                    onSelect={() => {
+                      changeSearchOpen(false);
+                      router.push(`${href}${suffix}`);
+                    }}
                   >
                     <Icon />
-                    <span className="flex-1">{item.title}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {typeNames[item.type] || "In ILIAS"}
-                    </span>
+                    {title}
                   </CommandItem>
-                );
-              })}
-            </CommandGroup>
+                ))}
+              </CommandGroup>
+            )}
+            {localResults.length > 0 && (
+              <CommandGroup
+                heading={
+                  trimmedQuery
+                    ? "On this page, saved & recent"
+                    : "Recent & on this page"
+                }
+              >
+                {localResults.map((item) => (
+                  <SearchResultOption
+                    key={itemKey(item)}
+                    item={item}
+                    onSelect={openItem}
+                  />
+                ))}
+              </CommandGroup>
+            )}
+            {trimmedQuery && !localResults.length && (
+              <div className="px-3 py-6 text-center text-sm text-muted-foreground">
+                No match in this page, saved items, or recent history.
+              </div>
+            )}
+            {trimmedQuery &&
+              (deepForQuery && deepResults.length > 0 ? (
+                <CommandGroup heading="Other matches in ILIAS">
+                  {deepResults.map((item) => (
+                    <SearchResultOption
+                      key={itemKey(item)}
+                      item={item}
+                      onSelect={openItem}
+                    />
+                  ))}
+                  {deepForQuery.hasMore && (
+                    <div className="px-3 py-2 text-xs text-muted-foreground">
+                      Showing the first matches. Open ILIAS search for the rest.
+                    </div>
+                  )}
+                </CommandGroup>
+              ) : (
+                <CommandGroup heading="All your courses">
+                  {data.mode === "disconnected" ? (
+                    <CommandItem
+                      value="connect-to-search"
+                      onSelect={() => {
+                        changeSearchOpen(false);
+                        setConnectOpen(true);
+                      }}
+                    >
+                      <ShieldCheck />
+                      Connect your account to search all your courses
+                    </CommandItem>
+                  ) : trimmedQuery.length < 2 ? (
+                    <div className="px-3 py-4 text-sm text-muted-foreground">
+                      Keep typing to search all your courses in ILIAS.
+                    </div>
+                  ) : deepLoading ? (
+                    <div className="flex items-center gap-2 px-3 py-4 text-sm text-muted-foreground">
+                      <Loader2 className="animate-spin" />
+                      Searching all your courses…
+                    </div>
+                  ) : currentDeepError ? (
+                    <>
+                      <div className="px-3 py-3 text-sm text-destructive">
+                        {currentDeepError}
+                      </div>
+                      <CommandItem
+                        value="retry-deep-search"
+                        onSelect={runDeepSearch}
+                      >
+                        <Search />
+                        Try again
+                      </CommandItem>
+                    </>
+                  ) : deepForQuery ? (
+                    <div className="px-3 py-4 text-sm text-muted-foreground">
+                      {deepForQuery.results.length
+                        ? "All matches are already shown above."
+                        : `No matches for “${deepForQuery.query}” in ILIAS.`}
+                      <a
+                        href={deepForQuery.sourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-1 font-medium text-foreground underline underline-offset-3"
+                      >
+                        Open the search in ILIAS
+                      </a>
+                    </div>
+                  ) : (
+                    <CommandItem value="search-all" onSelect={runDeepSearch}>
+                      <Search />
+                      Search all your courses for “{trimmedQuery}”
+                      <span className="ml-auto text-xs text-muted-foreground">
+                        ILIAS
+                      </span>
+                    </CommandItem>
+                  )}
+                </CommandGroup>
+              ))}
           </CommandList>
         </Command>
-        <div className="border-t px-3 py-2 text-xs text-muted-foreground">
-          Searches this page, saved items, and recent history.
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t px-3 py-2 text-xs text-muted-foreground">
+          <span>
+            {data.mode === "disconnected"
+              ? "Local search works now. Connect to search the whole repository."
+              : "Local results are instant. Deeper results come from ILIAS search."}
+          </span>
+          {deepForQuery && (
+            <a
+              href={deepForQuery.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 font-medium text-foreground underline underline-offset-3"
+            >
+              Open this search in ILIAS
+              <ArrowUpRight className="size-3.5" />
+            </a>
+          )}
         </div>
       </CommandDialog>
       <ConnectDialog
@@ -885,6 +1198,11 @@ export function WorkspaceView({
             <Badge variant="secondary" className="mb-2 w-fit">
               {selected && (typeNames[selected.type] || "ILIAS object")}
             </Badge>
+            {selected?.context && (
+              <p className="text-xs text-muted-foreground">
+                {selected.context}
+              </p>
+            )}
             <DialogTitle>{selected?.title}</DialogTitle>
             <DialogDescription>
               {selected?.description ||

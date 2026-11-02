@@ -47,6 +47,7 @@ import type { Workspace } from "@/lib/ilias/types";
 
 export type WorkspaceViewName =
   | "home"
+  | "courses"
   | "browse"
   | "saved"
   | "settings"
@@ -85,13 +86,11 @@ function Brand({ demo = false }: { demo?: boolean }) {
 export function Navigation({
   data,
   view,
-  section,
   openSearch,
   connect,
 }: {
   data: Workspace;
   view: WorkspaceViewName;
-  section?: string;
   openSearch: () => void;
   connect: () => void;
 }) {
@@ -141,17 +140,17 @@ export function Navigation({
                   title: "Overview",
                   icon: Home,
                   href: "/",
-                  active: view === "home" && !section,
+                  active: view === "home",
                 },
                 {
                   title: "My courses",
                   icon: GraduationCap,
-                  href: "/?section=courses",
+                  href: "/courses",
                   active:
+                    view === "courses" ||
                     view === "browse" ||
                     view === "forum" ||
-                    view === "exercise" ||
-                    section === "courses",
+                    view === "exercise",
                 },
                 {
                   title: "Saved for later",

@@ -7,6 +7,7 @@ Routes orchestrate server loaders; loaders adapt ILIAS into typed data; feature 
 | App routes, HTTP endpoints, and Server Actions                                       | `src/app`                                                                |
 | Shared account metadata and empty page state                                         | `src/lib/ilias/workspace-context.ts`                                     |
 | Course/dashboard loading                                                             | `src/lib/ilias/workspace.ts`                                             |
+| Repository search form discovery, read-only POST, and demo index                     | `src/lib/ilias/search.ts`                                                |
 | Exercise unit discovery, grading, feedback, and verified form submissions            | `src/lib/ilias/exercise.ts`                                              |
 | Exercise HTML adaptation, successful-control serialization, and version fingerprints | `src/lib/ilias/exercise-parser.ts`                                       |
 | Exercise payload validation shared by browser and server                             | `src/lib/ilias/exercise-validation.ts`                                   |
@@ -39,7 +40,7 @@ Metadata-only pages use `getWorkspaceMetadata`; they should not fetch the upstre
 
 ## Local state
 
-Saved items and recent history are scoped to a connection's hashed storage key, with a separate demo key. Restored items are validated, duplicates are removed, and recent history is bounded. Current server metadata takes precedence over saved copies in search. Pure updates in `library.ts` operate on the latest snapshot so bookmark and history changes do not overwrite one another.
+Saved items and recent history are scoped to a connection's hashed storage key, with a separate demo key. Restored items are validated, duplicates are removed, and recent history is bounded. Current server metadata takes precedence over saved copies in search; a saved copy's repository path can still fill a missing `context` without overriding current metadata. Pure updates in `library.ts` operate on the latest snapshot so bookmark and history changes do not overwrite one another.
 
 `useBrowserStore` uses React's external-store subscription API, with stable snapshots and an empty server snapshot for hydration. It observes same-document changes and native storage events across tabs. Demo read markers use session storage through the same store. If persistence is blocked, the current document remains usable and the action reports the failure. Media queries and the browser origin also use external-store snapshots instead of effects that copy external values into React state.
 
@@ -64,6 +65,8 @@ Exercise routes consume `ExerciseState`; browser components never receive upstre
 Grading and unit editing compare fingerprints of the currently displayed fields to detect stale drafts; this is a fresh-read check, not a cross-system transaction lock. Changes made concurrently in another client can still race at the upstream server. Post-save reads verify the result. Never automatically retry a write after a timeout or uncertain verification, especially creation or feedback notifications. Unknown or protected form layouts require the original interface rather than guessed commands. Tests use stateful ILIAS 10-shaped fixtures; live Freiburg tutor compatibility requires an authenticated account.
 
 The shared upstream client supports URL-encoded POSTs and browser redirect semantics: 301/302/303 return to GET, while 307/308 preserve the method within the configured instance boundary. Cookies and credentials never follow cross-instance redirects. HTML instructions reuse the same sanitization policy as forum posts. File and exercise downloads share private attachment-response handling.
+
+Form POSTs otherwise require the write allowlist. The single exception is ILIAS' main-menu repository search: the client verifies the discovered action targets the search controller's `remoteSearch` fallback before accepting a `readOnlyForm` submission, so a spoofed form action can never bypass the write policy. Search result items keep ILIAS' repository path as `context`, which flows into saved items, recent history, and the command palette.
 
 Browser downloads use the same `downloadFile` helper for course materials and tutor submissions, so expired-session or permission errors stay in the app. The server streams the response; the current browser helper prepares a Blob before handing it to the download manager. Large submissions therefore use browser memory while preparing. Bulk archives remain available in the original interface.
 

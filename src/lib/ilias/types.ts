@@ -4,6 +4,8 @@ export type Item = {
   title: string;
   description: string;
   meta: string;
+  /** Repository path such as "Algorithms › Exercise groups", when ILIAS exposes one. */
+  context?: string;
   sourceUrl: string;
   available: boolean;
 };

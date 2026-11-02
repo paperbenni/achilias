@@ -53,6 +53,26 @@ test("current metadata wins over saved copies and resource identity includes obj
     emptyLibrary,
   );
 });
+test("repository paths are validated and fill gaps without overriding current metadata", () => {
+  const saved = item("9", {
+    title: "Saved title",
+    context: "Algorithms › Exercise groups",
+  });
+  expect(decodeLibrary({ saved: [saved], recent: [] }).saved).toEqual([saved]);
+  expect(
+    decodeLibrary({
+      saved: [{ ...saved, context: 42 }],
+      recent: [{ ...saved, context: "x".repeat(1001) }],
+    }),
+  ).toEqual(emptyLibrary);
+  const current = item("9", { title: "Current title" });
+  expect(mergeItems([current], [saved])).toEqual([
+    { ...current, context: saved.context },
+  ]);
+  expect(mergeItems([current], [{ ...saved, context: undefined }])).toEqual([
+    current,
+  ]);
+});
 test("object capability rules agree with navigation while retaining restricted and unsupported objects", () => {
   for (const type of ["crs", "grp", "fold", "cat", "frm", "exc"]) {
     const resource = item("42", { type });

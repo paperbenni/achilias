@@ -55,6 +55,39 @@ test("live changes default to denied and allowlists bind object kind, installati
   process.env.ACHILIAS_WRITE_TARGETS = "*,401," + exercise + "&cmd=delete";
   expect(liveWriteAllowed(instance, "exc", "401")).toBe(false);
 });
+test("read-only search posts bypass the write allowlist only for the search controller", async () => {
+  delete process.env.ACHILIAS_WRITE_TARGETS;
+  const searchAction =
+    instance +
+    "ilias.php?baseClass=ilSearchController&cmd=post&fallbackCmd=remoteSearch&rtoken=test";
+  const request = mock(
+    async () => new Response("search results", { status: 200 }),
+  );
+  upstreamTransport.fetch = request as unknown as typeof fetch;
+  await fetchUpstream(session, searchAction, {
+    form: new URLSearchParams({ queryString: "Gruppe 02" }),
+    readOnlyForm: true,
+  });
+  expect(request).toHaveBeenCalledTimes(1);
+  await expect(
+    fetchUpstream(session, action, {
+      form: new URLSearchParams({ title: "Not a search" }),
+      readOnlyForm: true,
+    }),
+  ).rejects.toThrow("not an ILIAS repository search");
+  await expect(
+    fetchUpstream(
+      session,
+      instance +
+        "ilias.php?baseClass=ilSearchController&cmd=post&fallbackCmd=delete",
+      {
+        form: new URLSearchParams({ queryString: "Gruppe 02" }),
+        readOnlyForm: true,
+      },
+    ),
+  ).rejects.toThrow("not an ILIAS repository search");
+  expect(request).toHaveBeenCalledTimes(1);
+});
 test("every live mutation and raw POST is rejected before contacting ILIAS when disabled", async () => {
   delete process.env.ACHILIAS_WRITE_TARGETS;
   const request = mock(() => {

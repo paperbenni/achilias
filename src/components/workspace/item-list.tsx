@@ -132,6 +132,14 @@ export function ItemList({
                 {item.description ||
                   "Open this learning space to find your materials."}
               </p>
+              {item.context && (
+                <p
+                  className="mt-2 line-clamp-1 text-xs text-muted-foreground/80"
+                  title={item.context}
+                >
+                  {item.context}
+                </p>
+              )}
             </CardContent>
           </Card>
         ) : (
@@ -163,6 +171,14 @@ export function ItemList({
                   typeNames[item.type] ||
                   item.type}
               </ItemDescription>
+              {item.context && (
+                <p
+                  className="line-clamp-1 text-xs text-muted-foreground/80"
+                  title={item.context}
+                >
+                  {item.context}
+                </p>
+              )}
             </ItemContent>
             <ItemActions>
               {!item.available ? (

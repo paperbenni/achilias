@@ -136,9 +136,9 @@ export function SettingsView({
               {
                 title: "Search & saved items",
                 description:
-                  "Search this page, recently opened content, and items saved in this browser.",
+                  "Filter this page, recently opened content, and saved items instantly. Search all your courses through ILIAS's repository search, with each result's course path shown.",
                 supported: true,
-                htmlBased: false,
+                htmlBased: true,
               },
               {
                 title: "Exercises and tutor review",

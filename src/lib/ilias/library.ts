@@ -15,7 +15,9 @@ function validItem(value: unknown): value is Item {
     typeof item.available !== "boolean" ||
     ![item.title, item.description, item.meta, item.sourceUrl].every(
       (v) => typeof v === "string",
-    )
+    ) ||
+    (item.context !== undefined &&
+      (typeof item.context !== "string" || item.context.length > 1000))
   )
     return false;
   try {
@@ -29,8 +31,15 @@ function validItem(value: unknown): value is Item {
 export function mergeItems(...sources: Item[][]): Item[] {
   const items = new Map<string, Item>();
   for (const source of sources)
-    for (const item of source)
-      if (!items.has(itemKey(item))) items.set(itemKey(item), item);
+    for (const item of source) {
+      const key = itemKey(item);
+      const current = items.get(key);
+      if (!current) items.set(key, item);
+      // A saved copy may know the repository path even when the current page
+      // only exposes the object itself. Keep the first source's metadata.
+      else if (!current.context && item.context)
+        items.set(key, { ...current, context: item.context });
+    }
   return [...items.values()];
 }
 export function decodeLibrary(value: unknown): Library {

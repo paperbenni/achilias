@@ -1,0 +1,61 @@
+{
+  "environment": "Production build; demo content; desktop Chromium; synthetic browser network latency. Not a comparison against authenticated Freiburg ILIAS.",
+  "latencyMs": 120,
+  "results": [
+    {
+      "route": "Overview → Settings",
+      "milliseconds": 344,
+      "rscRequests": 1
+    },
+    {
+      "route": "Settings → Saved",
+      "milliseconds": 347,
+      "rscRequests": 1
+    },
+    {
+      "route": "Saved → Overview",
+      "milliseconds": 347,
+      "rscRequests": 1
+    },
+    {
+      "route": "Overview → Course",
+      "milliseconds": 163,
+      "rscRequests": 1
+    },
+    {
+      "route": "Course → Folder",
+      "milliseconds": 147,
+      "rscRequests": 1
+    },
+    {
+      "route": "Folder → Overview",
+      "milliseconds": 348,
+      "rscRequests": 1
+    },
+    {
+      "route": "Overview → Course (repeat)",
+      "milliseconds": 147,
+      "rscRequests": 1
+    },
+    {
+      "route": "Course → Forum",
+      "milliseconds": 447,
+      "rscRequests": 1
+    },
+    {
+      "route": "Forum → Thread",
+      "milliseconds": 164,
+      "rscRequests": 1
+    },
+    {
+      "route": "Thread → Forum (repeat)",
+      "milliseconds": 147,
+      "rscRequests": 1
+    },
+    {
+      "route": "Forum → Thread (repeat)",
+      "milliseconds": 147,
+      "rscRequests": 1
+    }
+  ]
+}

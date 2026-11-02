@@ -60,7 +60,7 @@ Try **http://127.0.0.1:3000/?demo=1** without an account. Example courses, activ
 - Authenticated, streamed file downloads. Errors stay in the interface rather than opening a JSON error page.
 - Course introduction text and original course-tool links.
 - Native forum browsing and reading: thread search, unread filtering, pin/closed indicators, formatted posts, reply context, post links, chronological views, and thread/post pagination. Search and sorting apply to the loaded page.
-- Explicit **Mark thread read** updates ILIAS using its currently offered action. Demo read status stays in this browser tab. Discussion links disable Next.js prefetch so unread/read requests happen when opened.
+- Explicit **Mark thread read** updates ILIAS using its currently offered action. Demo read status stays in this browser tab. Fresh live discussion links disable background data prefetch so unread/read requests happen when opened. Demo links may be prefetched.
 - Course filtering, grid/list views, and a keyboard-operated **Ctrl/Cmd+K** search palette. Search covers the current page, saved items, and recently opened objects; it is not a repository-wide search.
 - Browser-local saved items and recently opened content, isolated per connection. These do not modify ILIAS favorites. Reconnecting creates a fresh connection and a separate saved-item namespace.
 - Responsive navigation, loading/error/empty states, and explicit session-expiry handling.
@@ -85,6 +85,16 @@ Open a forum from a course or a saved item. Try [the example forum](http://127.0
 - **Reply in ILIAS** opens the original editor, respecting the page’s available actions. Drafts are not presented as published posts. Closed threads retain ILIAS’s restrictions.
 
 Post formatting includes paragraphs, lists, code, quotes, links, and tables. Bodies are sanitized before rendering; scripts, event handlers, remote images, and embeds are excluded. Posts with embedded content show a visible original-page handoff. Author aliases, moderation notices, and approval status are preserved from ILIAS. An unsupported layout or selected subtree produces a visible notice.
+
+## Navigation speed and freshness
+
+Achilias uses Next.js client-side navigation and production prefetching. Settings and Saved can be prepared in the background without calling ILIAS. Recently visited pages can be reused for **30 seconds** in the current browser, making return visits quick; filters and post search stay local.
+
+Fresh live course, folder, and forum pages load when opened. They are not fetched in the background because ILIAS can record visits/read events or change forum view preferences during a read. Demo content can be prefetched freely. Use **Refresh** to fetch current content and invalidate recent pages. The forum UI’s mark-read action invalidates the cache too. Sign-in and disconnect clear the client router state so another account does not inherit it.
+
+A production demo run with 120 ms of simulated browser network latency improved Settings navigation from **344 ms to 43 ms**, and repeat course/thread navigation from approximately **147 ms to 47 ms**. This compares Achilias before and after optimization; **it is not a benchmark against authenticated Freiburg ILIAS**. First-time live content still depends on ILIAS responding.
+
+See the [measurements, limitations, and reproduction steps](docs/performance/README.md). Test prefetching with a production build; development mode does not represent its final performance.
 
 ## Running on a headless server
 
@@ -187,7 +197,7 @@ bun run build
 bun run start --hostname 127.0.0.1
 ```
 
-`bun run test` checks ILIAS template parsing, restricted/unsupported content, cookie rotation, redirect credential boundaries, expired sessions, pairing validation, and encrypted session persistence. Forum fixtures follow the ILIAS 10 standard-item and post templates and check counts, hierarchy, sanitization, drafts, permissions, pagination, and action scoping. `bun run test:e2e` checks the demo flows in Chromium, including download, bookmarks across reloads, quick search, mobile navigation, single-use connection claims, session expiry, and reconnect/disconnect behavior. The last checks use a deliberately credential-free test session against the public Freiburg endpoint; they do not sign in to a real account. `bun run test:forums` runs the forum browser checks alone, including filters, reply context, post search, unread jumps, copied links, read-state persistence in the demo, closed topics, and mobile layouts. `bun run test:headless` exercises the pairing UI, code renewal/cancellation, remote CLI over stdin, and rejection of an unauthenticated transfer. Unit tests mock successful validation to check replay protection and cancellation races; no real account is used. Set `ACHILIAS_TEST_URL` to test another local port.
+`bun run test` checks ILIAS template parsing, restricted/unsupported content, cookie rotation, redirect credential boundaries, expired sessions, pairing validation, and encrypted session persistence. Forum fixtures follow the ILIAS 10 standard-item and post templates and check counts, hierarchy, sanitization, drafts, permissions, pagination, and action scoping. `bun run test:e2e` checks the demo flows in Chromium, including download, bookmarks across reloads, quick search, mobile navigation, single-use connection claims, session expiry, and reconnect/disconnect behavior. The last checks use a deliberately credential-free test session against the public Freiburg endpoint; they do not sign in to a real account. `bun run test:forums` runs the forum browser checks alone, including filters, reply context, post search, unread jumps, copied links, read-state persistence in the demo, closed topics, and mobile layouts. `bun run test:headless` exercises the pairing UI, code renewal/cancellation, remote CLI over stdin, and rejection of an unauthenticated transfer. Unit tests mock successful validation to check replay protection and cancellation races; no real account is used. For production navigation, run `bun run test:navigation` and `bun run benchmark:navigation` against a production preview (port 3001 by default). Set `ACHILIAS_TEST_URL` to test another local port.
 
 While `next dev` is running, use `ACHILIAS_BUILD_DIR=.next-build bun run build` to preserve its `.next` directory. Start that build with the same variable if you want to run it.
 

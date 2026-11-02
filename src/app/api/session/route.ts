@@ -10,7 +10,11 @@ export const runtime = "nodejs";
 export async function GET() {
   const session = await currentSession();
   return Response.json(
-    { status: session?.status || "disconnected", error: session?.error },
+    {
+      status: session?.status || "disconnected",
+      error: session?.error,
+      method: session?.remotePairing ? "remote" : "local",
+    },
     { headers: { "Cache-Control": "private, no-store" } },
   );
 }

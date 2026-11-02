@@ -20,6 +20,7 @@ export type Session = {
   createdAt: number;
   status: "pending" | "connected" | "failed";
   pairing?: { digest: string; expiresAt: number };
+  remotePairing?: { digest: string; expiresAt: number };
   jar?: SerializedCookieJar;
   error?: string;
   userName?: string;
@@ -90,16 +91,16 @@ export async function readSession(id?: string): Promise<Session | null> {
     return null;
   }
   if (session.createdAt + maxAge * 1000 < Date.now()) {
-    await deleteSession(id);
+    await unlink(sessionPath(id)).catch(() => {});
     return null;
   }
   if (
     session.status === "pending" &&
-    Date.now() - session.createdAt > 6 * 60_000
+    Date.now() >
+      (session.remotePairing?.expiresAt || session.createdAt + 6 * 60_000)
   ) {
     session.status = "failed";
-    session.error =
-      "Sign-in timed out. Connect again to open a fresh university sign-in window.";
+    session.error = "Sign-in expired. Start a new connection to try again.";
     await saveSession(session);
   }
   return session;
@@ -107,8 +108,33 @@ export async function readSession(id?: string): Promise<Session | null> {
 export async function currentSession() {
   return readSession((await cookies()).get(SESSION_COOKIE)?.value);
 }
+const lockState = globalThis as typeof globalThis & {
+  achiliasSessionLocks?: Map<string, Promise<void>>;
+};
+const locks = (lockState.achiliasSessionLocks ||= new Map());
+export async function withSessionLock<T>(
+  id: string,
+  operation: () => Promise<T>,
+): Promise<T> {
+  const previous = locks.get(id) || Promise.resolve();
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const tail = previous.then(() => held);
+  locks.set(id, tail);
+  await previous;
+  try {
+    return await operation();
+  } finally {
+    release();
+    if (locks.get(id) === tail) locks.delete(id);
+  }
+}
 export async function deleteSession(id: string) {
-  await unlink(sessionPath(id)).catch(() => {});
+  await withSessionLock(id, async () => {
+    await unlink(sessionPath(id)).catch(() => {});
+  });
 }
 export async function setSessionCookie(id: string) {
   (await cookies()).set(SESSION_COOKIE, id, {

@@ -1,93 +1,135 @@
 import { readFile } from "node:fs/promises";
+import { createInterface } from "node:readline/promises";
 import { randomUUID } from "node:crypto";
-import { CookieJar } from "tough-cookie";
 import { assertInstance, FREIBURG } from "../src/lib/ilias/config";
-import {
-  readSession,
-  saveSession,
-  type Session,
-} from "../src/lib/ilias/session";
-import { beginLogin } from "../src/lib/ilias/login";
-import { fetchPage } from "../src/lib/ilias/client";
-import { newPairing } from "../src/lib/ilias/pairing";
-
+import { browserLogin } from "../src/lib/ilias/browser-login";
+import { importInstanceCookies } from "../src/lib/ilias/cookie-import";
+import { remoteRequest, remoteServerUrl } from "../src/lib/ilias/remote-client";
 const args = process.argv.slice(2);
 function option(name: string) {
   const i = args.indexOf(name);
   return i < 0 ? undefined : args[i + 1];
 }
 if (args.includes("--help")) {
-  console.log(
-    "bun run connect [--instance https://ilias.uni-freiburg.de/] [--cookies /path/to/cookies.json] [--app http://127.0.0.1:3000]\nWithout --cookies, opens the real university sign-in in a local browser. With --cookies, imports a Playwright storageState or an exported cookie array. Run from the same checkout and with the same ACHILIAS_DATA_DIR as the server.",
-  );
+  console.log(`bun run connect [--instance https://ilias.uni-freiburg.de/] [--cookies /path/to/cookies.json] [--app http://127.0.0.1:3000]
+bun run connect --server https://your-achilias.example [--cookies /path/to/cookies.json] [--proxy socks5://127.0.0.1:1080]
+
+Without --server, run on the same computer/data directory as Achilias. A local browser opens for university sign-in, or --cookies imports an existing export. The command prints a single-use browser connection link.
+With --server, run on your laptop. Paste the temporary code from the server's “On my computer” connection dialog when prompted. The helper signs in locally and transfers only ILIAS cookies over HTTPS or loopback HTTP. No shared filesystem, server display, or server Chromium is needed. Use --proxy with an SSH SOCKS tunnel if ILIAS binds sessions to the login IP.
+The connection code is read from stdin and is never passed as a command-line argument.`);
   process.exit(0);
 }
 try {
-  const instance = assertInstance(option("--instance") || FREIBURG);
-  const app = new URL(
-    option("--app") || process.env.ACHILIAS_ORIGIN || "http://127.0.0.1:3000",
-  );
-  const session: Session = {
-    id: randomUUID(),
-    instance,
-    status: "pending",
-    createdAt: Date.now(),
-  };
+  const server = option("--server");
   const cookieFile = option("--cookies");
-  if (cookieFile) {
-    const data = JSON.parse(await readFile(cookieFile, "utf8"));
-    const values = Array.isArray(data) ? data : data.cookies;
-    if (!Array.isArray(values) || values.length > 1000)
-      throw new Error("Expected a Playwright storageState or a cookie array.");
-    const jar = new CookieJar();
-    for (const c of values) {
-      if (
-        typeof c.domain !== "string" ||
-        c.domain.replace(/^\./, "") !== new URL(instance).hostname
-      )
-        continue;
-      if (
-        typeof c.name !== "string" ||
-        typeof c.value !== "string" ||
-        /[;\r\n]/.test(c.name + c.value)
-      )
-        throw new Error("Invalid cookie data.");
-      await jar.setCookie(
-        `${c.name}=${c.value}; Path=${typeof c.path === "string" ? c.path : "/"}${c.secure ? "; Secure" : ""}${c.httpOnly ? "; HttpOnly" : ""}${c.expires > 0 ? `; Expires=${new Date(c.expires * 1000).toUTCString()}` : ""}`,
+  if (server) {
+    const origin = remoteServerUrl(server);
+    console.log(`Connecting to ${origin}`);
+    let code: string;
+    if (process.stdin.isTTY) {
+      const prompt = createInterface({
+        input: process.stdin,
+        output: process.stdout,
+      });
+      try {
+        code = (
+          await prompt.question("Paste the connection code from Achilias: ")
+        ).trim();
+      } finally {
+        prompt.close();
+      }
+    } else {
+      let input = "";
+      for await (const chunk of process.stdin) {
+        input += chunk.toString();
+        if (input.length > 256) throw new Error("Invalid connection code.");
+      }
+      code = input.trim();
+    }
+    const metadata = await remoteRequest(origin, code);
+    const instance = assertInstance(metadata.instance);
+    if (
+      option("--instance") &&
+      assertInstance(option("--instance")!) !== instance
+    )
+      throw new Error(
+        "The selected instance does not match this server connection.",
+      );
+    console.log(`University sign-in: ${instance}`);
+    let cookies: unknown;
+    if (cookieFile) {
+      const data = JSON.parse(await readFile(cookieFile, "utf8"));
+      await importInstanceCookies(data, instance);
+      const values = Array.isArray(data) ? data : data.cookies;
+      cookies = values
+        .filter(
+          (cookie: { domain: string }) =>
+            cookie.domain.replace(/^\./, "") === new URL(instance).hostname,
+        )
+        .map((cookie: Record<string, unknown>) =>
+          Object.fromEntries(
+            ["name", "value", "domain", "path", "secure", "httpOnly", "expires"]
+              .filter((k) => cookie[k] !== undefined)
+              .map((k) => [k, cookie[k]]),
+          ),
+        );
+    } else {
+      console.log("Complete myLogin in the browser on this computer.");
+      const remaining = metadata.expiresAt - Date.now();
+      if (remaining <= 0)
+        throw new Error(
+          "The connection code expired. Start again in Achilias.",
+        );
+      cookies = (
+        await browserLogin(instance, {
+          proxy: option("--proxy"),
+          timeoutMs: Math.min(remaining, 5 * 60_000),
+        })
+      ).cookies;
+    }
+    await remoteRequest(origin, code, cookies);
+    console.log(
+      "Connected. Return to Achilias; the page will update automatically.",
+    );
+  } else {
+    const instance = assertInstance(option("--instance") || FREIBURG);
+    const app = remoteServerUrl(
+      option("--app") || process.env.ACHILIAS_ORIGIN || "http://127.0.0.1:3000",
+    );
+    const sessions = await import("../src/lib/ilias/session");
+    const { newPairing } = await import("../src/lib/ilias/pairing");
+    const { fetchPage } = await import("../src/lib/ilias/client");
+    const session: import("../src/lib/ilias/session").Session = {
+      id: randomUUID(),
+      instance,
+      status: "pending",
+      createdAt: Date.now(),
+    };
+    if (cookieFile) {
+      session.jar = await importInstanceCookies(
+        JSON.parse(await readFile(cookieFile, "utf8")),
         instance,
       );
+      session.userName = (
+        await fetchPage(
+          session,
+          new URL("ilias.php?baseClass=ilDashboardGUI", instance).href,
+        )
+      ).userName;
+    } else {
+      console.log("Complete university sign-in in the browser window.");
+      const result = await browserLogin(instance, { proxy: option("--proxy") });
+      session.jar = result.jar;
+      session.userName = result.userName;
     }
-    session.jar = jar.serializeSync();
-    const page = await fetchPage(
-      session,
-      new URL("ilias.php?baseClass=ilDashboardGUI", instance).href,
-    );
-    session.userName = page.userName;
     session.status = "connected";
-    await saveSession(session);
-  } else {
-    await saveSession(session);
-    beginLogin(session);
-    console.log("Complete university sign-in in the browser window.");
-    while (true) {
-      await new Promise((r) => setTimeout(r, 1000));
-      const current = await readSession(session.id);
-      if (!current || current.status === "failed")
-        throw new Error(
-          "Sign-in did not finish. Ensure a desktop display and Chromium are available.",
-        );
-      if (current.status === "connected") {
-        Object.assign(session, current);
-        break;
-      }
-    }
+    const pairing = newPairing();
+    session.pairing = { digest: pairing.digest, expiresAt: pairing.expiresAt };
+    await sessions.saveSession(session);
+    console.log(
+      `Open this single-use link within five minutes:\n${app}/connect#${session.id}.${pairing.secret}`,
+    );
   }
-  const pairing = newPairing();
-  session.pairing = { digest: pairing.digest, expiresAt: pairing.expiresAt };
-  await saveSession(session);
-  console.log(
-    `Open this single-use link within five minutes:\n${app.origin}/connect#${session.id}.${pairing.secret}`,
-  );
 } catch (e) {
   console.error(e instanceof Error ? e.message : "Connection failed.");
   process.exit(1);

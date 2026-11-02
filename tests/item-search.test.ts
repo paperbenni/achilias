@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { matchesItem, rankByTitle, searchTerms } from "../src/lib/ilias/item-search";
+import { isInsideCourses, matchesItem, rankByTitle, searchTerms } from "../src/lib/ilias/item-search";
 import { demoCourses, demoPage } from "../src/lib/ilias/demo";
 import { mergeItems } from "../src/lib/ilias/library";
 
@@ -31,4 +31,12 @@ test("title relevance beats incidental description matches", () => {
     "Linear Algebra", "Linear Algebra II", "Advanced Linear Algebra",
     "Algebra and linear systems", "A course",
   ]);
+});
+
+test("nested course paths use complete course names rather than substrings", () => {
+  const course = { ...demoCourses[0], title: "Algorithms" };
+  const file = { ...demoCourses[0], type: "file", id: "900", context: "Algorithms › Lectures › Week 3 › Slides" };
+  expect(isInsideCourses(file, [course])).toBe(true);
+  expect(isInsideCourses({ ...file, context: "Advanced Algorithms › Lectures" }, [course])).toBe(false);
+  expect(isInsideCourses({ ...file, context: undefined }, [course])).toBe(false);
 });

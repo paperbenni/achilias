@@ -53,6 +53,15 @@ export function rankByFamiliarity(items: Item[], familiar: Item[]): Item[] {
   return [...items].sort((a, b) => tier(a) - tier(b));
 }
 
+/** Exact path segments keep similarly named courses distinguishable. */
+export function isInsideCourses(item: Item, courses: Item[]) {
+  const path = (item.context || "").split("›").map((part) => normalizeSearch(part));
+  return courses.some((course) =>
+    (course.type === "crs" || course.type === "grp") &&
+    (itemKey(item) === itemKey(course) || path.includes(normalizeSearch(course.title))),
+  );
+}
+
 /** Title matches before metadata matches; alphabetical within each tier. */
 export function rankByTitle(items: Item[], query: string): Item[] {
   const normalized = normalizeSearch(query);

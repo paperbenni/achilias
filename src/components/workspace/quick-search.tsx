@@ -1,13 +1,14 @@
 "use client";
 import {
   createElement,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
   type UIEvent,
 } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   ArrowUpRight,
   Loader2,
@@ -27,6 +28,7 @@ import { demoHref, settingsEntry, workspaceNav } from "./nav-items";
 import { mergeItems } from "@/lib/ilias/library";
 import {
   matchesItem,
+  isInsideCourses,
   rankByFamiliarity,
   rankByTitle,
   searchTerms,
@@ -36,6 +38,8 @@ import type { Item, Workspace } from "@/lib/ilias/types";
 
 type DeepSearch = {
   query: string;
+  account: string;
+  scopedKeys: string[];
   results: Item[];
   sourceUrl: string;
   hasMore: boolean;
@@ -102,6 +106,8 @@ export function QuickSearch({
   saved: Item[];
 }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const currentRoot = pathname.match(/^\/browse\/(?:crs|grp|fold|cat)\/([1-9]\d{0,11})$/)?.[1];
   const demo = data.mode === "demo";
   const scope = data.storageKey || data.mode;
   const [catalog, setCatalog] = useState<{
@@ -116,8 +122,10 @@ export function QuickSearch({
   const [searchQuery, setSearchQuery] = useState("");
   const [deep, setDeep] = useState<DeepSearch | null>(null);
   const [deepLoadingQuery, setDeepLoadingQuery] = useState<string | null>(null);
+  const [deepStage, setDeepStage] = useState("");
   const [deepError, setDeepError] = useState<{
     query: string;
+    account: string;
     message: string;
   } | null>(null);
   const [deepMoreLoading, setDeepMoreLoading] = useState(false);
@@ -125,6 +133,10 @@ export function QuickSearch({
   const loadingMore = useRef(false);
   const searchRequest = useRef(0);
   const searchAbort = useRef<AbortController | null>(null);
+  const cancelDeepSearch = useCallback(() => {
+    searchRequest.current++;
+    searchAbort.current?.abort();
+  }, []);
   const wasOpen = useRef(false);
   const resetSearchState = () => {
     searchRequest.current++;
@@ -188,9 +200,9 @@ export function QuickSearch({
     [accountCatalog],
   );
   const catalogLoading = data.mode !== "disconnected" && !accountCatalog;
-  async function runDeepSearch() {
+  const runDeepSearch = useCallback(async () => {
     const term = searchQuery.trim();
-    if (term.length < 2) return;
+    if (term.length < 2 || term.length > 200) return;
     const request = ++searchRequest.current;
     // A newer search makes the older ILIAS query useless; cancel it instead of
     // letting several expensive searches run to completion in the background.
@@ -201,32 +213,51 @@ export function QuickSearch({
     setDeepError(null);
     setDeepMoreLoading(false);
     setDeepMoreError("");
+    let accumulated: Item[] = [];
+    let scopedKeys: string[] = [];
     try {
-      const response = await fetch(
-        `/api/search?q=${encodeURIComponent(term)}${demo ? "&demo=1" : ""}`,
-        { cache: "no-store", signal: controller.signal },
-      );
-      const body = (await response.json()) as {
-        error?: string;
-        results?: Item[];
-        sourceUrl?: string;
-        hasMore?: boolean;
-        page?: number;
-      };
-      if (!response.ok)
-        throw new Error(body.error || "ILIAS search failed.");
-      if (request !== searchRequest.current) return;
-      setDeep({
-        query: term,
-        results: Array.isArray(body.results) ? body.results : [],
-        sourceUrl: body.sourceUrl || data.page.sourceUrl,
-        hasMore: Boolean(body.hasMore),
-        page: body.page || 1,
-      });
+      for (const root of currentRoot ? [currentRoot, undefined] : [undefined]) {
+        setDeepStage(root
+          ? `Searching ${data.page.title} and its subfolders…`
+          : "Searching your courses and the wider ILIAS repository…");
+        const params = new URLSearchParams({ q: term });
+        if (demo) params.set("demo", "1");
+        if (root) params.set("root", root);
+        const response = await fetch(`/api/search?${params}`, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        const body = (await response.json()) as {
+          error?: string;
+          results?: Item[];
+          sourceUrl?: string;
+          hasMore?: boolean;
+          page?: number;
+        };
+        if (request !== searchRequest.current || controller.signal.aborted) return;
+        if (!response.ok) {
+          // An unavailable container search must not prevent widening.
+          if (root && response.status !== 401) continue;
+          throw new Error(body.error || "ILIAS search failed.");
+        }
+        const results = Array.isArray(body.results) ? body.results : [];
+        if (root) scopedKeys = results.map(itemKey);
+        accumulated = mergeItems(accumulated, results);
+        setDeep({
+          query: term,
+          account: scope,
+          scopedKeys,
+          results: accumulated,
+          sourceUrl: body.sourceUrl || data.page.sourceUrl,
+          hasMore: !root && Boolean(body.hasMore),
+          page: body.page || 1,
+        });
+      }
     } catch (error) {
       if (request !== searchRequest.current || controller.signal.aborted) return;
       setDeepError({
         query: term,
+        account: scope,
         message:
           error instanceof Error ? error.message : "ILIAS search failed.",
       });
@@ -234,7 +265,17 @@ export function QuickSearch({
       if (searchAbort.current === controller) searchAbort.current = null;
       if (request === searchRequest.current) setDeepLoadingQuery(null);
     }
-  }
+  }, [searchQuery, currentRoot, demo, scope, data.page.sourceUrl, data.page.title]);
+  // Local results remain instant. Give typing a pause before starting the
+  // recursive upstream search, and cancel every stage on close or query change.
+  useEffect(() => {
+    if (!open || data.mode === "disconnected" || searchQuery.trim().length < 2) return;
+    const timer = setTimeout(() => void runDeepSearch(), 450);
+    return () => {
+      clearTimeout(timer);
+      cancelDeepSearch();
+    };
+  }, [open, data.mode, searchQuery, runDeepSearch, cancelDeepSearch]);
   const trimmedQuery = searchQuery.trim();
   const localSearchResults = useMemo(() => {
     const terms = searchTerms(trimmedQuery);
@@ -249,7 +290,7 @@ export function QuickSearch({
   const visibleLocalResults = showAllLocal
     ? localSearchResults
     : localSearchResults.slice(0, 16);
-  const deepForQuery = deep?.query === trimmedQuery ? deep : null;
+  const deepForQuery = deep?.query === trimmedQuery && deep.account === scope ? deep : null;
   // ILIAS pages search results through its own result view, so reaching the
   // bottom of the list asks for the next page instead of sending the user away.
   async function loadMore() {
@@ -290,7 +331,7 @@ export function QuickSearch({
           ...current,
           results: [...current.results, ...added],
           page: body.page || current.page + 1,
-          hasMore: Boolean(body.hasMore) && added.length > 0,
+          hasMore: Boolean(body.hasMore),
         };
       });
     } catch (error) {
@@ -299,9 +340,11 @@ export function QuickSearch({
         error instanceof Error ? error.message : "Could not load more results.",
       );
     } finally {
-      loadingMore.current = false;
       if (searchAbort.current === controller) searchAbort.current = null;
-      if (request === searchRequest.current) setDeepMoreLoading(false);
+      if (request === searchRequest.current) {
+        loadingMore.current = false;
+        setDeepMoreLoading(false);
+      }
     }
   }
   function onListScroll(event: UIEvent<HTMLDivElement>) {
@@ -323,7 +366,17 @@ export function QuickSearch({
   );
   const deepLoading = deepLoadingQuery === trimmedQuery;
   const currentDeepError =
-    deepError?.query === trimmedQuery ? deepError.message : "";
+    deepError?.query === trimmedQuery && deepError.account === scope ? deepError.message : "";
+  const scopedKeys = new Set(deepForQuery?.scopedKeys);
+  const resultGroups: { heading: string; items: Item[] }[] = [
+    { heading: `Inside ${data.page.title}`, items: [] },
+    { heading: "Inside your courses & groups", items: [] },
+    { heading: "Other matches in ILIAS", items: [] },
+  ];
+  for (const item of deepResults) {
+    const group = scopedKeys.has(itemKey(item)) ? 0 : isInsideCourses(item, catalogItems) ? 1 : 2;
+    resultGroups[group].items.push(item);
+  }
   const navigationResults = [
     ...workspaceNav.map(({ title, icon, href }) => ({ title, icon, href })),
     settingsEntry,
@@ -437,108 +490,70 @@ export function QuickSearch({
                 : "No matches on this page, in bookmarks, or in recent history."}
             </div>
           )}
-          {trimmedQuery &&
-            (deepForQuery &&
-            (deepResults.length > 0 ||
-              deepForQuery.hasMore ||
-              Boolean(deepMoreError)) ? (
-              <CommandGroup heading="Other matches in ILIAS">
-                {deepResults.map((item) => (
-                  <SearchResultOption
-                    key={itemKey(item)}
-                    item={item}
-                    onSelect={onOpenItem}
-                  />
-                ))}
-                {deepForQuery.hasMore && (
-                  <CommandItem
-                    value="load-more-results"
-                    disabled={deepMoreLoading}
-                    onSelect={() => void loadMore()}
-                  >
-                    {deepMoreLoading ? (
-                      <Loader2 className="animate-spin" />
-                    ) : (
-                      <Search />
-                    )}
-                    {deepMoreLoading
-                      ? "Loading more results…"
-                      : "Load more results"}
+          {trimmedQuery && data.mode === "disconnected" && (
+            <CommandGroup heading="Search the ILIAS repository">
+              <CommandItem value="connect-to-search" onSelect={() => {
+                onOpenChange(false);
+                onConnect();
+              }}>
+                <ShieldCheck /> Connect your account to search ILIAS
+              </CommandItem>
+            </CommandGroup>
+          )}
+          {trimmedQuery && data.mode !== "disconnected" && (
+            <>
+              {resultGroups.filter((group) => group.items.length).map((group) => (
+                <CommandGroup key={group.heading} heading={group.heading}>
+                  {group.items.map((item) => (
+                    <SearchResultOption key={itemKey(item)} item={item} onSelect={onOpenItem} />
+                  ))}
+                </CommandGroup>
+              ))}
+              {trimmedQuery.length < 2 ? (
+                <div className="px-3 py-3 text-sm text-muted-foreground">
+                  Type at least 2 characters to search inside courses and subfolders.
+                </div>
+              ) : trimmedQuery.length > 200 ? (
+                <div role="status" className="px-3 py-3 text-sm text-muted-foreground">
+                  Use at most 200 characters to search ILIAS.
+                </div>
+              ) : deepLoading || (!deepForQuery && !currentDeepError) ? (
+                <div role="status" className="flex items-center gap-2 px-3 py-3 text-sm text-muted-foreground">
+                  <Loader2 className="size-4 animate-spin" />
+                  {deepLoading ? deepStage : "Preparing to search courses and subfolders…"}
+                </div>
+              ) : null}
+              {currentDeepError && (
+                <CommandGroup heading="Search interrupted">
+                  <div role="status" className="px-3 py-2 text-sm text-destructive">{currentDeepError}</div>
+                  <CommandItem value="retry-deep-search" onSelect={() => void runDeepSearch()}>
+                    <Search /> Try again
                   </CommandItem>
-                )}
-                {deepMoreError && (
-                  <div className="px-3 py-2 text-xs text-destructive">
-                    {deepMoreError}
-                  </div>
-                )}
-              </CommandGroup>
-            ) : (
-              <CommandGroup heading="Search the ILIAS repository">
-                {data.mode === "disconnected" ? (
-                  <CommandItem
-                    value="connect-to-search"
-                    onSelect={() => {
-                      onOpenChange(false);
-                      onConnect();
-                    }}
-                  >
-                    <ShieldCheck />
-                    Connect your account to search ILIAS
+                </CommandGroup>
+              )}
+              {deepForQuery?.hasMore && !deepLoading && (
+                <CommandGroup>
+                  <CommandItem value="load-more-results" disabled={deepMoreLoading} onSelect={() => void loadMore()}>
+                    {deepMoreLoading ? <Loader2 className="animate-spin" /> : <Search />}
+                    {deepMoreLoading ? "Loading more results…" : "Load more results"}
                   </CommandItem>
-                ) : trimmedQuery.length < 2 ? (
-                  <div className="px-3 py-4 text-sm text-muted-foreground">
-                    Type at least 2 characters to search the ILIAS repository.
-                  </div>
-                ) : deepLoading ? (
-                  <div className="flex items-center gap-2 px-3 py-4 text-sm text-muted-foreground">
-                    <Loader2 className="animate-spin" />
-                    Searching ILIAS…
-                  </div>
-                ) : currentDeepError ? (
-                  <>
-                    <div className="px-3 py-3 text-sm text-destructive">
-                      {currentDeepError}
-                    </div>
-                    <CommandItem
-                      value="retry-deep-search"
-                      onSelect={runDeepSearch}
-                    >
-                      <Search />
-                      Try again
-                    </CommandItem>
-                  </>
-                ) : deepForQuery ? (
-                  <div className="px-3 py-4 text-sm text-muted-foreground">
-                    {deepForQuery.results.length
-                      ? "All matches are already shown above."
-                      : `No matches for “${deepForQuery.query}” in ILIAS.`}
-                    <a
-                      href={deepForQuery.sourceUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="ml-1 font-medium text-foreground underline underline-offset-3"
-                    >
-                      Open the search in ILIAS
-                    </a>
-                  </div>
-                ) : (
-                  <CommandItem value="search-all" onSelect={runDeepSearch}>
-                    <Search />
-                    Search ILIAS for “{trimmedQuery}”
-                    <span className="ml-auto text-xs text-muted-foreground">
-                      ILIAS
-                    </span>
-                  </CommandItem>
-                )}
-              </CommandGroup>
-            ))}
+                </CommandGroup>
+              )}
+              {deepMoreError && <div role="status" className="px-3 py-2 text-xs text-destructive">{deepMoreError}</div>}
+              {deepForQuery && !deepLoading && !currentDeepError && !deepResults.length && (
+                <div className="px-3 py-3 text-sm text-muted-foreground">
+                  {deepForQuery.results.length ? "All ILIAS matches are already shown above." : `No indexed matches for “${trimmedQuery}” in ILIAS.`}
+                </div>
+              )}
+            </>
+          )}
         </CommandList>
       </Command>
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t px-3 py-2 text-xs text-muted-foreground">
         <span>
           {data.mode === "disconnected"
             ? "Local search works now. Connect to search the whole repository."
-            : "Your course list is included automatically. Search ILIAS for more materials."}
+            : "Search widens automatically into subfolders and across ILIAS. Your courses come first."}
         </span>
         {deepForQuery && (
           <a

@@ -1,6 +1,7 @@
 import { currentSession } from "@/lib/ilias/session";
 import { errorResponse, noStore } from "@/lib/api";
 import { searchDemo, searchRepository } from "@/lib/ilias/search";
+import { validObjectId } from "@/lib/ilias/identifiers";
 
 export const runtime = "nodejs";
 
@@ -9,6 +10,12 @@ export async function GET(request: Request) {
   const query = (url.searchParams.get("q") || "").trim();
   const pageParam = url.searchParams.get("page");
   const page = pageParam === null ? 1 : Number(pageParam);
+  const root = url.searchParams.get("root") ?? undefined;
+  if (root !== undefined && !validObjectId(root))
+    return Response.json(
+      { error: "That search location is invalid." },
+      { status: 400, headers: noStore },
+    );
   if (query.length < 2 || query.length > 200)
     return Response.json(
       { error: "Enter between 2 and 200 characters to search." },
@@ -17,7 +24,7 @@ export async function GET(request: Request) {
   try {
     if (url.searchParams.get("demo") === "1")
       return Response.json(
-        { query, ...searchDemo(query), demo: true },
+        { query, ...searchDemo(query, undefined, root), demo: true },
         { headers: noStore },
       );
     const session = await currentSession();
@@ -26,7 +33,7 @@ export async function GET(request: Request) {
         { error: "Connect your account to search all your courses." },
         { status: 401, headers: noStore },
       );
-    const result = await searchRepository(session, query, page);
+    const result = await searchRepository(session, query, page, root, request.signal);
     return Response.json(
       { query, ...result, demo: false },
       { headers: noStore },

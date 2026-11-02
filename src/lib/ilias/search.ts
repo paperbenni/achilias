@@ -6,12 +6,13 @@ import {
   readUpstreamText,
   IliasError,
 } from "./client";
-import { demoSearchItems } from "./demo";
+import { demoCourses, demoSearchItems } from "./demo";
 import { itemKey } from "./items";
 import { matchesItem, rankByTitle, searchTerms } from "./item-search";
 import { parsePage } from "./parser";
 import type { Session } from "./session";
 import type { Item } from "./types";
+import { validObjectId } from "./identifiers";
 
 export type SearchResults = {
   results: Item[];
@@ -39,8 +40,9 @@ const discovering = new Map<string, Promise<SearchForm>>();
  * session, so a later page must belong to the query the user is looking at.
  * Its links are taken from ILIAS' own result view: their token, sortation and
  * routing are what the server issued for that search. */
-type SearchPaging = { query: string; at: number; links: Map<number, string> };
+type SearchPaging = { query: string; root?: string; at: number; links: Map<number, string> };
 const lastSearches = new Map<string, SearchPaging>();
+const searchQueues = new Map<string, Promise<void>>();
 const maxSearchPage = 5;
 
 export function clearSearchFormCache(sessionId?: string) {
@@ -59,12 +61,19 @@ export function clearSearchFormCache(sessionId?: string) {
 export function searchDemo(
   query: string,
   instance = FREIBURG,
+  root?: string,
 ): SearchResults {
   if (!query.trim())
     return { results: [], sourceUrl: instance, hasMore: false, page: 1 };
   const terms = searchTerms(query);
+  const course = demoCourses.find((entry) => entry.id === root);
   const seen = new Set<string>();
   const matches = demoSearchItems().filter((item) => {
+    if (root) {
+      if (course && !item.context?.split("›").map((part) => part.trim()).includes(course.title)) return false;
+      if (!course && root === "201" && !item.context?.includes("Lecture materials")) return false;
+      if (!course && root !== "201") return false;
+    }
     const key = itemKey(item);
     if (seen.has(key)) return false;
     if (!matchesItem(item, terms)) return false;
@@ -147,9 +156,9 @@ async function discoverSearchForm(session: Session): Promise<SearchForm> {
   }
 }
 
-async function submitSearch(session: Session, form: SearchForm, query: string) {
+async function submitSearch(session: Session, form: SearchForm, query: string, root?: string) {
   const fields = new URLSearchParams(form.fields);
-  fields.set("root_id", form.rootId);
+  fields.set("root_id", root || form.rootId);
   fields.set("queryString", query);
   try {
     return await fetchUpstream(session, form.action, {
@@ -199,6 +208,11 @@ function echoedTerm(html: string) {
     (entity, name: string) =>
       entities[name.toLowerCase()] ?? entities[`#${name.replace(/\D/g, "")}`] ?? entity,
   );
+}
+
+/** remoteSearch syncs the effective root into the filter via this onload call. */
+function echoedRoot(html: string) {
+  return html.match(/il\.Search\.syncFilterScope\(\s*(['"])[^'"]*\1,\s*(['"])(\d+)\2\s*\)/)?.[3] ?? null;
 }
 
 /** Read one routing parameter, or null when PHP would see a different value
@@ -267,6 +281,32 @@ export async function searchRepository(
   session: Session,
   query: string,
   pageNumber = 1,
+  root?: string,
+  signal?: AbortSignal,
+): Promise<SearchResults> {
+  if (root !== undefined && !validObjectId(root))
+    throw new IliasError("That search location is invalid.", 400);
+  // ILIAS stores one mutable search per session. Serialize queries and paging
+  // separately from the cookie lock, which fetchUpstream may itself acquire.
+  const previous = searchQueues.get(session.id);
+  let release!: () => void;
+  const queued = new Promise<void>((resolve) => { release = resolve; });
+  searchQueues.set(session.id, queued);
+  await previous;
+  try {
+    if (signal?.aborted) throw new IliasError("Search was cancelled.", 499);
+    return await searchRepositoryUnlocked(session, query, pageNumber, root);
+  } finally {
+    release();
+    if (searchQueues.get(session.id) === queued) searchQueues.delete(session.id);
+  }
+}
+
+async function searchRepositoryUnlocked(
+  session: Session,
+  query: string,
+  pageNumber: number,
+  root?: string,
 ): Promise<SearchResults> {
   if (
     !Number.isInteger(pageNumber) ||
@@ -279,6 +319,7 @@ export async function searchRepository(
     if (
       !last ||
       last.query !== query ||
+      last.root !== root ||
       Date.now() - last.at > searchFormTtl
     )
       throw new IliasError("That search expired. Start it again.", 409);
@@ -295,11 +336,16 @@ export async function searchRepository(
       );
     upstream = await fetchUpstream(session, target);
   } else {
-    upstream = await submitSearch(session, form, query);
+    upstream = await submitSearch(session, form, query, root);
   }
   let results = await readSearchResults(upstream);
-  const echoed = echoedTerm(results.html);
-  if (echoed !== null && echoed !== query) {
+  const wrongSearch = (html: string) => {
+    const term = echoedTerm(html);
+    const location = echoedRoot(html);
+    return (term !== null && term !== query) ||
+      (location !== null && location !== (root || form.rootId));
+  };
+  if (wrongSearch(results.html)) {
     // ilCtrl falls back to the saved search when it ignores the token; never
     // pass that page off as this query's results.
     if (pageNumber > 1)
@@ -309,8 +355,11 @@ export async function searchRepository(
       session,
       await discoverSearchForm(session),
       query,
+      root,
     );
     results = await readSearchResults(upstream);
+    if (wrongSearch(results.html))
+      throw new IliasError("ILIAS returned a different search. Try again.", 409);
   }
   const page = parsePage(results.html, results.url);
   if (!page.authenticated)
@@ -319,7 +368,7 @@ export async function searchRepository(
       401,
     );
   const links = pagingLinks(results.html, session.instance, results.url);
-  lastSearches.set(session.id, { query, at: Date.now(), links });
+  lastSearches.set(session.id, { query, root, at: Date.now(), links });
   return {
     results: page.items,
     sourceUrl: results.url,

@@ -169,9 +169,6 @@ try {
   await page.keyboard.press("Control+k");
   await page.getByRole("combobox").fill("gruppe");
   await page
-    .getByRole("option", { name: /Search ILIAS for/ })
-    .click();
-  await page
     .getByText("Introduction to Computer Science › Exercise groups")
     .waitFor();
   assert.equal(

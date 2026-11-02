@@ -260,3 +260,73 @@ test("repository search reports a missing ILIAS search form without posting", as
   );
   expect(request).toHaveBeenCalledTimes(1);
 });
+
+test("scoped searches submit the container root and bind pagination to it", async () => {
+  const requests: { url: string; init?: RequestInit }[] = [];
+  upstreamTransport.fetch = mock(async (url: Parameters<typeof fetch>[0], init?: RequestInit) => {
+    requests.push({ url: String(url), init });
+    return new Response(requests.length === 1 ? dashboard : results + pager(1), {
+      headers: { "content-type": "text/html" },
+    });
+  }) as unknown as typeof fetch;
+  const account = session();
+  await searchRepository(account, "Gruppe", 1, "12");
+  expect(new URLSearchParams(String(requests[1].init?.body)).get("root_id")).toBe("12");
+  await expect(searchRepository(account, "Gruppe", 2)).rejects.toThrow("expired");
+  await expect(searchRepository(account, "Gruppe", 2, "13")).rejects.toThrow("expired");
+  expect(requests).toHaveLength(2);
+  await searchRepository(account, "Gruppe", 2, "12");
+  expect(requests[2].url).toContain("page_number=1");
+});
+
+test("concurrent searches are serialized because ILIAS shares search state", async () => {
+  let release!: () => void;
+  let started!: () => void;
+  const blocked = new Promise<void>((resolve) => { release = resolve; });
+  const searching = new Promise<void>((resolve) => { started = resolve; });
+  const queries: string[] = [];
+  upstreamTransport.fetch = mock(async (_url: Parameters<typeof fetch>[0], init?: RequestInit) => {
+    if (init?.method !== "POST")
+      return new Response(dashboard, { headers: { "content-type": "text/html" } });
+    const query = new URLSearchParams(String(init.body)).get("queryString")!;
+    queries.push(query);
+    if (query === "First") { started(); await blocked; }
+    return new Response(results, { headers: { "content-type": "text/html" } });
+  }) as unknown as typeof fetch;
+  const account = session();
+  const first = searchRepository(account, "First", 1, "12");
+  await searching;
+  const second = searchRepository(account, "Second");
+  await Promise.resolve();
+  expect(queries).toEqual(["First"]);
+  release();
+  await Promise.all([first, second]);
+  expect(queries).toEqual(["First", "Second"]);
+});
+
+test("demo scoped search includes descendants and excludes other courses", () => {
+  const scoped = searchDemo("getting started", FREIBURG, "102");
+  expect(scoped.results).toHaveLength(1);
+  expect(scoped.results[0].context).toBe("Linear Algebra I › Lecture materials");
+  expect(searchDemo("getting started").results).toHaveLength(4);
+});
+
+test("a stale token with the right term but wrong root is retried", async () => {
+  const scope = (root: string) => `<script>il.Search.syncFilterScope('filter-id', '${root}');</script>`;
+  const responses = [dashboard, results + scope("1"), dashboard, results + scope("12")];
+  let calls = 0;
+  upstreamTransport.fetch = mock(async () => new Response(responses[calls++], {
+    headers: { "content-type": "text/html" },
+  })) as unknown as typeof fetch;
+  expect((await searchRepository(session(), "Gruppe", 1, "12")).results).toHaveLength(2);
+  expect(calls).toBe(4);
+});
+
+test("cancelled queued searches never submit to ILIAS", async () => {
+  const controller = new AbortController();
+  controller.abort();
+  const request = mock(async () => new Response(dashboard));
+  upstreamTransport.fetch = request as unknown as typeof fetch;
+  await expect(searchRepository(session(), "Gruppe", 1, undefined, controller.signal)).rejects.toThrow("cancelled");
+  expect(request).not.toHaveBeenCalled();
+});

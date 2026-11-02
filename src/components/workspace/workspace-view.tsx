@@ -176,54 +176,77 @@ export function WorkspaceView({
         <header className="flex h-20 shrink-0 items-center justify-between gap-4 border-b px-5 lg:px-10">
           <div className="flex min-w-0 items-center gap-3">
             <SidebarTrigger className="md:hidden" />
-            <LayoutDashboard
-              className="size-3.5 shrink-0 text-muted-foreground"
-              aria-hidden="true"
-            />
-            <span className="text-sm text-muted-foreground">Workspace</span>
-            <ChevronRight className="size-3 shrink-0 text-muted-foreground" />
-            {view === "browse" && (
-              <>
-                <GraduationCap
-                  className="size-3.5 shrink-0 text-muted-foreground"
-                  aria-hidden="true"
-                />
-                <Link
-                  prefetch={demo}
-                  href={demoHref("/courses", demo)}
-                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+            <nav aria-label="Breadcrumb" className="min-w-0">
+              <ol className="flex min-w-0 items-center gap-3">
+                <li className="flex items-center gap-3">
+                  <LayoutDashboard
+                    className="size-3.5 shrink-0 text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                  <Link
+                    prefetch={demo}
+                    href={demoHref("/", demo)}
+                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    Workspace
+                  </Link>
+                </li>
+                <li aria-hidden="true" className="flex items-center">
+                  <ChevronRight className="size-3 shrink-0 text-muted-foreground" />
+                </li>
+                {view === "browse" && (
+                  <>
+                    <li className="flex items-center gap-3">
+                      <GraduationCap
+                        className="size-3.5 shrink-0 text-muted-foreground"
+                        aria-hidden="true"
+                      />
+                      <Link
+                        prefetch={demo}
+                        href={demoHref("/courses", demo)}
+                        className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        My courses
+                      </Link>
+                    </li>
+                    <li aria-hidden="true" className="flex items-center">
+                      <ChevronRight className="size-3 shrink-0 text-muted-foreground" />
+                    </li>
+                  </>
+                )}
+                <li
+                  aria-current="page"
+                  className="flex min-w-0 items-center gap-3"
                 >
-                  My courses
-                </Link>
-                <ChevronRight className="size-3 shrink-0 text-muted-foreground" />
-              </>
-            )}
-            {view === "home" ? (
-              <Home
-                className="size-3.5 shrink-0 text-muted-foreground"
-                aria-hidden="true"
-              />
-            ) : view === "saved" ? (
-              <Bookmark
-                className="size-3.5 shrink-0 text-muted-foreground"
-                aria-hidden="true"
-              />
-            ) : view === "settings" ? (
-              <Settings2
-                className="size-3.5 shrink-0 text-muted-foreground"
-                aria-hidden="true"
-              />
-            ) : (
-              <GraduationCap
-                className="size-3.5 shrink-0 text-muted-foreground"
-                aria-hidden="true"
-              />
-            )}
-            <span className="truncate text-sm font-medium">
-              {view === "browse"
-                ? data.page.title
-                : crumbFor(view, data.page.title)}
-            </span>
+                  {view === "home" ? (
+                    <Home
+                      className="size-3.5 shrink-0 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                  ) : view === "saved" ? (
+                    <Bookmark
+                      className="size-3.5 shrink-0 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                  ) : view === "settings" ? (
+                    <Settings2
+                      className="size-3.5 shrink-0 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <GraduationCap
+                      className="size-3.5 shrink-0 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                  )}
+                  <span className="truncate text-sm font-medium">
+                    {view === "browse"
+                      ? data.page.title
+                      : crumbFor(view, data.page.title)}
+                  </span>
+                </li>
+              </ol>
+            </nav>
           </div>
           <div className="flex items-center gap-3">
             <Button

@@ -1,6 +1,7 @@
 import { validObjectId } from "./identifiers";
 import { load, type CheerioAPI } from "cheerio";
-import sanitizeHtml from "sanitize-html";
+import { sanitizeIliasHtml } from "./html";
+export { sanitizeIliasHtml as sanitizeForumBody } from "./html";
 import { upstreamUrl } from "./config";
 import type {
   ForumOverview,
@@ -81,87 +82,6 @@ function action(
       return commands.includes((params.get("cmd") || "").toLowerCase());
     },
   )?.url;
-}
-export function sanitizeForumBody(html: string, sourceUrl: string) {
-  return sanitizeHtml(html, {
-    allowedTags: [
-      "p",
-      "br",
-      "strong",
-      "b",
-      "em",
-      "i",
-      "u",
-      "s",
-      "blockquote",
-      "pre",
-      "code",
-      "ul",
-      "ol",
-      "li",
-      "a",
-      "h2",
-      "h3",
-      "h4",
-      "hr",
-      "table",
-      "thead",
-      "tbody",
-      "tr",
-      "th",
-      "td",
-      "sub",
-      "sup",
-      "span",
-      "div",
-    ],
-    allowedAttributes: {
-      a: ["href", "title", "target", "rel"],
-      th: ["colspan", "rowspan"],
-      td: ["colspan", "rowspan"],
-      ol: ["start"],
-    },
-    allowedSchemes: ["https", "http", "mailto"],
-    allowProtocolRelative: false,
-    transformTags: {
-      a: (_tag, attrs) => {
-        let href: string | undefined;
-        try {
-          const u = new URL(attrs.href || "", sourceUrl);
-          if (
-            ["https:", "http:", "mailto:"].includes(u.protocol) &&
-            !u.username &&
-            !u.password
-          )
-            href = u.href;
-        } catch {
-          /* Drop malformed links. */
-        }
-        return {
-          tagName: "a",
-          attribs: href
-            ? {
-                href,
-                target: "_blank",
-                rel: "noopener noreferrer",
-                ...(attrs.title ? { title: attrs.title } : {}),
-              }
-            : {},
-        };
-      },
-    },
-    nonTextTags: [
-      "script",
-      "style",
-      "textarea",
-      "option",
-      "iframe",
-      "object",
-      "embed",
-      "svg",
-      "math",
-    ],
-  });
 }
 export function parseForumOverview(
   html: string,
@@ -269,7 +189,7 @@ export function parseForumThread(
     // Draft rows have draft_* anchors and must not look like published replies.
     if (!id) return;
     const raw = row.find(".ilFrmPostContent").first();
-    const body = sanitizeForumBody(raw.html() || "", sourceUrl);
+    const body = sanitizeIliasHtml(raw.html() || "", sourceUrl);
     const header = row.find(".ilFrmPostHeader > .small").first().clone();
     header.find(".ilFrmTargetImage").remove();
     const firstLine = load(

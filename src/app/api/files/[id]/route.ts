@@ -1,5 +1,6 @@
 import { currentSession } from "@/lib/ilias/session";
 import { objectUrl } from "@/lib/ilias/config";
+import { downloadHeaders, downloadResponse } from "@/lib/ilias/download";
 import { fetchUpstream, IliasError } from "@/lib/ilias/client";
 export const runtime = "nodejs";
 function examplePdf() {
@@ -30,11 +31,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const headers = new Headers({
-    "Cache-Control": "private, no-store",
-    "X-Content-Type-Options": "nosniff",
-    "Content-Security-Policy": "default-src 'none'; sandbox",
-  });
+  const headers = downloadHeaders();
   if (new URL(request.url).searchParams.get("demo") === "1") {
     headers.set("Content-Type", "application/pdf");
     headers.set(
@@ -53,26 +50,9 @@ export async function GET(
     const { response } = await fetchUpstream(
       session,
       objectUrl(session.instance, "file", id, true),
-      true,
+      { file: true },
     );
-    const contentType =
-      response.headers.get("content-type") || "application/octet-stream";
-    if (/text\/html/i.test(contentType)) {
-      await response.body?.cancel();
-      throw new IliasError(
-        "ILIAS returned a sign-in or information page. Reconnect your account, or open the file in ILIAS.",
-        401,
-      );
-    }
-    headers.set("Content-Type", contentType);
-    const original = response.headers.get("content-disposition");
-    headers.set(
-      "Content-Disposition",
-      original?.match(/filename\*?=/i)
-        ? original.replace(/^inline/i, "attachment")
-        : `attachment; filename="ilias-file-${id}"`,
-    );
-    return new Response(response.body, { headers });
+    return await downloadResponse(response, `ilias-file-${id}`);
   } catch (e) {
     return Response.json(
       { error: e instanceof Error ? e.message : "Download failed." },

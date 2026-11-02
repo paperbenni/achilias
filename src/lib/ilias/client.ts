@@ -18,8 +18,9 @@ export class IliasError extends Error {
 export async function fetchUpstream(
   session: Session,
   target: string,
-  file = false,
+  options: { file?: boolean; form?: URLSearchParams } = {},
 ) {
+  let form = options.form;
   const jar = session.jar ? CookieJar.fromJSON(session.jar) : new CookieJar();
   const rotations: { cookie: string; url: string }[] = [];
   let url = upstreamUrl(session.instance, target);
@@ -29,16 +30,27 @@ export async function fetchUpstream(
       response = await fetch(url, {
         redirect: "manual",
         cache: "no-store",
+        method: form ? "POST" : "GET",
+        ...(form ? { body: form.toString() } : {}),
         headers: {
           Cookie: await jar.getCookieString(url.href),
           "User-Agent": "Achilias/0.1 (personal ILIAS frontend)",
-          Accept: file ? "*/*" : "text/html",
+          Accept: options.file ? "*/*" : "text/html",
+          ...(form
+            ? {
+                "Content-Type": "application/x-www-form-urlencoded",
+                Origin: new URL(session.instance).origin,
+                Referer: url.href,
+              }
+            : {}),
         },
         signal: AbortSignal.timeout(25_000),
       });
     } catch {
       throw new IliasError(
-        "ILIAS could not be reached. Check your connection and try again.",
+        options.form
+          ? "The ILIAS request did not finish. Changes may already have been saved; check ILIAS before retrying."
+          : "ILIAS could not be reached. Check your connection and try again.",
       );
     }
     for (const cookie of response.headers.getSetCookie()) {
@@ -47,6 +59,7 @@ export async function fetchUpstream(
     }
     if ([301, 302, 303, 307, 308].includes(response.status)) {
       const location = response.headers.get("location");
+      if ([301, 302, 303].includes(response.status)) form = undefined;
       await response.body?.cancel();
       if (!location)
         throw new IliasError("ILIAS returned an incomplete redirect.");

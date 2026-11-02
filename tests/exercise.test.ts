@@ -387,3 +387,56 @@ test("standard async modal initialization exposes learner feedback only for the 
   expect(grading.submissions[0].feedbackUrl).toContain("member_id=701");
   expect(grading.submissions[1].feedbackUrl).toBeUndefined();
 });
+
+test("single-unit tutor views identify the unit without a selector, and protected unit requirements stay in ILIAS", async () => {
+  const html = (await fixture("-submissions")).replace(
+    /<select name="ass_id">[\s\S]*?<\/select>/,
+    "",
+  );
+  expect(parseExerciseUnits(html, url, "401").map((unit) => unit.id)).toEqual([
+    "501",
+  ]);
+  const protectedEditor = (await fixture("-unit-editor")).replace(
+    /<input name="mandatory"[^>]+>/,
+    "",
+  );
+  expect(parseUnitForm(protectedEditor, url, "401")?.settings.canEdit).toBe(
+    false,
+  );
+});
+
+test("unreadable submission tables and hidden columns produce unknown counts rather than zeroes", async () => {
+  const { submissionCounts } = await import("../src/lib/ilias/exercise-types");
+  const html = await fixture("-submissions");
+  const hidden = parseGrading(
+    html.replace("Abgabedatum", "Custom column"),
+    url,
+    "401",
+    "501",
+  );
+  expect(
+    submissionCounts(hidden.submissions, hidden.recognized).late,
+  ).toBeNull();
+  expect(
+    submissionCounts(hidden.submissions, hidden.recognized).missing,
+  ).toBeNull();
+  const broken = parseGrading(
+    html.replaceAll('name="listed_part_ids[]"', 'name="changed-layout[]"'),
+    url,
+    "401",
+    "501",
+  );
+  expect(broken.recognized).toBe(false);
+  expect(submissionCounts(broken.submissions, broken.recognized)).toEqual({
+    all: null,
+    review: null,
+    missing: null,
+    late: null,
+  });
+  expect(submissionCounts([], true)).toEqual({
+    all: 0,
+    review: 0,
+    missing: 0,
+    late: 0,
+  });
+});

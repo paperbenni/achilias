@@ -141,9 +141,23 @@ export function SettingsView({
                 htmlBased: false,
               },
               {
-                title: "Assignments, tests & surveys",
+                title: "Exercises and tutor review",
                 description:
-                  "Visible in course content. Complete submissions, attempts, and surveys in ILIAS.",
+                  "Browse Übungseinheiten and Abgaben, download submissions, assess individuals or teams, keep private tutor notes, send learner feedback, and create or edit file-submission units with fixed deadlines.",
+                supported: true,
+                htmlBased: true,
+              },
+              {
+                title: "Advanced exercise workflows",
+                description:
+                  "Learner uploads, unit deletion, team membership, feedback attachments, bulk downloads, peer review, and relative or individual deadlines use ILIAS.",
+                supported: false,
+                htmlBased: true,
+              },
+              {
+                title: "Tests & surveys",
+                description:
+                  "Visible in course content. Complete attempts and surveys in ILIAS.",
                 supported: false,
                 htmlBased: false,
               },

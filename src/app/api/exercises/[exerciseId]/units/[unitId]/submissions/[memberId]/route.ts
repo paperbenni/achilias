@@ -27,7 +27,13 @@ export async function GET(
     );
   try {
     // Rediscover permission and URL; the browser supplies IDs, never an upstream URL.
-    const exercise = await fetchExercise(session, exerciseId, unitId);
+    const exercise = await fetchExercise(
+      session,
+      exerciseId,
+      unitId,
+      false,
+      false,
+    );
     const row = exercise.grading?.submissions.find(
       (row) => row.id === memberId,
     );

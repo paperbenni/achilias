@@ -54,7 +54,7 @@ test("current metadata wins over saved copies and resource identity includes obj
   );
 });
 test("object capability rules agree with navigation while retaining restricted and unsupported objects", () => {
-  for (const type of ["crs", "grp", "fold", "cat", "frm"]) {
+  for (const type of ["crs", "grp", "fold", "cat", "frm", "exc"]) {
     const resource = item("42", { type });
     expect(isSupportedItemType(type)).toBe(true);
     expect(isNavigableItem(resource)).toBe(true);
@@ -63,7 +63,7 @@ test("object capability rules agree with navigation while retaining restricted a
   }
   expect(isSupportedItemType("file")).toBe(true);
   expect(isNavigableItem(item("42", { type: "file" }))).toBe(false);
-  for (const type of ["exc", "tst", "custom"]) {
+  for (const type of ["tst", "custom"]) {
     const resource = item("42", { type });
     expect(isSupportedItemType(type)).toBe(false);
     expect(isNavigableItem(resource)).toBe(false);

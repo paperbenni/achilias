@@ -17,7 +17,7 @@ export type Submission = {
   login: string;
   team: boolean;
   submitted: string | null;
-  late: boolean;
+  late: boolean | null;
   status: AssessmentStatus | null;
   mark: string | null;
   notice: string | null;
@@ -48,6 +48,7 @@ export type ExerciseState = {
   creating: boolean;
   units: ExerciseUnit[];
   submissions: Submission[];
+  submissionsKnown: boolean;
   settings: UnitSettings | null;
   canCreate: boolean;
   tutor: boolean;
@@ -77,4 +78,24 @@ export function exerciseHref(
   unitId?: string,
 ) {
   return `/exercises/${exerciseId}${unitId ? `/units/${unitId}` : ""}${demo ? "?demo=1" : ""}`;
+}
+
+export function submissionCounts(rows: Submission[], known: boolean) {
+  const submitted = (row: Submission) => !!row.submitted || !!row.downloadUrl;
+  return {
+    all: known ? rows.length : null,
+    review:
+      known && !rows.some((row) => submitted(row) && row.status === null)
+        ? rows.filter((row) => submitted(row) && row.status === "notgraded")
+            .length
+        : null,
+    missing:
+      known && !rows.some((row) => row.submitted === null && !row.downloadUrl)
+        ? rows.filter((row) => row.submitted === "" && !row.downloadUrl).length
+        : null,
+    late:
+      known && !rows.some((row) => row.late === null)
+        ? rows.filter((row) => row.late).length
+        : null,
+  };
 }

@@ -2,6 +2,7 @@
 
 import {
   BookOpen,
+  ClipboardList,
   ExternalLink,
   FileText,
   Folder,
@@ -13,10 +14,12 @@ import { isContainerType } from "@/lib/ilias/items";
 export const iconFor = (type: string) =>
   type === "file"
     ? FileText
-    : type === "frm"
-      ? MessageSquare
-      : isContainerType(type)
-        ? type === "crs"
-          ? BookOpen
-          : Folder
-        : ExternalLink;
+    : type === "exc"
+      ? ClipboardList
+      : type === "frm"
+        ? MessageSquare
+        : isContainerType(type)
+          ? type === "crs"
+            ? BookOpen
+            : Folder
+          : ExternalLink;

@@ -110,6 +110,7 @@ export function demoExercise(state: ExerciseState): ExerciseState {
   state.workspace.page.title = "Algorithms — Übungen";
   return {
     ...state,
+    submissionsKnown: true,
     units: structuredClone(demoExerciseUnits),
     submissions: state.unitId
       ? demoSubmissions(state.unitId === "502").map((row) =>

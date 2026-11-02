@@ -4,6 +4,11 @@ import { Badge } from "@/components/ui/badge";
 import { OriginalLink } from "./original-link";
 
 const features = {
+  exercise: {
+    title: "Exercise units and tutor tools",
+    details:
+      "Units, deadlines, submissions, assessment forms, and feedback controls are read from ILIAS HTML.",
+  },
   connection: {
     title: "Connection verification",
     details: "Sign-in detection and session verification read ILIAS HTML.",

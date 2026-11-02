@@ -300,17 +300,22 @@ export function WorkspaceView({
               </AlertDescription>
             </Alert>
           )}
-          {view === "forum" && data.mode !== "disconnected" ? (
+          {(view === "forum" || view === "exercise") &&
+          data.mode !== "disconnected" ? (
             <>
               <ParsedHtmlNotice
-                feature="forum"
+                feature={view === "exercise" ? "exercise" : "forum"}
                 sourceUrl={demo ? data.instance : source}
                 demo={demo}
               />
               {data.error ? (
                 <Alert variant="destructive">
                   <CircleHelp />
-                  <AlertTitle>Couldn’t load this discussion</AlertTitle>
+                  <AlertTitle>
+                    {view === "exercise"
+                      ? "Couldn’t load this exercise"
+                      : "Couldn’t load this discussion"}
+                  </AlertTitle>
                   <AlertDescription>
                     {data.error}
                     <div className="mt-3 flex flex-wrap gap-2">
@@ -788,9 +793,9 @@ export function WorkspaceView({
                           Still connected to the whole campus.
                         </CardTitle>
                         <CardDescription>
-                          Assignments, quizzes, mail, and your calendar are
-                          available in ILIAS. Course activities appear here with
-                          a clear handoff.
+                          Quizzes, mail, and your calendar are available in
+                          ILIAS. Exercises and forums open here; advanced
+                          activities have a clear handoff.
                         </CardDescription>
                       </CardHeader>
                       <CardFooter className="justify-between">

@@ -76,7 +76,7 @@ try {
   await page.getByRole("link", { name: "Members", exact: false }).waitFor();
   await page.getByRole("tab", { name: "Materials 5" }).click();
   await page
-    .getByRole("button", { name: "Exercise sheet 01", exact: true })
+    .getByRole("button", { name: "Check your understanding", exact: true })
     .click();
   await page
     .getByRole("dialog")

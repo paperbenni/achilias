@@ -50,7 +50,8 @@ export type WorkspaceViewName =
   | "browse"
   | "saved"
   | "settings"
-  | "forum";
+  | "forum"
+  | "exercise";
 function Brand({ demo = false }: { demo?: boolean }) {
   return (
     <Link
@@ -149,6 +150,7 @@ export function Navigation({
                   active:
                     view === "browse" ||
                     view === "forum" ||
+                    view === "exercise" ||
                     section === "courses",
                 },
                 {

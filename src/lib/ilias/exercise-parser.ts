@@ -161,6 +161,35 @@ export function parseExerciseUnits(
         sourceUrl: source,
       });
   });
+  // A single-unit exercise has no unit selector. Its authorized grading form
+  // still identifies the current unit, even when the learner overview hides it.
+  const gradingTable = $('table[id*="exc_mem"]').first();
+  const gradingAction = exerciseLink(
+    gradingTable.closest("form").attr("action") || "",
+    source,
+  );
+  if (
+    gradingAction &&
+    exerciseCommand(
+      gradingAction,
+      ["ilexercisemanagementgui", "ilparticipantsperassignmenttablegui"],
+      ["savestatusall"],
+      exerciseId,
+    )
+  ) {
+    const id = new URL(gradingAction).searchParams.get("ass_id") || "";
+    if (validObjectId(id) && !units.has(id))
+      units.set(id, {
+        id,
+        title: `Exercise unit ${id}`,
+        type: "",
+        start: "",
+        deadline: "",
+        mandatory: "",
+        instructions: "",
+        sourceUrl: source,
+      });
+  }
   return [...units.values()];
 }
 export type ParsedForm = {
@@ -309,13 +338,17 @@ export function parseGrading(
               /submission.*date|abgabe|abgegeben|eingereicht|date.*submission/,
             ),
       late:
-        cells
-          .eq(
-            column(
-              /submission.*date|abgabe|abgegeben|eingereicht|date.*submission/,
-            ),
-          )
-          .find(".warning").length > 0,
+        column(
+          /submission.*date|abgabe|abgegeben|eingereicht|date.*submission/,
+        ) < 0
+          ? null
+          : cells
+              .eq(
+                column(
+                  /submission.*date|abgabe|abgegeben|eingereicht|date.*submission/,
+                ),
+              )
+              .find(".warning").length > 0,
       status: ["notgraded", "passed", "failed"].includes(String(status))
         ? (status as AssessmentStatus)
         : null,
@@ -341,14 +374,19 @@ export function parseGrading(
   const command = form
     .find('button[name="cmd[saveStatusAll]"], input[name="cmd[saveStatusAll]"]')
     .first();
+  const possibleRows = table
+    .find("tbody tr")
+    .filter((_, row) => $(row).children("td").length >= 3).length;
   return {
     submissions,
-    recognized: table.length > 0,
+    recognized:
+      table.length > 0 && (submissions.length > 0 || possibleRows === 0),
     hasMore:
       table
         .closest(".ilTableOuter")
         .find(".ilTableNav, .il-viewcontrol-pagination").length > 0 ||
-      $('[name*="exc_mem_trows"]').length > 0,
+      $('[name*="exc_mem_trows"]').length > 0 ||
+      possibleRows > submissions.length,
     form: allowed
       ? {
           action: action!,
@@ -413,10 +451,19 @@ export function parseUnitForm(
   const disabledSchedule =
     form.find('[name="deadline_mode"]:disabled, [name="deadline"]:disabled')
       .length > 0;
-  if (disabledSchedule || !["-1", "0"].includes(deadlineMode)) {
+  const protectedSettings =
+    !form.find('input[name="mandatory"]').length ||
+    form.find(
+      '[name="mandatory"]:disabled, [name="title"]:disabled, [name="instruction"]:disabled',
+    ).length > 0;
+  if (
+    disabledSchedule ||
+    protectedSettings ||
+    !["-1", "0"].includes(deadlineMode)
+  ) {
     settings.canEdit = false;
     settings.limitation =
-      "Relative, individual, or locked deadlines need the original ILIAS editor. Existing settings are shown without simplifying them.";
+      "Relative or individual deadlines and locked or protected settings need the original ILIAS editor. Existing settings are kept without simplifying them.";
   }
   settings.version = exerciseVersion(settings);
   return {

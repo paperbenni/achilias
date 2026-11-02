@@ -3,14 +3,17 @@ import type { Item } from "./types";
 // Add object support here so routing and capability badges agree everywhere.
 const objectTypes: Record<
   string,
-  { name: string; kind: "container" | "file" | "forum" | "external" }
+  {
+    name: string;
+    kind: "container" | "file" | "forum" | "exercise" | "external";
+  }
 > = {
   crs: { name: "Course", kind: "container" },
   grp: { name: "Group", kind: "container" },
   fold: { name: "Folder", kind: "container" },
   cat: { name: "Category", kind: "container" },
   file: { name: "File", kind: "file" },
-  exc: { name: "Assignment", kind: "external" },
+  exc: { name: "Exercise", kind: "exercise" },
   tst: { name: "Test", kind: "external" },
   frm: { name: "Forum", kind: "forum" },
   lm: { name: "Learning module", kind: "external" },
@@ -43,12 +46,15 @@ export function isSupportedItemType(type: string) {
 export function isNavigableItem(item: Item) {
   return (
     item.available &&
-    (isContainerType(item.type) || objectTypes[item.type]?.kind === "forum")
+    (isContainerType(item.type) ||
+      ["forum", "exercise"].includes(objectTypes[item.type]?.kind))
   );
 }
 export function itemHref(item: Item, demo = false) {
   const suffix = demo ? "?demo=1" : "";
   switch (objectTypes[item.type]?.kind) {
+    case "exercise":
+      return `/exercises/${item.id}${suffix}`;
     case "forum":
       return `/forums/${item.id}${suffix}`;
     case "container":

@@ -111,9 +111,9 @@ export function demoPage(type?: string, id?: string): IliasPage {
             item(
               "401",
               "exc",
-              "Exercise sheet 01",
-              "Complete and submit the first exercise sheet.",
-              "Submission takes place in ILIAS",
+              "Exercises / Übungen",
+              "Übungseinheiten, Abgaben und Bewertungen.",
+              "Übungseinheiten · Tutor workspace",
             ),
             item(
               "402",

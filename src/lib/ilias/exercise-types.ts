@@ -42,6 +42,7 @@ export type UnitSettings = {
   limitation?: string;
 };
 export type ExerciseState = {
+  writeAllowed: boolean;
   workspace: Workspace;
   exerciseId: string;
   unitId?: string;

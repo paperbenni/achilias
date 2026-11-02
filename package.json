@@ -3,27 +3,29 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --hostname 127.0.0.1",
     "build": "next build",
-    "start": "next start",
+    "start": "next start --hostname 127.0.0.1",
     "lint": "eslint",
     "test": "bun test tests",
     "typecheck": "tsc --noEmit",
     "browser:install": "playwright install chromium",
     "connect": "bun scripts/connect.ts",
-    "test:e2e": "bun scripts/smoke.ts && bun scripts/forum-smoke.ts && bun scripts/headless-smoke.ts && bun scripts/exercise-smoke.ts",
+    "test:e2e": "bun scripts/smoke.ts && bun scripts/forum-smoke.ts && bun scripts/headless-smoke.ts && bun scripts/exercise-smoke.ts && bun scripts/multi-user-smoke.ts",
     "screenshots": "bun scripts/screenshots.ts",
     "test:forums": "bun scripts/forum-smoke.ts",
     "test:headless": "bun scripts/headless-smoke.ts",
     "benchmark:navigation": "bun scripts/navigation-benchmark.ts",
     "test:navigation": "bun scripts/navigation-smoke.ts",
-    "test:exercises": "bun scripts/exercise-smoke.ts"
+    "test:exercises": "bun scripts/exercise-smoke.ts",
+    "test:multi-user": "bun scripts/multi-user-smoke.ts"
   },
   "dependencies": {
     "cheerio": "^1.2.0",
     "class-variance-authority": "^0.7.1",
     "cmdk": "^1.1.1",
     "cn": "^0.5.2",
+    "ipaddr.js": "^2.5.0",
     "lucide-react": "^1.66.0",
     "next": "16.4.3",
     "next-themes": "^0.4.6",
@@ -33,10 +35,10 @@
     "react-dom": "19.3.0",
     "sanitize-html": "^2.18.1",
     "server-only": "^0.0.1",
-    "shadcn": "^4.23.0",
     "sonner": "^2.0.8",
     "tough-cookie": "^6.0.2",
-    "tw-animate-css": "^1.4.0"
+    "tw-animate-css": "^1.4.0",
+    "undici": "^8.12.3"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
@@ -49,7 +51,8 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "shadcn": "^4.23.0"
   },
   "packageManager": "bun@1.4.4",
   "ignoreScripts": [
@@ -59,5 +62,8 @@
   "trustedDependencies": [
     "sharp",
     "unrs-resolver"
-  ]
+  ],
+  "engines": {
+    "node": ">=22.19.0"
+  }
 }

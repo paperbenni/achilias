@@ -4,7 +4,15 @@ import {
   randomBytes,
   randomUUID,
 } from "node:crypto";
-import { mkdir, readFile, writeFile, rename, unlink } from "node:fs/promises";
+import {
+  mkdir,
+  readFile,
+  writeFile,
+  rename,
+  unlink,
+  readdir,
+  stat,
+} from "node:fs/promises";
 import path from "node:path";
 import { cookies } from "next/headers";
 import type { SerializedCookieJar } from "tough-cookie";
@@ -74,14 +82,15 @@ export async function readSession(id?: string): Promise<Session | null> {
     if ((e as NodeJS.ErrnoException).code === "ENOENT") return null;
     throw e;
   }
-  const decipher = createDecipheriv(
-    "aes-256-gcm",
-    await getKey(),
-    raw.subarray(0, 12),
-  );
-  decipher.setAuthTag(raw.subarray(12, 28));
+  if (raw.length < 28) return null;
   let session: Session;
   try {
+    const decipher = createDecipheriv(
+      "aes-256-gcm",
+      await getKey(),
+      raw.subarray(0, 12),
+    );
+    decipher.setAuthTag(raw.subarray(12, 28));
     session = JSON.parse(
       Buffer.concat([
         decipher.update(raw.subarray(28)),
@@ -91,6 +100,7 @@ export async function readSession(id?: string): Promise<Session | null> {
   } catch {
     return null;
   }
+  if (session.id !== id || !Number.isFinite(session.createdAt)) return null;
   if (session.createdAt + maxAge * 1000 < Date.now()) {
     await unlink(sessionPath(id)).catch(() => {});
     return null;
@@ -141,7 +151,9 @@ export async function setSessionCookie(id: string) {
   (await cookies()).set(SESSION_COOKIE, id, {
     httpOnly: true,
     sameSite: "strict",
-    secure: process.env.ACHILIAS_SECURE_COOKIE === "true",
+    secure:
+      process.env.ACHILIAS_SECURE_COOKIE === "true" ||
+      process.env.ACHILIAS_ORIGIN?.startsWith("https://") === true,
     path: "/",
     maxAge,
   });
@@ -153,6 +165,7 @@ export async function createSession(instance: string) {
     status: "pending",
     createdAt: Date.now(),
   };
+  await maintainSessions();
   await saveSession(session);
   await setSessionCookie(session.id);
   return session;
@@ -206,4 +219,38 @@ export async function claimSession(token: unknown) {
     await saveSession(session);
     return session.id;
   });
+}
+
+let maintenance: Promise<void> | undefined;
+let nextMaintenance = 0;
+/** Single-process store: bound abandoned encrypted files without a background worker. */
+async function maintainSessions() {
+  if (maintenance) return maintenance;
+  if (Date.now() < nextMaintenance) return;
+  maintenance = (async () => {
+    const files = (
+      await readdir(dir).catch((error: NodeJS.ErrnoException) => {
+        if (error.code === "ENOENT") return [];
+        throw error;
+      })
+    ).filter((file) => /^[a-f0-9-]{36}\.enc$/.test(file));
+    let retained = 0;
+    for (const file of files) {
+      const target = path.join(dir, file);
+      const info = await stat(target).catch(() => null);
+      if (info && info.mtimeMs < Date.now() - maxAge * 1000)
+        await unlink(target).catch(() => {});
+      else retained++;
+    }
+    if (retained >= 10_000)
+      throw new Error(
+        "This server has reached its session capacity. Try again later.",
+      );
+    nextMaintenance = Date.now() + 5 * 60_000;
+  })();
+  try {
+    await maintenance;
+  } finally {
+    maintenance = undefined;
+  }
 }

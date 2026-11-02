@@ -1,6 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { getWorkspaceContext } from "@/lib/ilias/workspace-context";
+import { requireWorkspaceConnection } from "@/lib/ilias/workspace-context";
 import {
   getLearnerFeedback,
   saveLearnerFeedback,
@@ -8,16 +8,6 @@ import {
   saveExerciseUnit,
 } from "@/lib/ilias/exercise";
 import type { AssessmentInput, UnitInput } from "@/lib/ilias/exercise-types";
-async function connected(expectedConnection: string) {
-  const { session, workspace } = await getWorkspaceContext();
-  if (session?.status !== "connected")
-    throw new Error("Reconnect your account to use tutor actions.");
-  if (!expectedConnection || workspace.storageKey !== expectedConnection)
-    throw new Error(
-      "Your connection changed. Refresh this page before using tutor tools.",
-    );
-  return session;
-}
 const errorMessage = (error: unknown) =>
   error instanceof Error
     ? error.message
@@ -31,7 +21,7 @@ export async function assessSubmission(
 ) {
   try {
     const saved = await saveAssessment(
-      await connected(connection),
+      await requireWorkspaceConnection(connection),
       exerciseId,
       unitId,
       memberId,
@@ -51,7 +41,7 @@ export async function updateExerciseUnit(
 ) {
   try {
     const saved = await saveExerciseUnit(
-      await connected(connection),
+      await requireWorkspaceConnection(connection),
       exerciseId,
       unitId,
       input,
@@ -71,7 +61,7 @@ export async function loadFeedback(
   try {
     return {
       editor: await getLearnerFeedback(
-        await connected(connection),
+        await requireWorkspaceConnection(connection),
         exerciseId,
         unitId,
         memberId,
@@ -91,7 +81,7 @@ export async function sendFeedback(
 ) {
   try {
     const saved = await saveLearnerFeedback(
-      await connected(connection),
+      await requireWorkspaceConnection(connection),
       exerciseId,
       unitId,
       memberId,

@@ -1,4 +1,9 @@
 import {
+  limitSignIn,
+  readSmallJson,
+  RequestLimitError,
+} from "@/lib/ilias/request-limits";
+import {
   claimSession,
   invalidClaimMessage,
   requireSameOrigin,
@@ -15,11 +20,20 @@ export async function POST(request: Request) {
     );
   }
   try {
-    const { token } = await request.json();
+    limitSignIn(request, "claim");
+    const { token } = (await readSmallJson(request)) as { token?: unknown };
     const id = await claimSession(token);
     await setSessionCookie(id);
     return Response.json({ status: "connected" });
-  } catch {
-    return Response.json({ error: invalidClaimMessage }, { status: 400 });
+  } catch (error) {
+    return Response.json(
+      {
+        error:
+          error instanceof RequestLimitError
+            ? error.message
+            : invalidClaimMessage,
+      },
+      { status: error instanceof RequestLimitError ? 429 : 400 },
+    );
   }
 }

@@ -179,8 +179,8 @@ export function ConnectDialog({
                 aria-invalid={!!error}
               />
               <FieldDescription>
-                Freiburg is ready to use. Other instances need to be added to
-                the server configuration.
+                Enter your university’s public HTTPS ILIAS address, including
+                its installation path if needed. Freiburg is prefilled.
               </FieldDescription>
             </Field>
             {localAvailable && (
@@ -215,7 +215,7 @@ export function ConnectDialog({
                 )}
                 <p>
                   {remote ? (
-                    "Use the helper on your laptop to open the real university sign-in. The Achilias server can run without a desktop or browser."
+                    "Use the helper on your computer to open the real university sign-in. This currently requires Bun and an Achilias checkout on your computer; the server can run without a desktop or browser."
                   ) : (
                     <>
                       A sign-in window opens on the computer running Achilias.

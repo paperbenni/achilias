@@ -1,3 +1,4 @@
+import { upstreamTransport } from "../src/lib/ilias/upstream-transport";
 import { afterEach, expect, mock, test } from "bun:test";
 import { readFile } from "node:fs/promises";
 import {
@@ -12,9 +13,9 @@ const url =
   "ilias.php?ref_id=402&cmdClass=ilobjforumgui&cmdNode=a:b&cmd=showThreads";
 const fixture = (name: string) =>
   readFile(new URL(`./fixtures/${name}.html`, import.meta.url), "utf8");
-const originalFetch = globalThis.fetch;
+const originalFetch = upstreamTransport.fetch;
 afterEach(() => {
-  globalThis.fetch = originalFetch;
+  upstreamTransport.fetch = originalFetch;
 });
 test("ILIAS 10 standard-item forum list preserves localized counts, pinning, and closed state", async () => {
   const forum = parseForumOverview(await fixture("forum"), url, "402");
@@ -140,7 +141,7 @@ test("forum navigation preserves ILIAS routing tokens and strips actions that co
 });
 test("authenticated forum requests discover the real controller before loading a scoped thread page", async () => {
   const calls: string[] = [];
-  globalThis.fetch = mock(async (input: Parameters<typeof fetch>[0]) => {
+  upstreamTransport.fetch = mock(async (input: Parameters<typeof fetch>[0]) => {
     const target = String(input);
     calls.push(target);
     if (target.includes("goto.php"))

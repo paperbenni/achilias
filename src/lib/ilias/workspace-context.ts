@@ -38,3 +38,15 @@ export async function getWorkspaceContext(demo = false) {
   };
   return { workspace, session };
 }
+
+/** Mutations from a stale tab must not act on a newly connected account. */
+export async function requireWorkspaceConnection(expectedConnection: string) {
+  const { session, workspace } = await getWorkspaceContext();
+  if (session?.status !== "connected")
+    throw new Error("Reconnect your account to use this action.");
+  if (!expectedConnection || workspace.storageKey !== expectedConnection)
+    throw new Error(
+      "Your connection changed. Refresh this page before making changes.",
+    );
+  return session;
+}

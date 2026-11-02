@@ -1,3 +1,4 @@
+import { upstreamTransport } from "../src/lib/ilias/upstream-transport";
 import { afterEach, expect, mock, test } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { load } from "cheerio";
@@ -23,9 +24,13 @@ const url =
   base + "ilias.php?ref_id=401&cmdClass=ilObjExerciseGUI&cmd=showOverview";
 const fixture = (name: string) =>
   readFile(new URL(`./fixtures/exercise${name}.html`, import.meta.url), "utf8");
-const originalFetch = globalThis.fetch;
+const originalFetch = upstreamTransport.fetch;
+const originalWriteTargets = process.env.ACHILIAS_WRITE_TARGETS;
 afterEach(() => {
-  globalThis.fetch = originalFetch;
+  upstreamTransport.fetch = originalFetch;
+  if (originalWriteTargets === undefined)
+    delete process.env.ACHILIAS_WRITE_TARGETS;
+  else process.env.ACHILIAS_WRITE_TARGETS = originalWriteTargets;
 });
 const session = (): Session => ({
   id: "00000000-0000-0000-0000-000000000000",
@@ -123,6 +128,7 @@ test("relative or locked schedules stay read-only and instructions are not expos
   ).toBe(false);
 });
 async function upstream() {
+  process.env.ACHILIAS_WRITE_TARGETS = base + "goto.php?target=exc_401";
   const fixtures = await Promise.all([
     fixture(""),
     fixture("-units"),
@@ -135,7 +141,7 @@ async function upstream() {
   let editor = fixtures[3];
   let feedback = fixtures[4];
   const posts: { url: string; fields: URLSearchParams }[] = [];
-  globalThis.fetch = mock(
+  upstreamTransport.fetch = mock(
     async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
       const target = new URL(String(input));
       if (target.pathname.endsWith("goto.php"))
@@ -320,6 +326,15 @@ test("learner feedback uses the discovered opaque form field, stays separate fro
     before.version,
   );
   expect(saved.value).toBe("Well explained.");
+  await saveLearnerFeedback(
+    session(),
+    "401",
+    "501",
+    "701",
+    saved.value,
+    saved.version,
+  );
+  expect(server.posts).toHaveLength(1);
   expect(server.posts[0].fields.get("form_opaque[field_1]")).toBe(
     "Well explained.",
   );

@@ -1,3 +1,4 @@
+import { upstreamTransport } from "../src/lib/ilias/upstream-transport";
 import { afterEach, describe, expect, mock, test } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { parsePage } from "../src/lib/ilias/parser";
@@ -12,9 +13,9 @@ import { CookieJar } from "tough-cookie";
 import { fetchPage, fetchUpstream } from "../src/lib/ilias/client";
 import { requireSameOrigin, type Session } from "../src/lib/ilias/session";
 import { newPairing, verifyPairing } from "../src/lib/ilias/pairing";
-const originalFetch = globalThis.fetch;
+const originalFetch = upstreamTransport.fetch;
 afterEach(() => {
-  globalThis.fetch = originalFetch;
+  upstreamTransport.fetch = originalFetch;
 });
 const fixture = (name: string) =>
   readFile(new URL(`./fixtures/${name}.html`, import.meta.url), "utf8");
@@ -83,7 +84,18 @@ describe("instance and credential boundaries", () => {
       "https://example.edu/ilias/",
     );
     expect(assertInstance(FREIBURG)).toBe(FREIBURG);
-    expect(() => assertInstance("https://unconfigured.example/")).toThrow();
+    const restricted = process.env.ACHILIAS_RESTRICT_INSTANCES;
+    process.env.ACHILIAS_RESTRICT_INSTANCES = "true";
+    try {
+      expect(() => assertInstance("https://unconfigured.example/")).toThrow();
+    } finally {
+      if (restricted === undefined)
+        delete process.env.ACHILIAS_RESTRICT_INSTANCES;
+      else process.env.ACHILIAS_RESTRICT_INSTANCES = restricted;
+    }
+    expect(assertInstance("https://another-university.edu/ilias/")).toBe(
+      "https://another-university.edu/ilias/",
+    );
     for (const target of [
       "http://example.edu",
       "https://user:password@example.edu",
@@ -109,7 +121,7 @@ describe("instance and credential boundaries", () => {
     const s = session();
     s.jar = jar.serializeSync();
     const requests: string[] = [];
-    globalThis.fetch = mock(async (url: Parameters<typeof fetch>[0]) => {
+    upstreamTransport.fetch = mock(async (url: Parameters<typeof fetch>[0]) => {
       requests.push(String(url));
       return new Response(null, {
         status: 302,
@@ -123,7 +135,7 @@ describe("instance and credential boundaries", () => {
   });
   test("carries cookie rotation across same-origin redirects", async () => {
     const calls: { url: string; cookie: string }[] = [];
-    globalThis.fetch = mock(
+    upstreamTransport.fetch = mock(
       async (url: Parameters<typeof fetch>[0], init?: RequestInit) => {
         calls.push({
           url: String(url),
@@ -147,7 +159,7 @@ describe("instance and credential boundaries", () => {
     expect(page.items).toHaveLength(2);
   });
   test("returns a session-expired error rather than treating a login page as empty content", async () => {
-    globalThis.fetch = mock(
+    upstreamTransport.fetch = mock(
       async () =>
         new Response('<h1>Login</h1><form action="shib_login.php"></form>', {
           headers: { "content-type": "text/html" },

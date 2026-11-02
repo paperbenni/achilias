@@ -1,3 +1,5 @@
+import { readUpstreamText } from "./client";
+import { liveWriteAllowed, requireLiveWrite } from "./write-policy";
 import { assessmentProblem, unitProblem } from "./exercise-validation";
 import { load } from "cheerio";
 import { sanitizeIliasHtml } from "./html";
@@ -22,6 +24,7 @@ import {
   parseGrading,
   parseUnitForm,
   type ParsedForm,
+  formScopeMatches,
 } from "./exercise-parser";
 import { demoExercise } from "./exercise-demo";
 function validIds(...ids: string[]) {
@@ -115,7 +118,7 @@ export async function fetchExercise(
     ? await fetchAuthenticatedHtml(session, editorUrl)
     : null;
   const settings = editor
-    ? parseUnitForm(editor.html, editor.url, exerciseId, creating)
+    ? parseUnitForm(editor.html, editor.url, exerciseId, creating, unitId)
     : null;
   if (
     editor &&
@@ -159,6 +162,8 @@ export async function getExerciseState(
   };
   const state: ExerciseState = {
     workspace,
+    writeAllowed:
+      demo || liveWriteAllowed(workspace.instance, "exc", exerciseId),
     exerciseId,
     unitId,
     creating,
@@ -213,6 +218,8 @@ export function validateAssessment(input: AssessmentInput) {
 }
 function submitFields(form: ParsedForm) {
   const fields = new URLSearchParams(form.fields);
+  for (const key of [...fields.keys()])
+    if (/^cmd(?:\[|$)/i.test(key)) fields.delete(key);
   if (form.command) fields.set(...form.command);
   return fields;
 }
@@ -221,10 +228,15 @@ async function postForm(
   form: ParsedForm,
   fields: URLSearchParams,
 ) {
+  if (!formScopeMatches(form.action, [...fields]))
+    throw new IliasError(
+      "The ILIAS form contains conflicting routing fields. Use the original editor.",
+      409,
+    );
   const { response, url } = await fetchUpstream(session, form.action, {
     form: fields,
   });
-  const html = await response.text();
+  const html = await readUpstreamText(response);
   const $ = load(html);
   if (
     $('.ilFormAlert, .alert-danger, .ilFailureMessage, [aria-invalid="true"]')
@@ -245,6 +257,7 @@ export async function saveAssessment(
 ) {
   validIds(exerciseId, unitId, memberId);
   validateAssessment(input);
+  requireLiveWrite(session.instance, "exc", exerciseId);
   const current = await fetchExercise(
     session,
     exerciseId,
@@ -326,6 +339,8 @@ export async function saveExerciseUnit(
   input: UnitInput,
 ) {
   validateUnit(input);
+  validIds(...(unitId ? [exerciseId, unitId] : [exerciseId]));
+  requireLiveWrite(session.instance, "exc", exerciseId);
   const current = await fetchExercise(session, exerciseId, unitId, !unitId);
   const editor = current.settings;
   if (!editor?.settings.canEdit)
@@ -415,7 +430,7 @@ async function feedbackForm(
   const { response, url } = await fetchUpstream(session, row.feedbackUrl);
   const $ = load(
     feedbackHtml(
-      await response.text(),
+      await readUpstreamText(response),
       response.headers.get("content-type") || "",
     ),
   );
@@ -425,6 +440,7 @@ async function feedbackForm(
   const action = exerciseLink(form.attr("action") || "", url);
   if (
     !action ||
+    !formScopeMatches(action, formFields($, form)) ||
     !exerciseCommand(
       action,
       ["ilexercisesubmissionfeedbackgui"],
@@ -480,12 +496,15 @@ export async function saveLearnerFeedback(
       "Learner feedback is limited to 4,000 characters.",
       400,
     );
+  requireLiveWrite(session.instance, "exc", exerciseId);
   const current = await feedbackForm(session, exerciseId, unitId, memberId);
   if (current.version !== version)
     throw new IliasError(
       "The learner feedback changed. Reopen the editor before saving.",
       409,
     );
+  if (current.value.replace(/\r\n/g, "\n") === value.replace(/\r\n/g, "\n"))
+    return { value: current.value, version: current.version };
   const fields = submitFields(current.form);
   fields.set(current.name, value);
   await postForm(session, current.form, fields);

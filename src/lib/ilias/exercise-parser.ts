@@ -37,6 +37,23 @@ export function exerciseCommand(
   memberId?: string,
 ) {
   const u = new URL(url);
+  const routing = [
+    "ref_id",
+    "ass_id",
+    "member_id",
+    "cmdClass",
+    "cmd",
+    "cmdNode",
+    "baseClass",
+  ];
+  const seen = new Set<string>();
+  for (const key of u.searchParams.keys()) {
+    const base = key.toLowerCase().replace(/[ .]/g, "_").replace(/\[.*$/, "");
+    if (!routing.some((name) => name.toLowerCase() === base)) continue;
+    if (seen.has(base) || key.includes("[") || /[\x00-\x1f]/.test(key))
+      return false;
+    seen.add(base);
+  }
   return (
     u.pathname.endsWith("/ilias.php") &&
     u.searchParams.get("ref_id") === exerciseId &&
@@ -197,6 +214,35 @@ export type ParsedForm = {
   fields: [string, string][];
   command?: [string, string];
 };
+/** Hidden routing controls must agree with the independently verified action URL. */
+export function formScopeMatches(action: string, fields: [string, string][]) {
+  const query = new URL(action).searchParams;
+  const routing = new Set([
+    "ref_id",
+    "ass_id",
+    "member_id",
+    "part_id",
+    "cmdclass",
+    "cmdnode",
+    "baseclass",
+  ]);
+  const seen = new Set<string>();
+  for (const [name, value] of fields) {
+    const key = name.toLowerCase().replace(/[ .]/g, "_").replace(/\[.*$/, "");
+    if (!routing.has(key)) continue;
+    const queryKey = [...query.keys()].find((k) => k.toLowerCase() === key);
+    if (
+      name.includes("[") ||
+      /[\x00-\x1f]/.test(name) ||
+      seen.has(key) ||
+      !queryKey ||
+      query.get(queryKey) !== value
+    )
+      return false;
+    seen.add(key);
+  }
+  return true;
+}
 /** Browser successful controls: preserve hidden tokens and unrelated settings, never unchecked/disabled fields. */
 export function formFields($: CheerioAPI, form: ReturnType<CheerioAPI>) {
   const fields: [string, string][] = [];
@@ -238,8 +284,18 @@ export function parseGrading(
   const table = $('table[id*="exc_mem"]').first();
   const form = table.closest("form");
   const action = exerciseLink(form.attr("action") || "", source);
+  const command = form
+    .find('button[name="cmd[saveStatusAll]"], input[name="cmd[saveStatusAll]"]')
+    .filter(
+      (_, node) =>
+        !$(node).is(":disabled") &&
+        !$(node).closest("fieldset[disabled]").length,
+    )
+    .first();
   const allowed =
     action &&
+    command.length > 0 &&
+    formScopeMatches(action, formFields($, form)) &&
     exerciseCommand(
       action,
       ["ilexercisemanagementgui", "ilparticipantsperassignmenttablegui"],
@@ -352,14 +408,28 @@ export function parseGrading(
       status: ["notgraded", "passed", "failed"].includes(String(status))
         ? (status as AssessmentStatus)
         : null,
-      mark: mark.length ? String(mark.val() || "") : null,
-      notice: notice.length ? String(notice.val() || "") : null,
+      mark:
+        mark.length &&
+        !mark.is(":disabled") &&
+        !mark.closest("fieldset[disabled]").length
+          ? String(mark.val() || "")
+          : null,
+      notice:
+        notice.length &&
+        !notice.is(":disabled") &&
+        !notice.closest("fieldset[disabled]").length
+          ? String(notice.val() || "")
+          : null,
       feedback: rowFeedback.length ? clean(rowFeedback.text()) : null,
       downloadUrl,
       feedbackUrl,
       originalUrl: source,
       canAssess:
-        !!allowed && statusControl.length > 0 && !statusControl.is(":disabled"),
+        !!allowed &&
+        ["notgraded", "passed", "failed"].includes(String(status)) &&
+        statusControl.length > 0 &&
+        !statusControl.is(":disabled") &&
+        !statusControl.closest("fieldset[disabled]").length,
       version: "",
     };
     entry.version = exerciseVersion([
@@ -371,9 +441,6 @@ export function parseGrading(
     ]);
     submissions.push(entry);
   });
-  const command = form
-    .find('button[name="cmd[saveStatusAll]"], input[name="cmd[saveStatusAll]"]')
-    .first();
   const possibleRows = table
     .find("tbody tr")
     .filter((_, row) => $(row).children("td").length >= 3).length;
@@ -406,6 +473,7 @@ export function parseUnitForm(
   source: string,
   exerciseId: string,
   creating = false,
+  expectedUnitId?: string,
 ) {
   const $ = load(html);
   const form = $('input[name="title"]')
@@ -424,13 +492,16 @@ export function parseUnitForm(
       ["ilexassignmenteditorgui"],
       ["", "editassignment", "addassignment", commandName.toLowerCase()],
       exerciseId,
+      creating ? undefined : expectedUnitId,
     ) ||
+    !formScopeMatches(action, formFields($, form)) ||
+    submit.is(":disabled") ||
     !submit.length
   )
     return null;
   const fields = formFields($, form);
   const values = new URLSearchParams(fields);
-  const deadlineMode = values.get("deadline_mode") || "-1";
+  const deadlineMode = values.get("deadline_mode") || "unsupported";
   const instruction = String(form.find('[name="instruction"]').val() || "");
   const settings: UnitSettings = {
     title: values.get("title") || "",

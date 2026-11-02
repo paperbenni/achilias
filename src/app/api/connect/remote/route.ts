@@ -1,4 +1,9 @@
 import {
+  limitSignIn,
+  RequestLimitError,
+  withVerificationLimit,
+} from "@/lib/ilias/request-limits";
+import {
   completeRemoteLogin,
   readRemotePayload,
   remoteSession,
@@ -8,6 +13,7 @@ import { requireSameOrigin } from "@/lib/ilias/session";
 export const runtime = "nodejs";
 const headers = { "Cache-Control": "private, no-store" };
 function codeFrom(request: Request) {
+  limitSignIn(request, "transfer");
   // CLI transfers use a bearer code, never a browser's session cookie.
   if (request.headers.has("origin")) {
     try {
@@ -25,11 +31,17 @@ function failure(error: unknown) {
   return Response.json(
     {
       error:
-        error instanceof RemoteLoginError
+        error instanceof RemoteLoginError || error instanceof RequestLimitError
           ? error.message
           : "Could not accept the session export. Check the cookie format and try again.",
     },
-    { status: error instanceof RemoteLoginError ? error.status : 400, headers },
+    {
+      status:
+        error instanceof RemoteLoginError || error instanceof RequestLimitError
+          ? error.status
+          : 400,
+      headers,
+    },
   );
 }
 export async function GET(request: Request) {
@@ -51,7 +63,7 @@ export async function POST(request: Request) {
     const code = codeFrom(request);
     await remoteSession(code);
     const data = await readRemotePayload(request);
-    await completeRemoteLogin(code, data);
+    await withVerificationLimit(() => completeRemoteLogin(code, data));
     return Response.json({ status: "connected" }, { headers });
   } catch (e) {
     return failure(e);

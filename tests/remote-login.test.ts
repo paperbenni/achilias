@@ -109,14 +109,19 @@ test("remote upload body is size limited before JSON parsing", async () => {
 test("headless servers select the laptop helper and respect an explicit login mode", () => {
   const previous = {
     mode: process.env.ACHILIAS_LOGIN_MODE,
+    origin: process.env.ACHILIAS_ORIGIN,
     display: process.env.DISPLAY,
     wayland: process.env.WAYLAND_DISPLAY,
   };
   try {
+    delete process.env.ACHILIAS_ORIGIN;
     process.env.ACHILIAS_LOGIN_MODE = "remote";
     expect(serverLoginMode()).toBe("remote");
     process.env.ACHILIAS_LOGIN_MODE = "local";
     expect(serverLoginMode()).toBe("local");
+    process.env.ACHILIAS_ORIGIN = "https://learn.example.org";
+    expect(serverLoginMode()).toBe("remote");
+    delete process.env.ACHILIAS_ORIGIN;
     delete process.env.ACHILIAS_LOGIN_MODE;
     delete process.env.DISPLAY;
     delete process.env.WAYLAND_DISPLAY;
@@ -124,6 +129,7 @@ test("headless servers select the laptop helper and respect an explicit login mo
   } finally {
     for (const [key, value] of [
       ["ACHILIAS_LOGIN_MODE", previous.mode],
+      ["ACHILIAS_ORIGIN", previous.origin],
       ["DISPLAY", previous.display],
       ["WAYLAND_DISPLAY", previous.wayland],
     ]) {

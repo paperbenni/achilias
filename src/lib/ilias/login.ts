@@ -11,6 +11,13 @@ const globalJobs = globalThis as typeof globalThis & {
 };
 const jobs = (globalJobs.achiliasLoginJobs ||= new Map());
 export function serverLoginMode(): "local" | "remote" {
+  // A browser on a public server must never be exposed as a shared sign-in UI.
+  const origin = process.env.ACHILIAS_ORIGIN;
+  if (
+    origin &&
+    !["localhost", "127.0.0.1", "[::1]"].includes(new URL(origin).hostname)
+  )
+    return "remote";
   const configured = process.env.ACHILIAS_LOGIN_MODE;
   if (configured === "local" || configured === "remote") return configured;
   return process.platform === "linux" &&

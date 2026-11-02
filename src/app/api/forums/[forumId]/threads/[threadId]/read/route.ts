@@ -1,5 +1,6 @@
+import { getWorkspaceContext } from "@/lib/ilias/workspace-context";
 import { validObjectId } from "@/lib/ilias/identifiers";
-import { currentSession, requireSameOrigin } from "@/lib/ilias/session";
+import { requireSameOrigin } from "@/lib/ilias/session";
 import { markForumThreadRead } from "@/lib/ilias/forum";
 import { IliasError } from "@/lib/ilias/client";
 export const runtime = "nodejs";
@@ -18,11 +19,18 @@ export async function POST(
   const { forumId, threadId } = await params;
   if (!validObjectId(forumId) || !validObjectId(threadId))
     return Response.json({ error: "Invalid discussion." }, { status: 400 });
-  const session = await currentSession();
+  const { session, workspace } = await getWorkspaceContext();
   if (session?.status !== "connected")
     return Response.json(
       { error: "Reconnect your account to update read status." },
       { status: 401 },
+    );
+  if (request.headers.get("x-achilias-connection") !== workspace.storageKey)
+    return Response.json(
+      {
+        error: "Your connection changed. Refresh before updating read status.",
+      },
+      { status: 409 },
     );
   try {
     await markForumThreadRead(session, forumId, threadId);

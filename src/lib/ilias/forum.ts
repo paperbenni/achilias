@@ -1,3 +1,4 @@
+import { liveWriteAllowed, requireLiveWrite } from "./write-policy";
 import type { Session } from "./session";
 import { objectUrl, upstreamUrl } from "./config";
 import { fetchAuthenticatedHtml, IliasError } from "./client";
@@ -115,7 +116,14 @@ export async function getForumState(
     fallback.searchParams.set("target", `frm_${forumId}_${threadId}`);
     workspace.page.sourceUrl = fallback.href;
   }
-  const base = { workspace, forumId, threadId, page, order };
+  const base = {
+    workspace,
+    forumId,
+    threadId,
+    page,
+    order,
+    writeAllowed: demo || liveWriteAllowed(workspace.instance, "frm", forumId),
+  };
   if (demo) {
     const forum = demoForum();
     const thread = threadId ? demoThread(threadId) : null;
@@ -147,6 +155,7 @@ export async function markForumThreadRead(
 ) {
   if (!validObjectId(forumId) || !validObjectId(threadId))
     throw new IliasError("Invalid discussion.", 400);
+  requireLiveWrite(session.instance, "frm", forumId);
   // Mutations always rediscover the authorized action from a fresh ILIAS page.
   const { thread } = await fetchForum(session, forumId, threadId);
   if (!thread?.markReadUrl)

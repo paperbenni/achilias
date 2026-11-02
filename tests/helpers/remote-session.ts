@@ -1,3 +1,4 @@
+import { upstreamTransport } from "../../src/lib/ilias/upstream-transport";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { CookieJar } from "tough-cookie";
@@ -35,7 +36,7 @@ const dashboard = () =>
     headers: { "content-type": "text/html" },
   });
 let upstreamCookie = "";
-globalThis.fetch = (async (
+upstreamTransport.fetch = (async (
   _input: Parameters<typeof fetch>[0],
   init?: RequestInit,
 ) => {
@@ -80,7 +81,7 @@ assert.ok(
 await assert.rejects(() => completeRemoteLogin(first.code, cookies));
 
 const invalid = await pending();
-globalThis.fetch = (async () =>
+upstreamTransport.fetch = (async () =>
   new Response('<form action="shib_login.php"></form>', {
     headers: { "content-type": "text/html" },
   })) as unknown as typeof fetch;
@@ -104,7 +105,7 @@ const gate = new Promise<void>((resolve) => {
 const fetching = new Promise<void>((resolve) => {
   started = resolve;
 });
-globalThis.fetch = (async () => {
+upstreamTransport.fetch = (async () => {
   started();
   await gate;
   return dashboard();

@@ -24,9 +24,12 @@ export function allowedInstances() {
 }
 export function assertInstance(input: string) {
   const normalized = normalizeInstance(input);
-  if (!allowedInstances().includes(normalized))
+  if (
+    process.env.ACHILIAS_RESTRICT_INSTANCES === "true" &&
+    !allowedInstances().includes(normalized)
+  )
     throw new Error(
-      "This instance is not configured. Add its HTTPS base URL to ILIAS_INSTANCES on the server.",
+      "This server restricts ILIAS instances. Ask its administrator to add this HTTPS base URL to ILIAS_INSTANCES.",
     );
   return normalized;
 }

@@ -1,4 +1,5 @@
 "use client";
+import { LiveWriteNotice } from "@/components/navigation/live-write-notice";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -239,6 +240,7 @@ export function ExerciseView({ state }: { state: ExerciseState }) {
           </Button>
         )}
       </div>
+      {!state.writeAllowed && <LiveWriteNotice sourceUrl={state.sourceUrl} />}
       {!state.recognized && (
         <Alert>
           <AlertTitle>This exercise layout needs the original page</AlertTitle>
@@ -267,7 +269,16 @@ export function ExerciseView({ state }: { state: ExerciseState }) {
       {creating ? (
         <UnitEditor
           key={settings?.version}
-          settings={settings}
+          settings={
+            settings && !state.writeAllowed
+              ? {
+                  ...settings,
+                  canEdit: false,
+                  limitation:
+                    "Live changes are disabled for this exercise. Use the original ILIAS editor.",
+                }
+              : settings
+          }
           creating
           demo={demo}
           sourceUrl={state.sourceUrl}
@@ -377,7 +388,16 @@ export function ExerciseView({ state }: { state: ExerciseState }) {
           <TabsContent value="settings" className="mt-5">
             <UnitEditor
               key={`${unitId}:${settings?.version}`}
-              settings={settings}
+              settings={
+                settings && !state.writeAllowed
+                  ? {
+                      ...settings,
+                      canEdit: false,
+                      limitation:
+                        "Live changes are disabled for this exercise. Use the original ILIAS editor.",
+                    }
+                  : settings
+              }
               creating={false}
               demo={demo}
               sourceUrl={unit?.editUrl || state.sourceUrl}
@@ -515,7 +535,11 @@ export function ExerciseView({ state }: { state: ExerciseState }) {
                         />
                       )}
                       {row.canAssess && (
-                        <Button size="sm" onClick={() => setAssessment(row)}>
+                        <Button
+                          size="sm"
+                          disabled={!state.writeAllowed}
+                          onClick={() => setAssessment(row)}
+                        >
                           Assess
                         </Button>
                       )}
@@ -602,6 +626,7 @@ export function ExerciseView({ state }: { state: ExerciseState }) {
           connection={workspace.storageKey || ""}
           unitId={unitId}
           submission={feedback}
+          writeAllowed={state.writeAllowed}
           demo={demo}
           onClose={() => setFeedback(null)}
           onSaved={(value) => {

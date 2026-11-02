@@ -53,6 +53,7 @@ export type ForumThread = {
 };
 export type ForumOrder = "conversation" | "oldest" | "newest";
 export type ForumState = {
+  writeAllowed: boolean;
   workspace: Workspace;
   forum: ForumOverview | null;
   thread: ForumThread | null;

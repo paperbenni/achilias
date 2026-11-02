@@ -24,6 +24,7 @@ import { OriginalLink } from "@/components/navigation/original-link";
 import type { Submission } from "@/lib/ilias/exercise-types";
 export function FeedbackEditor({
   exerciseId,
+  writeAllowed,
   connection,
   unitId,
   submission,
@@ -32,6 +33,7 @@ export function FeedbackEditor({
   onClose,
 }: {
   exerciseId: string;
+  writeAllowed: boolean;
   connection: string;
   unitId: string;
   submission: Submission;
@@ -91,7 +93,7 @@ export function FeedbackEditor({
         <form
           onSubmit={(event) => {
             event.preventDefault();
-            if (!editor) return;
+            if (!editor || !writeAllowed) return;
             setError("");
             startTransition(async () => {
               try {
@@ -124,6 +126,15 @@ export function FeedbackEditor({
           }}
         >
           <FieldGroup>
+            {!writeAllowed && (
+              <Alert>
+                <AlertDescription>
+                  Live feedback changes are disabled for this exercise. You can
+                  read the current feedback here; use the original ILIAS editor
+                  to change it.
+                </AlertDescription>
+              </Alert>
+            )}
             {!editor && !error && (
               <p className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="size-4 animate-spin" />
@@ -140,7 +151,7 @@ export function FeedbackEditor({
                 onChange={(event) => setValue(event.target.value)}
                 maxLength={4000}
                 rows={8}
-                disabled={!editor || pending}
+                disabled={!editor || pending || !writeAllowed}
               />
               <FieldDescription>
                 Maximum 4,000 characters. Use the assessment editor for private
@@ -153,7 +164,10 @@ export function FeedbackEditor({
               </Alert>
             )}
             <div className="flex flex-wrap gap-2">
-              <Button type="submit" disabled={!editor || pending}>
+              <Button
+                type="submit"
+                disabled={!editor || pending || !writeAllowed}
+              >
                 {pending && (
                   <Loader2 data-icon="inline-start" className="animate-spin" />
                 )}

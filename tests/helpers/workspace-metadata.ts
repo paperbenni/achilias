@@ -1,3 +1,4 @@
+import { upstreamTransport } from "../../src/lib/ilias/upstream-transport";
 import { mock } from "bun:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -14,7 +15,7 @@ await saveSession({
   userName: "Metadata example account",
 });
 let requests = 0;
-globalThis.fetch = (async () => {
+upstreamTransport.fetch = (async () => {
   requests++;
   throw new Error("Settings and Saved must not fetch ILIAS");
 }) as unknown as typeof fetch;

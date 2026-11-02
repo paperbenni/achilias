@@ -1,4 +1,5 @@
 "use client";
+import { LiveWriteNotice } from "@/components/navigation/live-write-notice";
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -189,7 +190,11 @@ export function ForumView({ state }: { state: ForumState }) {
         if (!updateMarked((current) => [...new Set([...current, thread.id])]))
           throw new Error("Your browser could not save this change.");
       } else {
-        const result = await markThreadRead(forumId, thread.id);
+        const result = await markThreadRead(
+          forumId,
+          thread.id,
+          workspace.storageKey || "",
+        );
         if (result.error) throw new Error(result.error);
       }
       toast.success(
@@ -230,6 +235,9 @@ export function ForumView({ state }: { state: ForumState }) {
   }
   return (
     <div className="flex min-w-0 flex-col gap-6" aria-busy={pending}>
+      {!state.writeAllowed && (
+        <LiveWriteNotice sourceUrl={workspace.page.sourceUrl} />
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Button variant="ghost" className="w-fit" asChild>
           <Link
@@ -300,7 +308,7 @@ export function ForumView({ state }: { state: ForumState }) {
                 <Button
                   variant="outline"
                   onClick={markRead}
-                  disabled={marking || pending}
+                  disabled={marking || pending || !state.writeAllowed}
                 >
                   {marking ? (
                     <Loader2

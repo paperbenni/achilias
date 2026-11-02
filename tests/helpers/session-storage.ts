@@ -19,6 +19,8 @@ if (raw.includes(Buffer.from("private-test-name")))
 raw[raw.length - 1] ^= 1;
 await writeFile(file, raw);
 if (await readSession(id)) throw new Error("Tampered data was accepted");
+await writeFile(file, Buffer.from("truncated"));
+if (await readSession(id)) throw new Error("Truncated session accepted");
 await saveSession({
   id,
   instance: "https://ilias.uni-freiburg.de/",

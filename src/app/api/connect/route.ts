@@ -1,3 +1,9 @@
+import {
+  limitSignIn,
+  readSmallJson,
+  RequestLimitError,
+} from "@/lib/ilias/request-limits";
+import { publicHostname } from "@/lib/ilias/upstream-transport";
 import { assertInstance } from "@/lib/ilias/config";
 import {
   createSession,
@@ -27,7 +33,10 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     requireSameOrigin(request);
-    const { instance, mode: requestedMode } = await request.json();
+    limitSignIn(request, "start");
+    const { instance, mode: requestedMode } = (await readSmallJson(
+      request,
+    )) as { instance?: unknown; mode?: string };
     const mode = requestedMode || serverLoginMode();
     if (mode !== "remote" && mode !== "local")
       return Response.json(
@@ -45,6 +54,14 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     const target = assertInstance(instance);
+    if (!publicHostname(new URL(target).hostname))
+      return Response.json(
+        {
+          error:
+            "Enter a public Internet HTTPS ILIAS hostname. Private networks and IP addresses are not supported.",
+        },
+        { status: 400 },
+      );
     const previous = await currentSession();
     if (
       previous?.status === "pending" &&
@@ -82,7 +99,13 @@ export async function POST(request: Request) {
   } catch (e) {
     return Response.json(
       { error: e instanceof Error ? e.message : "Could not connect." },
-      { status: 400 },
+      {
+        status: e instanceof RequestLimitError ? 429 : 400,
+        headers: {
+          "Cache-Control": "private, no-store",
+          ...(e instanceof RequestLimitError ? { "Retry-After": "600" } : {}),
+        },
+      },
     );
   }
 }

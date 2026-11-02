@@ -1,3 +1,4 @@
+import { upstreamTransport } from "../../src/lib/ilias/upstream-transport";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { CookieJar } from "tough-cookie";
@@ -25,7 +26,7 @@ const bothStarted = new Promise<void>((resolve) => {
 const held = new Promise<void>((resolve) => {
   release = resolve;
 });
-globalThis.fetch = (async () => {
+upstreamTransport.fetch = (async () => {
   const call = ++calls;
   if (call === 2) started();
   await held;
@@ -54,7 +55,7 @@ const lateStarted = new Promise<void>((resolve) => {
 const late = new Promise<void>((resolve) => {
   releaseLate = resolve;
 });
-globalThis.fetch = (async () => {
+upstreamTransport.fetch = (async () => {
   requestStarted();
   await late;
   return new Response("Content", {

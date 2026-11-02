@@ -103,8 +103,8 @@ export function ItemDialog({
               <Button variant="ghost" onClick={() => onToggleSave(item)}>
                 <Bookmark data-icon="inline-start" />
                 {saved.some((i) => itemKey(i) === itemKey(item))
-                  ? "Unsave"
-                  : "Save for later"}
+                  ? "Remove bookmark"
+                  : "Bookmark"}
               </Button>
             </div>
           </div>

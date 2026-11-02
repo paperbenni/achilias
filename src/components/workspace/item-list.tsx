@@ -113,7 +113,7 @@ export function ItemList({
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      aria-label={`${isSaved ? "Unsave" : "Save"} ${item.title}`}
+                      aria-label={`${isSaved ? "Remove bookmark" : "Bookmark"} ${item.title}`}
                       aria-pressed={isSaved}
                       onClick={() => onToggleSave(item)}
                     >
@@ -121,7 +121,7 @@ export function ItemList({
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    {isSaved ? "Remove from saved" : "Save for later"}
+                    {isSaved ? "Remove bookmark" : "Bookmark"}
                   </TooltipContent>
                 </Tooltip>
               </CardAction>
@@ -207,7 +207,7 @@ export function ItemList({
                 variant="ghost"
                 size="icon-sm"
                 onClick={() => onToggleSave(item)}
-                aria-label={`${isSaved ? "Unsave" : "Save"} ${item.title}`}
+                aria-label={`${isSaved ? "Remove bookmark" : "Bookmark"} ${item.title}`}
                 aria-pressed={isSaved}
               >
                 <Bookmark className={cn(isSaved && "fill-current")} />

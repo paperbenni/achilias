@@ -275,7 +275,7 @@ export function QuickSearch({
       open={open}
       onOpenChange={onOpenChange}
       title="Find a course or material"
-      description="Search this page, saved items, recent history, and all your courses in ILIAS."
+      description="Search this page, bookmarks, recent history, and all your courses in ILIAS."
       className="top-1/2 h-[min(88svh,52rem)] max-h-[calc(100svh-2rem)] w-[calc(100%-2rem)] max-w-[calc(100%-2rem)] -translate-y-1/2 gap-0 overflow-hidden p-0 sm:max-w-4xl"
     >
       <Command shouldFilter={false} className="h-auto min-h-0 flex-1">
@@ -309,7 +309,7 @@ export function QuickSearch({
             <CommandGroup
               heading={
                 trimmedQuery
-                  ? "On this page, saved & recent"
+                  ? "On this page, bookmarks & recent"
                   : "Recent & on this page"
               }
             >
@@ -324,7 +324,7 @@ export function QuickSearch({
           )}
           {trimmedQuery && !localResults.length && (
             <div className="px-3 py-6 text-center text-sm text-muted-foreground">
-              No match in this page, saved items, or recent history.
+              No match in this page, bookmarks, or recent history.
             </div>
           )}
           {trimmedQuery &&

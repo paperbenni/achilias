@@ -81,7 +81,7 @@ export function DisconnectedHero({ onConnect }: { onConnect: () => void }) {
           {
             icon: Bookmark,
             title: "Keep the useful things close",
-            text: "Save a lecture, a folder, or a reading. Come back without retracing your steps.",
+            text: "Bookmark a lecture, a folder, or a reading. Come back without retracing your steps.",
           },
           {
             icon: ArrowUpRight,

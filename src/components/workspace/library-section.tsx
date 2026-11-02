@@ -62,7 +62,7 @@ export function LibrarySection({
             </h2>
           ) : (
             <h2 className="section-title">
-              {view === "saved" ? "Your saved items" : "Your courses"}
+              {view === "saved" ? "Your bookmarks" : "Your courses"}
             </h2>
           )}
           <Badge variant="secondary">
@@ -88,7 +88,7 @@ export function LibrarySection({
                 aria-label="Filter courses and materials"
                 placeholder={
                   view === "saved"
-                    ? "Find a saved item…"
+                    ? "Find a bookmark…"
                     : "Find a course or group…"
                 }
                 value={query}
@@ -104,10 +104,10 @@ export function LibrarySection({
           <ItemList {...itemProps} items={items} />
         ) : (
           empty(
-            query ? "No matching saved items" : "Make a little space for later",
+            query ? "No matching bookmarks" : "Make a little space for later",
             query
               ? "Try a different search."
-              : "Use the bookmark beside any course or material to save it here.",
+              : "Use the bookmark beside any course or material to keep it here.",
           )
         )
       ) : courses.length ? (

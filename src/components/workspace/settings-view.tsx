@@ -75,14 +75,14 @@ export function SettingsView({
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Saved on this browser</CardTitle>
+            <CardTitle>Bookmarks on this browser</CardTitle>
             <CardDescription>
               A small, personal layer over ILIAS.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              Saved items and recently opened materials stay in this browser.
+              Bookmarks and recently opened materials stay in this browser.
               They don’t change your ILIAS favorites or learning progress. They
               are separate for each connection and for the demo.
             </p>
@@ -92,10 +92,10 @@ export function SettingsView({
               variant="outline"
               onClick={() => {
                 onClearHistory();
-                toast.success("Saved items and recent history cleared");
+                toast.success("Bookmarks and recent history cleared");
               }}
             >
-              Clear saved items & history
+              Clear bookmarks & history
             </Button>
           </CardFooter>
         </Card>
@@ -134,9 +134,9 @@ export function SettingsView({
                 htmlBased: false,
               },
               {
-                title: "Search & saved items",
+                title: "Search & bookmarks",
                 description:
-                  "Filter this page, recently opened content, and saved items instantly. Search all your courses through ILIAS's repository search, with each result's course path shown.",
+                  "Filter this page, recently opened content, and bookmarks instantly. Search all your courses through ILIAS's repository search, with each result's course path shown.",
                 supported: true,
                 htmlBased: true,
               },

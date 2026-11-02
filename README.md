@@ -2,6 +2,29 @@
 
 A calmer frontend for ILIAS, built with **Bun, Next.js App Router, React, Tailwind CSS, and shadcn/ui (Radix Nova)**. Freiburg’s ILIAS is the default instance. This is an independent project, not a university service.
 
+## Screenshots
+
+The course screens below use the demo workspace. All course names, materials, and activities are examples.
+
+**A calmer starting point**
+
+![Achilias welcome screen with university sign-in and a link to explore the demo](docs/screenshots/welcome.png)
+
+**Courses at a glance**
+
+![Demo overview showing four course cards, search, and bookmarks](docs/screenshots/overview.png)
+
+**Materials and activities in one place**
+
+![Demo course showing folders, a downloadable file, and activities labeled as available in ILIAS](docs/screenshots/course.png)
+
+<details>
+<summary>See the mobile course view</summary>
+
+<img src="docs/screenshots/mobile-course.png" alt="Mobile demo course view with responsive navigation and learning materials" width="390" />
+
+</details>
+
 ## Run locally
 
 ```sh
@@ -92,6 +115,10 @@ bun run start --hostname 127.0.0.1
 `bun run test` checks ILIAS template parsing, restricted/unsupported content, cookie rotation, redirect credential boundaries, expired sessions, pairing validation, and encrypted session persistence. `bun run test:e2e` checks the demo flows in Chromium, including download, bookmarks across reloads, quick search, mobile navigation, single-use connection claims, session expiry, and reconnect/disconnect behavior. The last checks use a deliberately credential-free test session against the public Freiburg endpoint; they do not sign in to a real account. Set `ACHILIAS_TEST_URL` to test another local port.
 
 While `next dev` is running, use `ACHILIAS_BUILD_DIR=.next-build bun run build` to preserve its `.next` directory. Start that build with the same variable if you want to run it.
+
+### Refreshing screenshots
+
+With the app running, run `bun run screenshots` to refresh the images in `docs/screenshots/`. The capture uses a fresh browser context and example content. Set `ACHILIAS_SCREENSHOT_URL` to capture from another local address, such as `http://127.0.0.1:3001` for a separate production preview.
 
 ### Integration status
 

@@ -14,28 +14,22 @@ export function PageHeading({
   return (
     <div className="flex flex-wrap items-end justify-between gap-5">
       <div className="max-w-2xl">
-        {(view === "saved" || view === "courses") && (
-          <p className="eyebrow">
-            {view === "saved"
-              ? "THE GOOD STUFF, WITHIN REACH"
-              : "EVERY COURSE, ONE PLACE"}
-          </p>
-        )}
-        <h1 className="page-title mt-3">
+        <h1 className="page-title">
           {view === "saved"
-            ? "Bookmarks."
+            ? "Bookmarks"
             : view === "browse"
               ? data.page.title
-              : "Your courses."}
+              : "Courses"}
         </h1>
-        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          {view === "saved"
-            ? "The courses and materials you’ve bookmarked. Stored only in this browser."
-            : view === "browse"
-              ? data.page.description ||
-                "Everything in this space, with a clearer way through."
-              : "Every course and group from your ILIAS dashboard, with a clearer way in."}
-        </p>
+        {(view !== "browse" || data.page.description) && (
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+            {view === "saved"
+              ? "Bookmarks are stored only in this browser."
+              : view === "browse"
+                ? data.page.description
+                : "Courses and groups from your ILIAS dashboard."}
+          </p>
+        )}
       </div>
       <div className="flex gap-2">{view !== "saved" && <RefreshButton />}</div>
     </div>

@@ -32,11 +32,7 @@ export function SettingsView({
   return (
     <>
       <div>
-        <p className="eyebrow">MAKE YOURSELF AT HOME</p>
-        <h1 className="page-title mt-3">A clear view of what’s here.</h1>
-        <p className="mt-3 text-muted-foreground">
-          Your connection, your data, and what Achilias can do today.
-        </p>
+        <h1 className="page-title">Features & connection</h1>
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
@@ -76,15 +72,12 @@ export function SettingsView({
         <Card>
           <CardHeader>
             <CardTitle>Bookmarks on this browser</CardTitle>
-            <CardDescription>
-              A small, personal layer over ILIAS.
-            </CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              Bookmarks and recently opened materials stay in this browser.
-              They don’t change your ILIAS favorites or learning progress. They
-              are separate for each connection and for the demo.
+              Bookmarks and recently opened materials stay in this browser. They
+              don’t change your ILIAS favorites or learning progress. They are
+              separate for each connection and for the demo.
             </p>
           </CardContent>
           <CardFooter>
@@ -102,7 +95,7 @@ export function SettingsView({
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>What works here</CardTitle>
+          <CardTitle>Feature support</CardTitle>
           <CardDescription>
             Features marked “HTML-based” read ILIAS pages and may break or miss
             details after ILIAS or theme updates. Use their original-page
@@ -129,7 +122,7 @@ export function SettingsView({
               {
                 title: "Files",
                 description:
-                  "Download files through your authenticated ILIAS session.",
+                  "Open PDFs in the browser and download other files through your ILIAS session.",
                 supported: true,
                 htmlBased: false,
               },

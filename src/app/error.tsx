@@ -13,9 +13,9 @@ export default function ErrorPage({ reset }: { reset: () => void }) {
     <main className="flex min-h-screen items-center justify-center">
       <Empty>
         <EmptyHeader>
-          <EmptyTitle>We couldn’t open your learning space.</EmptyTitle>
+          <EmptyTitle>Could not load this page</EmptyTitle>
           <EmptyDescription>
-            Try again in a moment. Your materials are still on ILIAS.
+            Try again or return to the overview.
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent>

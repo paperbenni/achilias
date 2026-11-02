@@ -95,16 +95,18 @@ export function demoSearchItems() {
 }
 export function demoPage(type?: string, id?: string): IliasPage {
   const course = demoCourses.find((c) => c.id === id);
-  const group = type === "grp" ? demoGroups.find((g) => g.id === id) : undefined;
+  const group =
+    type === "grp" ? demoGroups.find((g) => g.id === id) : undefined;
   const isFolder = type === "fold";
   return {
-    title: group?.title || (isFolder
-      ? "Lecture materials"
-      : course?.title || "Your learning space"),
-    description: group?.description || (isFolder
-      ? "Slides and reading, all in one place."
-      : course?.description ||
-        "A little less searching. A little more learning."),
+    title:
+      group?.title ||
+      (isFolder ? "Lecture materials" : course?.title || "Your learning space"),
+    description:
+      group?.description ||
+      (isFolder
+        ? "Slides and reading, all in one place."
+        : course?.description || ""),
     sourceUrl: group?.sourceUrl || `${base}ilias.php?baseClass=ilDashboardGUI`,
     authenticated: true,
     userName: "Alex",

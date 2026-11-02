@@ -265,12 +265,7 @@ export function ForumView({ state }: { state: ForumState }) {
       </div>
       <div className="flex flex-wrap items-end justify-between gap-5">
         <div className="max-w-3xl">
-          <p className="eyebrow">
-            {thread
-              ? "A CONVERSATION WORTH FOLLOWING"
-              : "THINK OUT LOUD. LEARN TOGETHER."}
-          </p>
-          <h1 className="page-title mt-3">{thread?.title || forum.title}</h1>
+          <h1 className="page-title">{thread?.title || forum.title}</h1>
           <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             {thread ? (
               <>
@@ -767,10 +762,10 @@ export function ForumView({ state }: { state: ForumState }) {
               </Card>
               <Card>
                 <CardHeader>
-                  <CardTitle>Room for the whole discussion</CardTitle>
+                  <CardTitle>Posting and unread status</CardTitle>
                   <CardDescription>
-                    Read here. Reply, start topics, and manage subscriptions in
-                    ILIAS. Attachments and embedded media open there too.
+                    Replies, new topics, subscriptions, attachments and embedded
+                    media use ILIAS.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -788,10 +783,9 @@ export function ForumView({ state }: { state: ForumState }) {
       {!thread && (
         <Alert>
           <Info />
-          <AlertTitle>Reading, with less friction</AlertTitle>
+          <AlertTitle>Actions available in ILIAS</AlertTitle>
           <AlertDescription>
-            Threads, replies, and unread counts are available here. Posting,
-            subscriptions, moderation, and attachments still use the original
+            Posting, subscriptions, moderation and attachments use the original
             forum.
           </AlertDescription>
         </Alert>

@@ -93,14 +93,14 @@ try {
   await measure(
     page,
     byName(page, "Features & connection"),
-    "A clear view of what’s here.",
+    "Features & connection",
     "Overview → Settings",
   );
   await page.waitForTimeout(500);
   await measure(
     page,
     byName(page, "Bookmarks"),
-    "Bookmarks.",
+    "Bookmarks",
     "Settings → Saved",
   );
   await measure(page, byName(page, "Overview"), "Overview", "Saved → Overview");

@@ -41,7 +41,7 @@ try {
   for (const [index, page] of pages.entries()) {
     await page
       .getByRole("heading", {
-        name: "A clear view of what’s here.",
+        name: "Features & connection",
         exact: true,
       })
       .waitFor();

@@ -12,11 +12,11 @@ const geistMono = Geist_Mono({
 });
 export const metadata: Metadata = {
   title: {
-    default: "Achilias — A calmer way to ILIAS",
+    default: "Achilias",
     template: "%s · Achilias",
   },
   description:
-    "Your ILIAS courses and materials, with a little more room to learn. An independent frontend for everyday university life.",
+    "An independent frontend for ILIAS courses, files, forums and exercises.",
   robots: { index: false, follow: false },
 };
 export default function RootLayout({

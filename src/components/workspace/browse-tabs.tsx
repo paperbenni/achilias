@@ -92,16 +92,19 @@ export function BrowseTabs({
       <TabsContent value="tools" className="mt-6">
         <Card>
           <CardHeader>
-            <CardTitle>Keep the full course within reach</CardTitle>
+            <CardTitle>Course tools in ILIAS</CardTitle>
             <CardDescription>
-              HTML-based: these links are extracted from the course page and
-              may be incomplete after an ILIAS update. Each opens the original
+              HTML-based: these links are extracted from the course page and may
+              be incomplete after an ILIAS update. Each opens the original
               interface.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-3">
             {data.page.tools.map((tool) => (
-              <OriginalLink key={tool.title} href={demo ? data.instance : tool.url}>
+              <OriginalLink
+                key={tool.title}
+                href={demo ? data.instance : tool.url}
+              >
                 {tool.title}
               </OriginalLink>
             ))}

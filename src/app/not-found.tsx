@@ -12,14 +12,14 @@ export default function NotFound() {
     <main className="flex min-h-screen items-center justify-center">
       <Empty>
         <EmptyHeader>
-          <EmptyTitle>This learning space wasn’t found.</EmptyTitle>
+          <EmptyTitle>Page not found</EmptyTitle>
           <EmptyDescription>
             The link may be incomplete or no longer available.
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
           <Button asChild>
-            <Link href="/">Back to your space</Link>
+            <Link href="/">Back to overview</Link>
           </Button>
         </EmptyContent>
       </Empty>

@@ -104,7 +104,7 @@ export function LibrarySection({
           <ItemList {...itemProps} items={items} />
         ) : (
           empty(
-            query ? "No matching bookmarks" : "Make a little space for later",
+            query ? "No matching bookmarks" : "No bookmarks yet",
             query
               ? "Try a different search."
               : "Use the bookmark beside any course or material to keep it here.",
@@ -114,7 +114,7 @@ export function LibrarySection({
         <ItemList {...itemProps} items={courses} grid />
       ) : (
         empty(
-          query ? "No matching courses" : "Your courses will appear here",
+          query ? "No matching courses" : "No courses found",
           query
             ? "Try a different search."
             : "Achilias shows course and group links from your ILIAS dashboard. Add courses to your dashboard in ILIAS if they’re missing here.",

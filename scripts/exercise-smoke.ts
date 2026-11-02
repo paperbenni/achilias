@@ -14,9 +14,7 @@ try {
     .getByRole("button", { name: "Bookmark Exercises / Übungen", exact: true })
     .click();
   await page.getByRole("link", { name: "Bookmarks", exact: true }).click();
-  await page
-    .getByRole("heading", { name: "Bookmarks.", exact: true })
-    .waitFor();
+  await page.getByRole("heading", { name: "Bookmarks", exact: true }).waitFor();
   await page
     .getByRole("link", { name: "Exercises / Übungen", exact: true })
     .click();
@@ -229,9 +227,7 @@ try {
     "/exercises/999?demo=1",
   ]) {
     await page.goto(origin + path);
-    await page
-      .getByText("This learning space wasn’t found.", { exact: true })
-      .waitFor();
+    await page.getByText("Page not found", { exact: true }).waitFor();
   }
   assert.deepEqual(errors, []);
   console.log(

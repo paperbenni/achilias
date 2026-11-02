@@ -104,13 +104,11 @@ try {
   assert.equal(claim.status(), 200);
   await app.goto(origin + "/settings");
   await app
-    .getByRole("heading", { name: "A clear view of what’s here.", exact: true })
+    .getByRole("heading", { name: "Features & connection", exact: true })
     .waitFor();
   await app.getByRole("button", { name: /Cached example account/ }).waitFor();
   await app.getByRole("link", { name: "Bookmarks", exact: true }).click();
-  await app
-    .getByRole("heading", { name: "Bookmarks.", exact: true })
-    .waitFor();
+  await app.getByRole("heading", { name: "Bookmarks", exact: true }).waitFor();
   await app.evaluate(() => {
     (window as typeof window & { documentMarker?: boolean }).documentMarker =
       true;
@@ -121,7 +119,7 @@ try {
     .click();
   await app
     .getByRole("heading", {
-      name: "Less friction. More learning.",
+      name: "Connect to ILIAS",
       exact: true,
     })
     .waitFor();
@@ -137,7 +135,7 @@ try {
     .getByRole("link", { name: "Features & connection", exact: true })
     .click();
   await app
-    .getByRole("heading", { name: "A clear view of what’s here.", exact: true })
+    .getByRole("heading", { name: "Features & connection", exact: true })
     .waitFor();
   assert.equal(
     await app.getByRole("button", { name: /Cached example account/ }).count(),

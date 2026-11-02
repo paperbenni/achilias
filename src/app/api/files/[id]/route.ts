@@ -5,7 +5,7 @@ import { fetchUpstream, IliasError } from "@/lib/ilias/client";
 export const runtime = "nodejs";
 function examplePdf() {
   const text =
-    "BT /F1 24 Tf 60 740 Td (A little more room to learn.) Tj 0 -42 Td /F1 12 Tf (This is an example PDF from the Achilias demo.) Tj 0 -22 Td (Connect your ILIAS account to download your actual materials.) Tj ET";
+    "BT /F1 24 Tf 60 740 Td (Example PDF) Tj 0 -42 Td /F1 12 Tf (This is an example PDF from the Achilias demo.) Tj 0 -22 Td (Connect your ILIAS account to download your actual materials.) Tj ET";
   const objects = [
     "<< /Type /Catalog /Pages 2 0 R >>",
     "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",

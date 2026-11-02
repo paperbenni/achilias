@@ -14,10 +14,8 @@ try {
   const page = await context.newPage();
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(origin);
-  await page
-    .getByRole("heading", { name: "Less friction. More learning." })
-    .waitFor();
-  await page.getByRole("link", { name: "Take a look around" }).click();
+  await page.getByRole("heading", { name: "Connect to ILIAS" }).waitFor();
+  await page.getByRole("link", { name: "Try the demo" }).click();
   await page.getByRole("heading", { name: "Overview" }).waitFor();
   assert.equal(
     await page
@@ -81,9 +79,7 @@ try {
     "Bookmark click navigated the card",
   );
   await page.getByRole("link", { name: "Bookmarks", exact: true }).click();
-  await page
-    .getByRole("heading", { name: "Bookmarks.", exact: true })
-    .waitFor();
+  await page.getByRole("heading", { name: "Bookmarks", exact: true }).waitFor();
   await page
     .getByRole("link", { name: "Linear Algebra I", exact: true })
     .waitFor();
@@ -122,9 +118,7 @@ try {
   await page.getByRole("radio", { name: "List view" }).click();
   assert.equal(await page.locator(".resource-row").count(), 4);
   await page.getByRole("link", { name: "My courses", exact: true }).click();
-  await page
-    .getByRole("heading", { name: "Your courses.", exact: true })
-    .waitFor();
+  await page.getByRole("heading", { name: "Courses", exact: true }).waitFor();
   assert.equal(await page.locator(".course-card").count(), 4);
   await page.getByRole("link", { name: "Overview", exact: true }).click();
   await page.getByRole("heading", { name: "Overview", exact: true }).waitFor();
@@ -188,7 +182,7 @@ try {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "Toggle Sidebar" }).click();
   await page.getByRole("link", { name: "Bookmarks", exact: true }).click();
-  await page.getByRole("heading", { name: "Bookmarks." }).waitFor();
+  await page.getByRole("heading", { name: "Bookmarks" }).waitFor();
   assert.equal(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -197,9 +191,7 @@ try {
     "Mobile layout overflows",
   );
   await page.goto(origin + "/settings?demo=1");
-  await page
-    .getByRole("heading", { name: "A clear view of what’s here." })
-    .waitFor();
+  await page.getByRole("heading", { name: "Features & connection" }).waitFor();
   assert.equal(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,

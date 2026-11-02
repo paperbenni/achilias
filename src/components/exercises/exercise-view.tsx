@@ -224,11 +224,11 @@ export function ExerciseView({ state }: { state: ExerciseState }) {
               ? "New exercise unit"
               : unit?.title || workspace.page.title}
           </h1>
-          <p className="mt-3 text-sm text-muted-foreground">
-            {unitId
-              ? `${unit?.type || "Exercise unit"} · Deadline: ${unit?.deadline || "Not shown by ILIAS"}`
-              : "Exercise units, submissions, and the next thing that needs your attention."}
-          </p>
+          {unitId && (
+            <p className="mt-3 text-sm text-muted-foreground">
+              {`${unit?.type || "Exercise unit"} · Deadline: ${unit?.deadline || "Not shown by ILIAS"}`}
+            </p>
+          )}
         </div>
         {!unitId && !creating && state.canCreate && (
           <Button asChild>
@@ -584,7 +584,7 @@ export function ExerciseView({ state }: { state: ExerciseState }) {
         </Tabs>
       )}
       <Alert>
-        <AlertTitle>Keep the full exercise within reach</AlertTitle>
+        <AlertTitle>Exercise features available in ILIAS</AlertTitle>
         <AlertDescription>
           File uploads and learner submissions, feedback attachments, peer
           review, individual or relative deadlines, team membership, bulk

@@ -167,8 +167,8 @@ export function WorkspaceView({
     onToggleSave: toggleSave,
   };
   const renderEmpty = (
-    title = "Nothing here yet",
-    description = "When your ILIAS space has content, it will appear here.",
+    title = "No items found",
+    description = "Check the original ILIAS page if you expected items.",
   ) => (
     <EmptyState
       title={title}
@@ -508,12 +508,10 @@ export function WorkspaceView({
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                           <ArrowUpRight className="size-4 text-primary" />
-                          Still connected to the whole campus.
+                          Tools available in ILIAS
                         </CardTitle>
                         <CardDescription>
-                          Quizzes, mail, and your calendar are available in
-                          ILIAS. Exercises and forums open here; advanced
-                          activities have a clear handoff.
+                          Use ILIAS for quizzes, mail and calendar.
                         </CardDescription>
                       </CardHeader>
                       <CardFooter className="justify-between">
@@ -556,12 +554,12 @@ export function WorkspaceView({
           )}
           <footer className="mt-3 flex flex-wrap items-center justify-end gap-3 border-t pt-6 text-xs text-muted-foreground">
             <span>
-              Independent frontend ·{" "}
+              Independent frontend
               {data.fetchedAt
-                ? `Fetched ${new Date(data.fetchedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" })} Berlin time`
+                ? ` · Fetched ${new Date(data.fetchedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" })} Berlin time`
                 : demo
-                  ? "Example content, real possibilities."
-                  : "Built for the everyday."}
+                  ? " · Demo data"
+                  : ""}
             </span>
           </footer>
         </div>

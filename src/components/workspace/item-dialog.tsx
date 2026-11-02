@@ -29,6 +29,11 @@ export function ItemDialog({
   onToggleSave: (item: Item) => void;
   saved: Item[];
 }) {
+  const limitation = !item?.available
+    ? "This item is restricted or unavailable. Check the original ILIAS page for access requirements."
+    : demo
+      ? "This demo activity uses the original ILIAS interface when connected."
+      : `This ${typeNames[item.type]?.toLowerCase() || "activity"} is not supported in Achilias. Open it in ILIAS to use it.`;
   return (
     <Dialog
       open={!!item}
@@ -46,21 +51,14 @@ export function ItemDialog({
           )}
           <DialogTitle>{item?.title}</DialogTitle>
           <DialogDescription>
-            {item?.description ||
-              "This item is part of your ILIAS learning space."}
+            {item?.description || limitation}
           </DialogDescription>
         </DialogHeader>
         {item && (
           <div className="flex flex-col gap-5">
-            <p className="text-sm text-muted-foreground">
-              {!item.available
-                ? "ILIAS has restricted this object or it is not currently available. Check the original page for access requirements."
-                : item.type === "file"
-                  ? item.meta || "Download using your connected ILIAS session."
-                  : demo
-                    ? "This is an example activity. In a connected account, the original ILIAS activity opens here."
-                    : `This ${typeNames[item.type]?.toLowerCase() || "activity"} is not implemented in Achilias yet. Open ILIAS to use the full feature. Your work stays on the original platform.`}
-            </p>
+            {item.description && (
+              <p className="text-sm text-muted-foreground">{limitation}</p>
+            )}
             <ParsedHtmlNotice
               feature="item"
               sourceUrl={demo ? instance : item.sourceUrl}

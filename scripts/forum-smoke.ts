@@ -18,9 +18,7 @@ try {
     })
     .click();
   await page.getByRole("link", { name: "Bookmarks", exact: true }).click();
-  await page
-    .getByRole("heading", { name: "Bookmarks.", exact: true })
-    .waitFor();
+  await page.getByRole("heading", { name: "Bookmarks", exact: true }).waitFor();
   await page
     .getByRole("link", { name: "Questions & discussion", exact: true })
     .click();
@@ -201,9 +199,7 @@ try {
   );
   assert.equal((await page.request.get(endpoint)).status(), 405);
   await page.goto(`${origin}/forums/402?demo=1&page=invalid`);
-  await page
-    .getByText("This learning space wasn’t found.", { exact: true })
-    .waitFor();
+  await page.getByText("Page not found", { exact: true }).waitFor();
   assert.deepEqual(errors, []);
   console.log(
     "Passed: saved forum navigation, thread filters/sorting, empty search, formatted posts, unread jumps, reply context, copy link, post search, demo read-state persistence, chronological order, closed-thread actions, mobile layouts, read-action authorization and invalid routes.",

@@ -20,7 +20,7 @@ try {
     {
       file: "welcome.png",
       path: "/",
-      heading: "Less friction. More learning.",
+      heading: "Connect to ILIAS",
     },
     { file: "overview.png", path: "/?demo=1", heading: "Overview" },
     {
@@ -64,7 +64,7 @@ try {
     {
       file: "saved.png",
       path: "/saved?demo=1",
-      heading: "Bookmarks.",
+      heading: "Bookmarks",
       setup: async (page) => {
         await page.goto(new URL("/browse/crs/101?demo=1", origin).href);
         for (const title of [
@@ -86,12 +86,12 @@ try {
     {
       file: "settings.png",
       path: "/settings?demo=1",
-      heading: "A clear view of what’s here.",
+      heading: "Features & connection",
     },
     {
       file: "connection.png",
       path: "/",
-      heading: "Less friction. More learning.",
+      heading: "Connect to ILIAS",
       dialog: true,
       prepare: async (page) => {
         await page

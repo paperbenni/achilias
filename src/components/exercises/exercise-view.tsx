@@ -51,6 +51,7 @@ import { useBrowserStore } from "@/hooks/use-browser-store";
 import { assessSubmission, updateExerciseUnit } from "@/app/actions/exercises";
 import {
   exerciseHref,
+  hasSubmission,
   submissionCounts,
   type AssessmentInput,
   type ExerciseState,
@@ -121,8 +122,6 @@ export function ExerciseView({ state }: { state: ExerciseState }) {
         } as Submission)
       : row;
   });
-  const hasSubmission = (row: Submission) =>
-    !!row.submitted || !!row.downloadUrl;
   const pending = submissions.filter(
     (row) => hasSubmission(row) && row.status === "notgraded",
   );

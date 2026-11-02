@@ -10,8 +10,9 @@ import {
   RemoteLoginError,
 } from "@/lib/ilias/remote-login";
 import { requireSameOrigin } from "@/lib/ilias/session";
+import { noStore } from "@/lib/api";
 export const runtime = "nodejs";
-const headers = { "Cache-Control": "private, no-store" };
+const headers = noStore;
 async function codeFrom(request: Request) {
   await limitSignIn(request, "transfer");
   // CLI transfers use a bearer code, never a browser's session cookie.

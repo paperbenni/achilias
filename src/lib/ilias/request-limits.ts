@@ -1,6 +1,10 @@
 import { RateLimiterMemory, RateLimiterRes } from "rate-limiter-flexible";
 import { createHash } from "node:crypto";
 import { isIP } from "node:net";
+import {
+  PayloadTooLargeError,
+  readBoundedText,
+} from "./bounded-read";
 
 export class RequestLimitError extends Error {
   status = 429;
@@ -72,23 +76,14 @@ export async function readSmallJson(
   request: Request,
   limit = 4096,
 ): Promise<unknown> {
-  const reader = request.body?.getReader();
-  if (!reader) throw new Error("A JSON request body is required.");
-  const chunks: Uint8Array[] = [];
-  let total = 0;
+  if (!request.body) throw new Error("A JSON request body is required.");
+  let text: string;
   try {
-    while (true) {
-      const chunk = await reader.read();
-      if (chunk.done) break;
-      total += chunk.value.byteLength;
-      if (total > limit) {
-        await reader.cancel();
-        throw new Error("Request body is too large.");
-      }
-      chunks.push(chunk.value);
-    }
-  } finally {
-    reader.releaseLock();
+    text = await readBoundedText(request.body, limit);
+  } catch (error) {
+    if (error instanceof PayloadTooLargeError)
+      throw new Error("Request body is too large.");
+    throw error;
   }
-  return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  return JSON.parse(text);
 }

@@ -3,7 +3,8 @@ import { load } from "cheerio";
 import { formFields } from "./html-forms";
 export { formFields } from "./html-forms";
 import { scriptStringProperties } from "./script-config";
-import { upstreamUrl } from "./config";
+import { cleanText as clean } from "./text";
+import { upstreamLink } from "./links";
 import { validObjectId } from "./identifiers";
 import { sanitizeIliasHtml } from "./html";
 import type {
@@ -12,24 +13,16 @@ import type {
   Submission,
   UnitSettings,
 } from "./exercise-types";
-const clean = (value: string) => value.replace(/\s+/g, " ").trim();
+
+/** The table column holding the submission date, in English or German UIs. */
+const submissionDateColumn =
+  /submission.*date|abgabe|abgegeben|eingereicht|date.*submission/;
+
 export function exerciseVersion(value: unknown) {
   return createHash("sha256")
     .update(JSON.stringify(value))
     .digest("hex")
     .slice(0, 24);
-}
-export function exerciseLink(href: string, source: string) {
-  try {
-    if (!href || href.startsWith("#")) return undefined;
-    const url = upstreamUrl(
-      new URL("./", source).href,
-      new URL(href, source).href,
-    );
-    return url.protocol === "https:" ? url.href : undefined;
-  } catch {
-    return undefined;
-  }
 }
 export function exerciseCommand(
   url: string,
@@ -77,7 +70,7 @@ export function exerciseControls(
   )
     .toArray()
     .flatMap((node) => {
-      const url = exerciseLink(
+      const url = upstreamLink(
         $(node).attr("href") || $(node).attr("data-action") || "",
         source,
       );
@@ -110,7 +103,7 @@ export function parseExerciseUnits(
     const editUrl = $(row)
       .find("a[href]")
       .toArray()
-      .map((a) => exerciseLink($(a).attr("href")!, source))
+      .map((a) => upstreamLink($(a).attr("href")!, source))
       .find(
         (url) =>
           url &&
@@ -137,7 +130,7 @@ export function parseExerciseUnits(
   });
   $(".il-item").each((_, row) => {
     const link = $(row).find(".il-item-title a[href]").first();
-    const url = exerciseLink(link.attr("href") || "", source);
+    const url = upstreamLink(link.attr("href") || "", source);
     const id = url && new URL(url).searchParams.get("ass_id");
     if (
       !url ||
@@ -184,7 +177,7 @@ export function parseExerciseUnits(
   // A single-unit exercise has no unit selector. Its authorized grading form
   // still identifies the current unit, even when the learner overview hides it.
   const gradingTable = $('table[id*="exc_mem"]').first();
-  const gradingAction = exerciseLink(
+  const gradingAction = upstreamLink(
     gradingTable.closest("form").attr("action") || "",
     source,
   );
@@ -255,7 +248,7 @@ export function parseGrading(
   const $ = load(html);
   const table = $('table[id*="exc_mem"]').first();
   const form = table.closest("form");
-  const action = exerciseLink(form.attr("action") || "", source);
+  const action = upstreamLink(form.attr("action") || "", source);
   const fields = form.length ? formFields($, form) : [];
   const command = form
     .find('button[name="cmd[saveStatusAll]"], input[name="cmd[saveStatusAll]"]')
@@ -293,7 +286,7 @@ export function parseGrading(
       scriptStringProperties($(script).text(), "ajaxRenderUrl"),
     )
     .flatMap((href) => {
-      const url = exerciseLink(href, source);
+      const url = upstreamLink(href, source);
       return url ? [url] : [];
     });
   const submissions: Submission[] = [];
@@ -319,7 +312,7 @@ export function parseGrading(
       .find("a[href], button[data-action]")
       .toArray()
       .flatMap((a) => {
-        const url = exerciseLink(
+        const url = upstreamLink(
           $(a).attr("href") || $(a).attr("data-action") || "",
           source,
         );
@@ -352,24 +345,14 @@ export function parseGrading(
       login: cellText(/^login|benutzername/),
       team,
       submitted:
-        column(
-          /submission.*date|abgabe|abgegeben|eingereicht|date.*submission/,
-        ) < 0
+        column(submissionDateColumn) < 0
           ? null
-          : cellText(
-              /submission.*date|abgabe|abgegeben|eingereicht|date.*submission/,
-            ),
+          : cellText(submissionDateColumn),
       late:
-        column(
-          /submission.*date|abgabe|abgegeben|eingereicht|date.*submission/,
-        ) < 0
+        column(submissionDateColumn) < 0
           ? null
           : cells
-              .eq(
-                column(
-                  /submission.*date|abgabe|abgegeben|eingereicht|date.*submission/,
-                ),
-              )
+              .eq(column(submissionDateColumn))
               .find(".warning").length > 0,
       status: ["notgraded", "passed", "failed"].includes(String(status))
         ? (status as AssessmentStatus)
@@ -448,7 +431,7 @@ export function parseUnitForm(
       (_, node) => $(node).find('textarea[name="instruction"]').length > 0,
     )
     .first();
-  const action = exerciseLink(form.attr("action") || "", source);
+  const action = upstreamLink(form.attr("action") || "", source);
   const fields = form.length ? formFields($, form) : [];
   const commandName = creating ? "saveAssignment" : "updateAssignment";
   const submit = form.find(`[name="cmd[${commandName}]"]`).first();
@@ -522,7 +505,7 @@ export function parseCreateLink(
 ) {
   const $ = load(html);
   const form = $('select[name="type"] option[value="1"]').closest("form");
-  const action = exerciseLink(form.attr("action") || "", source);
+  const action = upstreamLink(form.attr("action") || "", source);
   if (
     !action ||
     !exerciseCommand(

@@ -4,11 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowUpRight,
-  Bookmark,
   ChevronDown,
   CircleHelp,
-  GraduationCap,
-  Home,
   LogOut,
   Search,
   Settings2,
@@ -44,15 +41,9 @@ import {
 import { Separator } from "@/components/ui/separator";
 
 import type { Workspace } from "@/lib/ilias/types";
+import { demoHref, workspaceNav, type WorkspaceViewName } from "./nav-items";
 
-export type WorkspaceViewName =
-  | "home"
-  | "courses"
-  | "browse"
-  | "saved"
-  | "settings"
-  | "forum"
-  | "exercise";
+export type { WorkspaceViewName };
 function Brand({ demo = false }: { demo?: boolean }) {
   return (
     <Link
@@ -96,7 +87,7 @@ export function Navigation({
 }) {
   const router = useRouter();
   const { setOpenMobile } = useSidebar();
-  const suffix = data.mode === "demo" ? "?demo=1" : "";
+  const demo = data.mode === "demo";
   return (
     <Sidebar collapsible="offcanvas" role="navigation" aria-label="Workspace">
       <SidebarHeader className="px-5 pt-7 pb-6">
@@ -135,35 +126,15 @@ export function Navigation({
           <SidebarGroupLabel>WORKSPACE</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {[
-                {
-                  title: "Overview",
-                  icon: Home,
-                  href: "/",
-                  active: view === "home",
-                },
-                {
-                  title: "My courses",
-                  icon: GraduationCap,
-                  href: "/courses",
-                  active:
-                    view === "courses" ||
-                    view === "browse" ||
-                    view === "forum" ||
-                    view === "exercise",
-                },
-                {
-                  title: "Bookmarks",
-                  icon: Bookmark,
-                  href: "/saved",
-                  active: view === "saved",
-                },
-              ].map((nav) => (
+              {workspaceNav.map((nav) => (
                 <SidebarMenuItem key={nav.title}>
-                  <SidebarMenuButton isActive={nav.active} asChild>
+                  <SidebarMenuButton
+                    isActive={nav.activeViews.includes(view)}
+                    asChild
+                  >
                     <Link
                       prefetch={data.mode === "demo" || nav.href === "/saved"}
-                      href={`${nav.href}${suffix ? (nav.href.includes("?") ? "&demo=1" : suffix) : ""}`}
+                      href={demoHref(nav.href, demo)}
                       onClick={() => setOpenMobile(false)}
                     >
                       <nav.icon />
@@ -181,7 +152,7 @@ export function Navigation({
               <SidebarMenuButton asChild>
                 <Link
                   prefetch={true}
-                  href={`/settings${suffix}`}
+                  href={demoHref("/settings", demo)}
                   onClick={() => setOpenMobile(false)}
                 >
                   <CircleHelp />
@@ -239,7 +210,7 @@ export function Navigation({
             <DropdownMenuContent side="top" align="start">
               <DropdownMenuGroup>
                 <DropdownMenuItem
-                  onSelect={() => router.push(`/settings${suffix}`)}
+                  onSelect={() => router.push(demoHref("/settings", demo))}
                 >
                   <Settings2 />
                   Connection settings

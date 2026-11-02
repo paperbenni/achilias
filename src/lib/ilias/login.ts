@@ -1,5 +1,6 @@
 import type { Browser } from "playwright";
 import { browserLogin } from "./browser-login";
+import { isLoopbackHostname } from "./loopback";
 import {
   saveSession,
   readSession,
@@ -15,7 +16,7 @@ export function serverLoginMode(): "local" | "remote" {
   const origin = process.env.ACHILIAS_ORIGIN;
   if (
     origin &&
-    !["localhost", "127.0.0.1", "[::1]"].includes(new URL(origin).hostname)
+    !isLoopbackHostname(new URL(origin).hostname)
   )
     return "remote";
   const configured = process.env.ACHILIAS_LOGIN_MODE;

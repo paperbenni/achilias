@@ -1,7 +1,22 @@
 import { profileName } from "./profile-name";
-import { load } from "cheerio";
+import { cleanText as clean } from "./text";
+import { load, type CheerioAPI } from "cheerio";
+import type { AnyNode } from "domhandler";
 import type { IliasPage, Item } from "./types";
-const clean = (text: string) => text.replace(/\s+/g, " ").trim();
+
+// Untriggered dialogs and templates hold copies of items that must not parse
+// into results or alerts.
+const hiddenSelector =
+  'template, dialog, [role="dialog"], .modal, .il-modal, [hidden], [aria-hidden="true"], .hidden, .d-none';
+const hasHiddenStyle = (style: string | undefined) =>
+  /(?:display\s*:\s*none|visibility\s*:\s*hidden)/i.test(style || "");
+const hiddenSubtree = ($: CheerioAPI, el: AnyNode) =>
+  $(el).closest(hiddenSelector).length > 0 ||
+  $(el)
+    .parents()
+    .addBack()
+    .toArray()
+    .some((node) => hasHiddenStyle($(node).attr("style")));
 
 // ILIAS' container and dashboard templates expose the same list-item structure.
 // Keep selectors here so a theme/version adaptation does not leak into the UI.
@@ -45,21 +60,7 @@ export function parsePage(html: string, sourceUrl: string): IliasPage {
     const row = $(el);
     // Dashboard/search pages can contain item templates inside untriggered
     // dialogs. They are not visible content and must not enter search results.
-    if (
-      row.closest(
-        'template, dialog, [role="dialog"], .modal, .il-modal, [hidden], [aria-hidden="true"], .hidden, .d-none',
-      ).length ||
-      row
-        .parents()
-        .addBack()
-        .toArray()
-        .some((node) =>
-          /(?:display\s*:\s*none|visibility\s*:\s*hidden)/i.test(
-            $(node).attr("style") || "",
-          ),
-        )
-    )
-      return;
+    if (hiddenSubtree($, el)) return;
     // Avoid processing the inner wrapper of an already parsed list item.
     if (row.parents(".ilContainerListItemOuter").length) return;
     const titleNode = row
@@ -171,24 +172,7 @@ export function parsePage(html: string, sourceUrl: string): IliasPage {
   // Dialog templates are often present on the dashboard before any action.
   // Their prompts are not page notifications and must not become live alerts.
   const notices = $(".alert, .il-message, .ilFailureMessage, .ilInfoMessage")
-    .filter((_, node) => {
-      const el = $(node);
-      if (
-        el.closest(
-          'template, dialog, [role="dialog"], .modal, .il-modal, [hidden], [aria-hidden="true"], .hidden, .d-none',
-        ).length
-      )
-        return false;
-      return !el
-        .parents()
-        .addBack()
-        .toArray()
-        .some((parent) =>
-          /(?:display\s*:\s*none|visibility\s*:\s*hidden)/i.test(
-            $(parent).attr("style") || "",
-          ),
-        );
-    })
+    .filter((_, node) => !hiddenSubtree($, node))
     .map((_, el) => clean($(el).text()))
     .get()
     .filter(

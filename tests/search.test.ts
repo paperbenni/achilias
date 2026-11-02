@@ -1,12 +1,13 @@
 import { upstreamTransport } from "../src/lib/ilias/upstream-transport";
 import { afterEach, expect, mock, test } from "bun:test";
 import { FREIBURG } from "../src/lib/ilias/config";
-import { searchDemo, searchRepository } from "../src/lib/ilias/search";
+import { searchDemo, searchRepository, clearSearchFormCache } from "../src/lib/ilias/search";
 import type { Session } from "../src/lib/ilias/session";
 
 const originalFetch = upstreamTransport.fetch;
 afterEach(() => {
   upstreamTransport.fetch = originalFetch;
+  clearSearchFormCache();
 });
 
 const dashboard = `<a href="logout.php">Logout</a>
@@ -89,6 +90,58 @@ test("repository search discovers the ILIAS form action and parses result paths"
     ["602", "grp", "Linear Algebra I › Exercise groups"],
   ]);
   expect(found.sourceUrl).toContain("cmd=remoteSearch");
+});
+
+test("repository search reuses the discovered form for later queries", async () => {
+  const requests: { method?: string; body?: string }[] = [];
+  upstreamTransport.fetch = mock(
+    async (url: Parameters<typeof fetch>[0], init?: RequestInit) => {
+      requests.push({ method: init?.method, body: String(init?.body ?? "") });
+      return new Response(requests.length === 1 ? dashboard : results, {
+        headers: { "content-type": "text/html; charset=utf-8" },
+      });
+    },
+  ) as unknown as typeof fetch;
+  await searchRepository(session(), "Gruppe 02");
+  await searchRepository(session(), "Linear");
+  expect(requests.map((request) => request.method)).toEqual([
+    "GET",
+    "POST",
+    "POST",
+  ]);
+  expect(new URLSearchParams(requests[2].body).get("queryString")).toBe(
+    "Linear",
+  );
+});
+
+test("repository search rediscovers once when ILIAS ignores a stale token", async () => {
+  const toolbar = (term: string) =>
+    `<input id="search_field" type="text" name="term" value="${term}">`;
+  // A stale token makes ilCtrl fall back to the saved search, which echoes the
+  // previous term instead of this query.
+  const responses = [
+    dashboard,
+    results + toolbar("Old term"),
+    dashboard,
+    results + toolbar("Gruppe 02"),
+  ];
+  const requests: string[] = [];
+  upstreamTransport.fetch = mock(
+    async (url: Parameters<typeof fetch>[0], init?: RequestInit) => {
+      requests.push(`${init?.method} ${String(url)}`);
+      return new Response(responses[requests.length - 1], {
+        headers: { "content-type": "text/html; charset=utf-8" },
+      });
+    },
+  ) as unknown as typeof fetch;
+  const found = await searchRepository(session(), "Gruppe 02");
+  expect(requests.map((request) => request.split(" ")[0])).toEqual([
+    "GET",
+    "POST",
+    "GET",
+    "POST",
+  ]);
+  expect(found.results).toHaveLength(2);
 });
 
 test("repository search reports a missing ILIAS search form without posting", async () => {

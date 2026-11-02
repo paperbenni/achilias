@@ -73,7 +73,6 @@ import { OriginalLink } from "@/components/navigation/original-link";
 import { RefreshButton } from "@/components/navigation/refresh-button";
 import { useBrowserStore } from "@/hooks/use-browser-store";
 import { cn } from "@/lib/utils";
-import { markThreadRead } from "@/app/actions/workspace";
 import {
   forumHref,
   type ForumOrder,
@@ -190,12 +189,21 @@ export function ForumView({ state }: { state: ForumState }) {
         if (!updateMarked((current) => [...new Set([...current, thread.id])]))
           throw new Error("Your browser could not save this change.");
       } else {
-        const result = await markThreadRead(
-          forumId,
-          thread.id,
-          workspace.storageKey || "",
+        // One HTTP write path for read state, shared with the headless smokes.
+        const response = await fetch(
+          `/api/forums/${forumId}/threads/${thread.id}/read`,
+          {
+            method: "POST",
+            headers: { "x-achilias-connection": workspace.storageKey || "" },
+            cache: "no-store",
+          },
         );
-        if (result.error) throw new Error(result.error);
+        const body = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        if (!response.ok)
+          throw new Error(body.error || "Could not update read status.");
+        router.refresh();
       }
       toast.success(
         demo ? "Marked read in this demo" : "Discussion marked read in ILIAS",

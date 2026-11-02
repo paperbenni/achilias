@@ -1,5 +1,6 @@
 "use client";
 
+import type { ComponentProps } from "react";
 import { Info, Bookmark, ChevronRight, ArrowUpRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -219,3 +220,6 @@ export function ItemList({
     </ItemGroup>
   );
 }
+
+/** ItemList's own props, reusable by sections that also pass `items`. */
+export type ItemListProps = Omit<ComponentProps<typeof ItemList>, "items">;

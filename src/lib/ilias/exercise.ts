@@ -16,7 +16,6 @@ import type {
 import {
   exerciseCommand,
   exerciseControls,
-  exerciseLink,
   exerciseVersion,
   formFields,
   parseCreateLink,
@@ -26,6 +25,7 @@ import {
   type ParsedForm,
   formScopeMatches,
 } from "./exercise-parser";
+import { upstreamLink } from "./links";
 import { demoExercise } from "./exercise-demo";
 function validIds(...ids: string[]) {
   if (!ids.every(validObjectId))
@@ -437,7 +437,7 @@ async function feedbackForm(
   const form = $("form")
     .filter((_, form) => $(form).find("textarea[name]").length === 1)
     .first();
-  const action = exerciseLink(form.attr("action") || "", url);
+  const action = upstreamLink(form.attr("action") || "", url);
   if (
     !action ||
     !formScopeMatches(action, formFields($, form)) ||

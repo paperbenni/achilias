@@ -17,6 +17,7 @@ import path from "node:path";
 import { cookies } from "next/headers";
 import type { SerializedCookieJar } from "tough-cookie";
 import { parsePairingCode, verifyPairing } from "./pairing";
+import { isLoopbackHostname } from "./loopback";
 
 export const SESSION_COOKIE = "achilias_session";
 const dir = path.resolve(
@@ -182,7 +183,7 @@ export function requireSameOrigin(request: Request) {
     `${new URL(request.url).protocol}//${request.headers.get("host") || new URL(request.url).host}`;
   if (
     !configured &&
-    !["localhost", "127.0.0.1", "[::1]"].includes(originUrl.hostname)
+    !isLoopbackHostname(originUrl.hostname)
   ) {
     throw new Error(
       "Set ACHILIAS_ORIGIN to the browser-visible origin for remote use.",

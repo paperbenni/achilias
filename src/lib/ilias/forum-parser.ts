@@ -1,8 +1,9 @@
 import { validObjectId } from "./identifiers";
 import { load, type CheerioAPI } from "cheerio";
+import { cleanText as clean } from "./text";
+import { upstreamLink } from "./links";
 import { sanitizeIliasHtml } from "./html";
 export { sanitizeIliasHtml as sanitizeForumBody } from "./html";
-import { upstreamUrl } from "./config";
 import type {
   ForumOverview,
   ForumPageLink,
@@ -10,28 +11,13 @@ import type {
   ForumThread,
   ForumTopic,
 } from "./forum-types";
-const clean = (s: string) => s.replace(/\s+/g, " ").trim();
 
-export function forumLink(href: string, sourceUrl: string) {
-  try {
-    if (!href.trim() || href.startsWith("#")) return undefined;
-    const source = new URL(sourceUrl);
-    const u = upstreamUrl(
-      new URL("./", source).href,
-      new URL(href, source).href,
-    );
-    if (u.protocol !== "https:") return undefined;
-    return u.href;
-  } catch {
-    return undefined;
-  }
-}
 function targets($: CheerioAPI, selector: string, sourceUrl: string) {
   return $(selector)
     .toArray()
     .filter((el) => !$(el).closest(".ilFrmPostContent").length)
     .flatMap((el) => {
-      const url = forumLink(
+      const url = upstreamLink(
         $(el).attr("href") || $(el).attr("data-action") || "",
         sourceUrl,
       );
@@ -98,7 +84,7 @@ export function parseForumOverview(
     const node = row
       .find(".il-item-title a, td a[href]")
       .filter((_, a) => {
-        const url = forumLink($(a).attr("href") || "", sourceUrl);
+        const url = upstreamLink($(a).attr("href") || "", sourceUrl);
         if (!url) return false;
         const p = new URL(url).searchParams;
         return (
@@ -109,7 +95,7 @@ export function parseForumOverview(
       })
       .first();
     if (!node.length) return;
-    const url = forumLink(node.attr("href") || "", sourceUrl)!;
+    const url = upstreamLink(node.attr("href") || "", sourceUrl)!;
     const id = new URL(url).searchParams.get("thr_pk")!;
     if (seen.has(id)) return;
     seen.add(id);
@@ -211,7 +197,7 @@ export function parseForumThread(
       .find(".ilFrmPostAttachmentsContainer a[href]")
       .toArray()
       .flatMap((a) => {
-        const url = forumLink($(a).attr("href") || "", sourceUrl);
+        const url = upstreamLink($(a).attr("href") || "", sourceUrl);
         return url
           ? [
               {

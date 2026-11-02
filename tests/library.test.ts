@@ -11,6 +11,7 @@ import {
   isSupportedItemType,
   itemHref,
 } from "../src/lib/ilias/items";
+import { rankByFamiliarity } from "../src/lib/ilias/item-search";
 import type { Item } from "../src/lib/ilias/types";
 const item = (id: string, fields: Partial<Item> = {}): Item => ({
   id,
@@ -73,6 +74,29 @@ test("repository paths are validated and fill gaps without overriding current me
     current,
   ]);
 });
+test("results from saved and recently used courses rank first without reordering the rest", () => {
+  const algorithms = item("7", { title: "Algorithms" });
+  const linear = item("8", { title: "Linear Algebra I", type: "grp" });
+  const results = [
+    item("1", { type: "file", context: "Networks › Materials" }),
+    item("2", { type: "file", context: "Operating Systems › Materials" }),
+    item("3", { type: "file", context: "Linear Algebra I › Materials" }),
+    item("4", { type: "file", context: "Algorithms › Materials" }),
+    linear,
+  ];
+  expect(
+    rankByFamiliarity(results, [algorithms, linear]).map((entry) => entry.id),
+  ).toEqual(["8", "4", "3", "1", "2"]);
+  // A saved title that is only part of another path must not match.
+  expect(
+    rankByFamiliarity(
+      [item("5", { type: "file", context: "Linear Algebra II › Materials" })],
+      [{ ...linear, id: "9", title: "Linear Algebra" }],
+    ).map((entry) => entry.id),
+  ).toEqual(["5"]);
+  expect(rankByFamiliarity(results, [])).toEqual(results);
+});
+
 test("object capability rules agree with navigation while retaining restricted and unsupported objects", () => {
   for (const type of ["crs", "grp", "fold", "cat", "frm", "exc"]) {
     const resource = item("42", { type });

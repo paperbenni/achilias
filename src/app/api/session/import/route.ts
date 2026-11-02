@@ -6,25 +6,21 @@ import {
 import {
   claimSession,
   invalidClaimMessage,
-  requireSameOrigin,
   setSessionCookie,
 } from "@/lib/ilias/session";
+import { noStore, sameOriginFailure } from "@/lib/api";
+
 export const runtime = "nodejs";
+
 export async function POST(request: Request) {
-  try {
-    requireSameOrigin(request);
-  } catch {
-    return Response.json(
-      { error: "Request origin is not allowed." },
-      { status: 403 },
-    );
-  }
+  const originFailure = sameOriginFailure(request);
+  if (originFailure) return originFailure;
   try {
     await limitSignIn(request, "claim");
     const { token } = (await readSmallJson(request)) as { token?: unknown };
     const id = await claimSession(token);
     await setSessionCookie(id);
-    return Response.json({ status: "connected" });
+    return Response.json({ status: "connected" }, { headers: noStore });
   } catch (error) {
     return Response.json(
       {
@@ -33,7 +29,10 @@ export async function POST(request: Request) {
             ? error.message
             : invalidClaimMessage,
       },
-      { status: error instanceof RequestLimitError ? 429 : 400 },
+      {
+        status: error instanceof RequestLimitError ? 429 : 400,
+        headers: noStore,
+      },
     );
   }
 }

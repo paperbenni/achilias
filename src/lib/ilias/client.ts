@@ -9,6 +9,10 @@ import {
 } from "./session";
 import { parsePage } from "./parser";
 import { IliasError } from "./errors";
+import {
+  PayloadTooLargeError,
+  readBoundedText,
+} from "./bounded-read";
 import { requireLiveWrite } from "./write-policy";
 export { IliasError } from "./errors";
 /**
@@ -196,26 +200,14 @@ export async function readUpstreamText(
   response: Response,
   limit = 8 * 1024 * 1024,
 ) {
-  const reader = response.body?.getReader();
-  if (!reader) return "";
-  let size = 0;
-  const chunks: Uint8Array[] = [];
   try {
-    while (true) {
-      const chunk = await reader.read();
-      if (chunk.done) break;
-      size += chunk.value.byteLength;
-      if (size > limit) {
-        await reader.cancel();
-        throw new IliasError(
-          "The ILIAS page is too large to parse safely. Open the original page.",
-          502,
-        );
-      }
-      chunks.push(chunk.value);
-    }
-  } finally {
-    reader.releaseLock();
+    return await readBoundedText(response.body, limit);
+  } catch (error) {
+    if (error instanceof PayloadTooLargeError)
+      throw new IliasError(
+        "The ILIAS page is too large to parse safely. Open the original page.",
+        502,
+      );
+    throw error;
   }
-  return Buffer.concat(chunks).toString("utf8");
 }

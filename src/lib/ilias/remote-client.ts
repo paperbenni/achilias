@@ -1,7 +1,8 @@
 import { parsePairingCode } from "./pairing";
+import { isLoopbackHostname } from "./loopback";
 export function remoteServerUrl(value: string) {
   const url = new URL(value);
-  const loopback = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+  const loopback = isLoopbackHostname(url.hostname);
   if (
     (url.protocol !== "https:" && !(url.protocol === "http:" && loopback)) ||
     url.username ||

@@ -18,7 +18,9 @@ const { saveSession, readSession, deleteSession } =
 const { getWorkspace } = await import("../../src/lib/ilias/workspace");
 const { requireWorkspaceConnection } =
   await import("../../src/lib/ilias/workspace-context");
-const { markThreadRead } = await import("../../src/app/actions/workspace");
+const { POST: markThreadReadRoute } = await import(
+  "../../src/app/api/forums/[forumId]/threads/[threadId]/read/route"
+);
 const instance = "https://ilias.uni-freiburg.de/";
 const ids = [randomUUID(), randomUUID()];
 for (const [index, id] of ids.entries()) {
@@ -76,8 +78,21 @@ await request.run(ids[0], async () => {
     () => requireWorkspaceConnection(b.storageKey!),
     /connection changed/,
   );
-  const rejected = await markThreadRead("401", "601", b.storageKey!);
-  assert.match(rejected.error!, /connection changed/);
+  const rejected = await markThreadReadRoute(
+    new Request("http://localhost:3000/api/forums/401/threads/601/read", {
+      method: "POST",
+      headers: {
+        origin: "http://localhost:3000",
+        "x-achilias-connection": b.storageKey!,
+      },
+    }),
+    { params: Promise.resolve({ forumId: "401", threadId: "601" }) },
+  );
+  assert.equal(rejected.status, 409);
+  assert.match(
+    ((await rejected.json()) as { error: string }).error,
+    /connection changed/,
+  );
 });
 assert.equal(calls, 2);
 await deleteSession(ids[0]);

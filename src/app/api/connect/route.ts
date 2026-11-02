@@ -14,6 +14,7 @@ import {
 import { prepareRemoteLogin } from "@/lib/ilias/remote-login";
 import { serverLoginMode } from "@/lib/ilias/login";
 import { beginLogin, cancelLogin } from "@/lib/ilias/login";
+import { noStore } from "@/lib/api";
 export const runtime = "nodejs";
 export async function GET() {
   const session = await currentSession();
@@ -27,7 +28,7 @@ export async function GET() {
           : serverLoginMode(),
       localBrowserAvailable: serverLoginMode() === "local",
     },
-    { headers: { "Cache-Control": "private, no-store" } },
+    { headers: noStore },
   );
 }
 export async function POST(request: Request) {
@@ -41,17 +42,17 @@ export async function POST(request: Request) {
     if (mode !== "remote" && mode !== "local")
       return Response.json(
         { error: "Choose a valid sign-in method." },
-        { status: 400 },
+        { status: 400, headers: noStore },
       );
     if (mode === "local" && serverLoginMode() === "remote")
       return Response.json(
         { error: "This server has no desktop sign-in. Choose On my computer." },
-        { status: 400 },
+        { status: 400, headers: noStore },
       );
     if (typeof instance !== "string")
       return Response.json(
         { error: "Enter an ILIAS instance URL." },
-        { status: 400 },
+        { status: 400, headers: noStore },
       );
     const target = assertInstance(instance);
     if (!publicHostname(new URL(target).hostname))
@@ -60,7 +61,7 @@ export async function POST(request: Request) {
           error:
             "Enter a public Internet HTTPS ILIAS hostname. Private networks and IP addresses are not supported.",
         },
-        { status: 400 },
+        { status: 400, headers: noStore },
       );
     const previous = await currentSession();
     if (
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
       const remote = await prepareRemoteLogin(previous);
       return Response.json(
         { status: "pending", mode: "remote", ...remote },
-        { headers: { "Cache-Control": "private, no-store" } },
+        { headers: noStore },
       );
     }
     if (
@@ -81,7 +82,10 @@ export async function POST(request: Request) {
       mode === "local" &&
       !previous.remotePairing
     )
-      return Response.json({ status: "pending", mode: "local" });
+      return Response.json(
+        { status: "pending", mode: "local" },
+        { headers: noStore },
+      );
     if (previous) {
       await cancelLogin(previous.id);
       await deleteSession(previous.id);
@@ -91,18 +95,21 @@ export async function POST(request: Request) {
       const remote = await prepareRemoteLogin(session);
       return Response.json(
         { status: "pending", mode: "remote", ...remote },
-        { headers: { "Cache-Control": "private, no-store" } },
+        { headers: noStore },
       );
     }
     beginLogin(session);
-    return Response.json({ status: "pending", mode: "local" });
+    return Response.json(
+      { status: "pending", mode: "local" },
+      { headers: noStore },
+    );
   } catch (e) {
     return Response.json(
       { error: e instanceof Error ? e.message : "Could not connect." },
       {
         status: e instanceof RequestLimitError ? 429 : 400,
         headers: {
-          "Cache-Control": "private, no-store",
+          ...noStore,
           ...(e instanceof RequestLimitError ? { "Retry-After": "600" } : {}),
         },
       },

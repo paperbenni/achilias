@@ -70,13 +70,17 @@ export function exerciseHref(
   return `/exercises/${exerciseId}${unitId ? `/units/${unitId}` : ""}${demo ? "?demo=1" : ""}`;
 }
 
+/** A row counts as submitted when ILIAS shows a date or any uploaded file. */
+export function hasSubmission(row: Submission) {
+  return !!row.submitted || !!row.downloadUrl;
+}
+
 export function submissionCounts(rows: Submission[], known: boolean) {
-  const submitted = (row: Submission) => !!row.submitted || !!row.downloadUrl;
   return {
     all: known ? rows.length : null,
     review:
-      known && !rows.some((row) => submitted(row) && row.status === null)
-        ? rows.filter((row) => submitted(row) && row.status === "notgraded")
+      known && !rows.some((row) => hasSubmission(row) && row.status === null)
+        ? rows.filter((row) => hasSubmission(row) && row.status === "notgraded")
             .length
         : null,
     missing:

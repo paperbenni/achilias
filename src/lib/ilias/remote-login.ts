@@ -8,6 +8,10 @@ import {
 import { newPairing, parsePairingCode, verifyPairing } from "./pairing";
 import { importInstanceCookies } from "./cookie-import";
 import { fetchPage } from "./client";
+import {
+  PayloadTooLargeError,
+  readBoundedText,
+} from "./bounded-read";
 export const remoteLifetime = 10 * 60_000;
 export async function prepareRemoteLogin(session: Session) {
   return withSessionLock(session.id, async () => {
@@ -104,26 +108,17 @@ export async function readRemotePayload(request: Request) {
   const limit = 256 * 1024;
   if (Number(request.headers.get("content-length") || 0) > limit)
     throw new RemoteLoginError("Cookie export is too large.", 413);
-  const reader = request.body?.getReader();
-  if (!reader) throw new RemoteLoginError("Cookie export is required.");
-  const chunks: Uint8Array[] = [];
-  let total = 0;
+  if (!request.body) throw new RemoteLoginError("Cookie export is required.");
+  let text: string;
   try {
-    while (true) {
-      const result = await reader.read();
-      if (result.done) break;
-      total += result.value.byteLength;
-      if (total > limit) {
-        await reader.cancel();
-        throw new RemoteLoginError("Cookie export is too large.", 413);
-      }
-      chunks.push(result.value);
-    }
-  } finally {
-    reader.releaseLock();
+    text = await readBoundedText(request.body, limit);
+  } catch (error) {
+    if (error instanceof PayloadTooLargeError)
+      throw new RemoteLoginError("Cookie export is too large.", 413);
+    throw error;
   }
   try {
-    return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    return JSON.parse(text);
   } catch {
     throw new RemoteLoginError("Cookie export is not valid JSON.");
   }

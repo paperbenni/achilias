@@ -1,7 +1,7 @@
 "use client";
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowRight, LayoutGrid, List, Search } from "lucide-react";
+import { ArrowRight, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,12 +9,9 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group";
-import {
-  ToggleGroup,
-  ToggleGroupItem,
-} from "@/components/ui/toggle-group";
 import { RefreshButton } from "@/components/navigation/refresh-button";
 import { ItemList, type ItemListProps } from "./item-list";
+import { LayoutToggle } from "./layout-toggle";
 import { demoHref } from "./nav-items";
 import type { WorkspaceViewName } from "./nav-items";
 import type { Item } from "@/lib/ilias/types";
@@ -99,21 +96,7 @@ export function LibrarySection({
               />
             </InputGroup>
           </div>
-          <ToggleGroup
-            type="single"
-            value={layout}
-            onValueChange={(v) => v && onLayoutChange(v)}
-            variant="outline"
-            spacing={0}
-            aria-label="Content layout"
-          >
-            <ToggleGroupItem value="grid" aria-label="Grid view">
-              <LayoutGrid />
-            </ToggleGroupItem>
-            <ToggleGroupItem value="list" aria-label="List view">
-              <List />
-            </ToggleGroupItem>
-          </ToggleGroup>
+          <LayoutToggle layout={layout} onLayoutChange={onLayoutChange} />
         </div>
       </div>
       {view === "saved" ? (

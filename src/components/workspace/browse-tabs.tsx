@@ -18,6 +18,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OriginalLink } from "@/components/navigation/original-link";
 import { ItemList, type ItemListProps } from "./item-list";
+import { LayoutToggle } from "./layout-toggle";
 import type { Item, Workspace } from "@/lib/ilias/types";
 
 /** The browse-view tabs: course information, upstream tools, and materials. */
@@ -30,6 +31,8 @@ export function BrowseTabs({
   items,
   total,
   itemProps,
+  layout,
+  onLayoutChange,
   empty,
 }: {
   data: Workspace;
@@ -37,6 +40,8 @@ export function BrowseTabs({
   empty: (title: string, description: string) => ReactNode;
   itemProps: ItemListProps;
   items: Item[];
+  layout: string;
+  onLayoutChange: (value: string) => void;
   onQueryChange: (value: string) => void;
   query: string;
   source: string;
@@ -105,21 +110,24 @@ export function BrowseTabs({
         </Card>
       </TabsContent>
       <TabsContent value="materials" className="mt-6">
-        <div className="mb-5 max-w-md">
-          <InputGroup>
-            <InputGroupAddon>
-              <Search />
-            </InputGroupAddon>
-            <InputGroupInput
-              placeholder="Find something in this space…"
-              aria-label="Filter materials"
-              value={query}
-              onChange={(e) => onQueryChange(e.target.value)}
-            />
-          </InputGroup>
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div className="w-full max-w-md">
+            <InputGroup>
+              <InputGroupAddon>
+                <Search />
+              </InputGroupAddon>
+              <InputGroupInput
+                placeholder="Find something in this space…"
+                aria-label="Filter materials"
+                value={query}
+                onChange={(e) => onQueryChange(e.target.value)}
+              />
+            </InputGroup>
+          </div>
+          <LayoutToggle layout={layout} onLayoutChange={onLayoutChange} />
         </div>
         {items.length ? (
-          <ItemList {...itemProps} items={items} />
+          <ItemList {...itemProps} items={items} grid />
         ) : (
           empty(
             query ? "No matching materials" : "No materials found",

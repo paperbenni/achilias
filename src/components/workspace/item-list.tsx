@@ -73,6 +73,12 @@ export function ItemList({
         const isSaved = saved.some((i) => itemKey(i) === itemKey(item));
         const summary =
           item.meta || (isContainerType(item.type) ? "" : item.description);
+        // Course cards keep their description; other containers repeat ILIAS
+        // instructions ("Dateien hochladen") instead of summarising themselves.
+        const cardSummary =
+          item.type === "crs" || item.type === "grp"
+            ? item.description
+            : summary;
         return grid && layout === "grid" ? (
           <Card
             key={itemKey(item)}
@@ -137,7 +143,7 @@ export function ItemList({
             </CardHeader>
             <CardContent>
               <p className="line-clamp-2 min-h-10 text-sm leading-relaxed text-muted-foreground">
-                {item.description ||
+                {cardSummary ||
                   "Open this learning space to find your materials."}
               </p>
               {item.context && (

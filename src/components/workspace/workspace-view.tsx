@@ -425,6 +425,8 @@ export function WorkspaceView({
                       items={items}
                       total={pageItems.length}
                       itemProps={itemListProps}
+                      layout={layout}
+                      onLayoutChange={setLayout}
                       empty={renderEmpty}
                     />
                   )}

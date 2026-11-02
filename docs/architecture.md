@@ -125,6 +125,16 @@ Expired rows are removed on subsequent writes; expiration is checked on reads.
 The database survives restarts and may be deleted to reset this disposable data.
 Keep its directory private and on a local persistent volume.
 
+Search results use the same `canPrefetchItem` policy as ordinary resource links.
+A result becomes a Next `Link` with full prefetching enabled only after hover or
+DOM focus. This warms page content, rather than just the loading shell. Selection
+still goes through cmdk's shared handler, preserving keyboard navigation and
+recent-item recording. Live forum reads, file downloads, external/unsupported
+objects, and restricted items are excluded. Next owns request deduplication and
+router-cache expiry. `scripts/search-prefetch-smoke.ts` verifies in production
+that hover loads a previously unseen group and clicking issues no second page
+request; it also checks keyboard selection and excluded live results.
+
 Quick search combines three independent paths:
 
 1. Current page, bookmarks, recent history, and discovered items filter immediately

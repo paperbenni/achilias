@@ -7,6 +7,7 @@ import {
   toggleSaved,
 } from "../src/lib/ilias/library";
 import {
+  canPrefetchItem,
   isExternalItem,
   isNavigableItem,
   isSupportedItemType,
@@ -139,4 +140,14 @@ test("object capability rules agree with navigation while retaining restricted a
     expect(isNavigableItem(resource)).toBe(false);
     expect(itemHref(resource)).toBe(resource.sourceUrl);
   }
+});
+
+
+test("speculative navigation excludes live forum reads, downloads, unsupported and restricted items", () => {
+  expect(canPrefetchItem(item("1", { type: "frm" }))).toBe(false);
+  expect(canPrefetchItem(item("1", { type: "frm" }), true)).toBe(true);
+  for (const type of ["file", "webr", "unknown", "tst"])
+    expect(canPrefetchItem(item("1", { type }), true)).toBe(false);
+  expect(canPrefetchItem(item("1", { available: false }))).toBe(false);
+  expect(canPrefetchItem(item("1", { type: "exc" }))).toBe(true);
 });

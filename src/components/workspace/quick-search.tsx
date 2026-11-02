@@ -8,6 +8,7 @@ import {
   useState,
   type UIEvent,
 } from "react";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   ArrowUpRight,
@@ -34,7 +35,7 @@ import {
   rankByTitle,
   searchTerms,
 } from "@/lib/ilias/item-search";
-import { itemKey, typeNames } from "@/lib/ilias/items";
+import { canPrefetchItem, itemHref, itemKey, typeNames } from "@/lib/ilias/items";
 import type { Item, Workspace } from "@/lib/ilias/types";
 
 type DeepSearch = {
@@ -54,16 +55,15 @@ function searchResultIcon(type: string) {
 function SearchResultOption({
   item,
   onSelect,
+  demo,
 }: {
+  demo: boolean;
   item: Item;
   onSelect: (item: Item) => void;
 }) {
-  return (
-    <CommandItem
-      value={itemKey(item)}
-      onSelect={() => onSelect(item)}
-      className="items-start py-2"
-    >
+  const [prefetch, setPrefetch] = useState(false);
+  const content = (
+    <>
       {searchResultIcon(item.type)}
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="truncate font-medium">{item.title}</span>
@@ -77,6 +77,36 @@ function SearchResultOption({
       <span className="shrink-0 self-center text-xs text-muted-foreground">
         {!item.available ? "Restricted" : typeNames[item.type] || "In ILIAS"}
       </span>
+    </>
+  );
+  if (canPrefetchItem(item, demo)) {
+    return (
+      <CommandItem
+        asChild
+        value={itemKey(item)}
+        onSelect={() => onSelect(item)}
+        className="items-start py-2"
+      >
+        <Link
+          href={itemHref(item, demo)}
+          prefetch={prefetch}
+          onMouseEnter={() => setPrefetch(true)}
+          onFocus={() => setPrefetch(true)}
+          // cmdk handles both pointer and keyboard selection through onSelect.
+          onClick={(event) => event.preventDefault()}
+        >
+          {content}
+        </Link>
+      </CommandItem>
+    );
+  }
+  return (
+    <CommandItem
+      value={itemKey(item)}
+      onSelect={() => onSelect(item)}
+      className="items-start py-2"
+    >
+      {content}
     </CommandItem>
   );
 }
@@ -474,6 +504,7 @@ export function QuickSearch({
                 <SearchResultOption
                   key={itemKey(item)}
                   item={item}
+                  demo={demo}
                   onSelect={onOpenItem}
                 />
               ))}
@@ -545,7 +576,7 @@ export function QuickSearch({
               {resultGroups.filter((group) => group.items.length).map((group) => (
                 <CommandGroup key={group.heading} heading={group.heading}>
                   {group.items.map((item) => (
-                    <SearchResultOption key={itemKey(item)} item={item} onSelect={onOpenItem} />
+                    <SearchResultOption key={itemKey(item)} item={item} demo={demo} onSelect={onOpenItem} />
                   ))}
                 </CommandGroup>
               ))}

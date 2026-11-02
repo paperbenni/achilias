@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
+  canPrefetchItem,
   isContainerType,
   isExternalItem,
   isFileItem,
@@ -99,7 +100,7 @@ export function ItemAction({
   // Prefetch the full ILIAS-backed route once the link is visible or hovered.
   // Forum pages stay out: an upstream GET can record read state, unlike
   // course, folder, and exercise pages.
-  const prefetch = demo || isContainerType(item.type) || item.type === "exc";
+  const prefetch = canPrefetchItem(item, demo);
   if (textLink)
     return (
       <Link

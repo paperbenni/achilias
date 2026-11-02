@@ -51,6 +51,11 @@ export function isNavigableItem(item: Item) {
       ["forum", "exercise"].includes(objectTypes[item.type]?.kind))
   );
 }
+/** Only prefetch native pages whose upstream GET is suitable for speculation.
+ * Live forum reads can change read state; files and external links aren't routes. */
+export function canPrefetchItem(item: Item, demo = false) {
+  return isNavigableItem(item) && (demo || isContainerType(item.type) || item.type === "exc");
+}
 /** Web links leave Achilias and open at their original destination. */
 export function isExternalItem(item: Item) {
   return item.available && item.type === "webr";

@@ -101,10 +101,10 @@ export function Navigation({
             <p className="truncate text-xs font-medium">{data.instanceName}</p>
             <p className="mt-0.5 text-[11px] text-muted-foreground">
               {data.mode === "live"
-                ? "Your connected campus"
+                ? "Connected"
                 : data.mode === "demo"
                   ? "Demo workspace"
-                  : "Your campus, reimagined"}
+                  : "Not connected"}
             </p>
           </div>
         </div>

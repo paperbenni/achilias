@@ -60,13 +60,13 @@ export function LibrarySection({
                 <ArrowRight className="size-4" aria-hidden="true" />
               </Link>
             </h2>
-          ) : (
-            <h2 className="section-title">
-              {view === "saved" ? "Your bookmarks" : "Your courses"}
-            </h2>
-          )}
+          ) : null}
           <Badge variant="secondary">
-            {view === "saved" ? items.length : courses.length}
+            {view === "saved"
+              ? `${items.length} ${items.length === 1 ? "bookmark" : "bookmarks"}`
+              : view === "courses"
+                ? `${courses.length} ${courses.length === 1 ? "course or group" : "courses and groups"}`
+                : courses.length}
           </Badge>
         </div>
         <div className="flex flex-wrap items-center gap-3">

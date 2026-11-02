@@ -182,7 +182,7 @@ try {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "Toggle Sidebar" }).click();
   await page.getByRole("link", { name: "Bookmarks", exact: true }).click();
-  await page.getByRole("heading", { name: "Bookmarks" }).waitFor();
+  await page.getByRole("heading", { name: "Bookmarks", exact: true }).waitFor();
   assert.equal(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,

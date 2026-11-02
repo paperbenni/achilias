@@ -384,9 +384,7 @@ export function WorkspaceView({
                   {view === "home" && localReady && local.recent.length > 0 && (
                     <section className="flex flex-col gap-4">
                       <div className="flex items-center justify-between">
-                        <h2 className="section-title">
-                          Pick up where you left off
-                        </h2>
+                        <h2 className="section-title">Recently opened</h2>
                       </div>
                       <div className="grid gap-3 md:grid-cols-2">
                         {local.recent.slice(0, 2).map((item) => (
@@ -463,9 +461,7 @@ export function WorkspaceView({
                   )}
                   {view === "home" && rest.length > 0 && (
                     <section className="flex flex-col gap-5">
-                      <h2 className="section-title">
-                        Also in your learning space
-                      </h2>
+                      <h2 className="section-title">Other items</h2>
                       <ItemList {...itemListProps} items={rest} />
                     </section>
                   )}
@@ -481,8 +477,8 @@ export function WorkspaceView({
                         <ArrowUpRight />
                         <AlertTitle>This course has more in ILIAS</AlertTitle>
                         <AlertDescription>
-                          Interactive activities and course tools open in the
-                          original platform. They’re labeled “In ILIAS” below.
+                          Unsupported activities and additional course tools
+                          open in ILIAS.
                         </AlertDescription>
                       </Alert>
                     )}

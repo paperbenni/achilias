@@ -37,6 +37,18 @@ assert.equal(forum.forum, null);
 assert.ok(forum.workspace.error);
 const { getWorkspaceContext } =
   await import("../../src/lib/ilias/workspace-context");
+await saveSession({
+  id,
+  instance: "https://ilias.uni-freiburg.de/",
+  status: "connected",
+  createdAt: Date.now(),
+  userName: "Profilbild",
+});
+assert.equal(
+  (await getWorkspaceMetadata()).userName,
+  "",
+  "Legacy avatar labels leaked into account display names",
+);
 const demo = await getWorkspaceContext(true);
 assert.equal(demo.session, null);
 assert.equal(demo.workspace.mode, "demo");

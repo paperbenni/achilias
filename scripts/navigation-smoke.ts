@@ -14,9 +14,7 @@ try {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(origin + "/?demo=1");
-  await page
-    .getByRole("heading", { name: "Welcome back, Alex.", exact: true })
-    .waitFor();
+  await page.getByRole("heading", { name: "Overview", exact: true }).waitFor();
   // Hover prioritizes this Link in Next's production prefetch queue.
   await page
     .getByRole("link", {

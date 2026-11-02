@@ -87,9 +87,7 @@ try {
     uploadThroughput: 1_000_000,
   });
   await page.goto(origin + "/?demo=1");
-  await page
-    .getByRole("heading", { name: "Welcome back, Alex.", exact: true })
-    .waitFor();
+  await page.getByRole("heading", { name: "Overview", exact: true }).waitFor();
   // Allow production's automatic link prefetches to finish before measuring.
   await page.waitForTimeout(1500);
   await measure(
@@ -105,12 +103,7 @@ try {
     "Saved for later.",
     "Settings → Saved",
   );
-  await measure(
-    page,
-    byName(page, "Overview"),
-    "Welcome back, Alex.",
-    "Saved → Overview",
-  );
+  await measure(page, byName(page, "Overview"), "Overview", "Saved → Overview");
   await page.waitForTimeout(1000);
   await measure(
     page,
@@ -128,7 +121,7 @@ try {
   await measure(
     page,
     byName(page, "Overview"),
-    "Welcome back, Alex.",
+    "Overview",
     "Folder → Overview",
   );
   await measure(

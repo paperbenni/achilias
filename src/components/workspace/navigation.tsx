@@ -177,12 +177,6 @@ export function Navigation({
           </SidebarGroupContent>
         </SidebarGroup>
         <SidebarGroup className="mt-auto">
-          <SidebarGroupLabel>A LITTLE MORE CLARITY</SidebarGroupLabel>
-          <div className="px-2 pt-2 pb-5 text-xs leading-relaxed text-muted-foreground">
-            Your materials, without the maze.
-            <br />
-            Built around the way you learn.
-          </div>
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>

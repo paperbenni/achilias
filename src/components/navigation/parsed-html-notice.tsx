@@ -2,6 +2,12 @@ import { FileCode2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { OriginalLink } from "./original-link";
+import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
 
 const features = {
   exercise: {
@@ -40,12 +46,41 @@ export function ParsedHtmlNotice({
   feature,
   sourceUrl,
   demo = false,
+  compact = false,
 }: {
   feature: keyof typeof features;
   sourceUrl: string;
   demo?: boolean;
+  compact?: boolean;
 }) {
   const { title, details } = features[feature];
+  if (compact)
+    return (
+      <div
+        role="note"
+        className="flex flex-wrap items-center gap-2"
+        aria-label={`${title}: HTML-based feature`}
+      >
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="sm">
+              <FileCode2 />
+              HTML-based
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="flex flex-col gap-2">
+            <p className="text-sm font-medium">{title}</p>
+            <p className="text-sm text-muted-foreground">
+              {details} ILIAS or theme updates can make this feature incomplete
+              or incorrect.{demo && " This workspace uses example content."}
+            </p>
+          </PopoverContent>
+        </Popover>
+        <OriginalLink href={sourceUrl} compact>
+          {demo ? "Visit ILIAS" : "Open original in ILIAS"}
+        </OriginalLink>
+      </div>
+    );
   return (
     <Alert role="note" aria-label={`${title}: HTML-based feature`}>
       <FileCode2 />

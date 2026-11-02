@@ -77,7 +77,6 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
@@ -243,24 +242,14 @@ export function WorkspaceView({
             >
               <Search />
             </Button>
-            <Separator orientation="vertical" className="h-5" />
             {data.mode === "disconnected" ? (
               <Button size="sm" onClick={() => setConnectOpen(true)}>
                 Connect account
                 <ArrowUpRight data-icon="inline-end" />
               </Button>
-            ) : (
-              <Badge variant={demo ? "secondary" : "outline"}>
-                {demo ? (
-                  "Demo workspace"
-                ) : (
-                  <>
-                    <span className="size-1.5 rounded-full bg-primary" />
-                    Connected
-                  </>
-                )}
-              </Badge>
-            )}
+            ) : demo ? (
+              <Badge variant="secondary">Demo workspace</Badge>
+            ) : null}
           </div>
         </header>
         <div
@@ -439,39 +428,42 @@ export function WorkspaceView({
                   Back to your space
                 </Button>
               )}
-              <div className="flex flex-wrap items-end justify-between gap-5">
-                <div className="max-w-2xl">
-                  <p className="eyebrow">
-                    {view === "saved"
-                      ? "THE GOOD STUFF, WITHIN REACH"
-                      : view === "browse"
-                        ? "YOUR LEARNING MATERIALS"
-                        : "A LITTLE LESS SEARCHING. A LITTLE MORE LEARNING."}
-                  </p>
-                  <h1 className="page-title mt-3">
-                    {view === "saved"
-                      ? "Saved for later."
-                      : view === "browse"
-                        ? data.page.title
-                        : data.userName
-                          ? `Welcome back, ${data.userName.replace(/^Avatar\s*/i, "")}.`
-                          : "Your learning space."}
-                  </h1>
-                  <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                    {view === "saved"
-                      ? "The courses and materials you’ve kept close. Saved only in this browser."
-                      : view === "browse"
-                        ? data.page.description ||
-                          "Everything in this space, with a clearer way through."
-                        : "Settle in. Everything you need is a little closer."}
-                  </p>
+              {view === "home" ? (
+                <h1 className="sr-only">Overview</h1>
+              ) : (
+                <div className="flex flex-wrap items-end justify-between gap-5">
+                  <div className="max-w-2xl">
+                    <p className="eyebrow">
+                      {view === "saved"
+                        ? "THE GOOD STUFF, WITHIN REACH"
+                        : view === "browse"
+                          ? "YOUR LEARNING MATERIALS"
+                          : ""}
+                    </p>
+                    <h1 className="page-title mt-3">
+                      {view === "saved"
+                        ? "Saved for later."
+                        : view === "browse"
+                          ? data.page.title
+                          : "Overview"}
+                    </h1>
+                    <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                      {view === "saved"
+                        ? "The courses and materials you’ve kept close. Saved only in this browser."
+                        : view === "browse"
+                          ? data.page.description ||
+                            "Everything in this space, with a clearer way through."
+                          : ""}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    {view !== "saved" && <RefreshButton />}
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  {view !== "saved" && <RefreshButton />}
-                </div>
-              </div>
+              )}
               {view !== "saved" && (
                 <ParsedHtmlNotice
+                  compact={view === "home"}
                   feature={view === "browse" ? "materials" : "dashboard"}
                   sourceUrl={demo ? data.instance : source}
                   demo={demo}
@@ -511,9 +503,6 @@ export function WorkspaceView({
                           <h2 className="section-title">
                             Pick up where you left off
                           </h2>
-                          <span className="text-xs text-muted-foreground">
-                            Recently opened on this browser
-                          </span>
                         </div>
                         <div className="grid gap-3 md:grid-cols-2">
                           {local.recent.slice(0, 2).map((item) => (
@@ -681,7 +670,8 @@ export function WorkspaceView({
                             {view === "saved" ? items.length : courses.length}
                           </Badge>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap items-center gap-3">
+                          {view === "home" && <RefreshButton />}
                           <div className="w-44 sm:w-56">
                             <InputGroup>
                               <InputGroupAddon>

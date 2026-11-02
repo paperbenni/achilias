@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpRight, Bookmark, ChevronRight } from "lucide-react";
+import { Info, Bookmark, ChevronRight, ArrowUpRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +8,7 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
+  CardAction,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -69,13 +69,31 @@ export function ItemList({
           <Card
             key={itemKey(item)}
             role="listitem"
-            className="course-card group"
+            className="course-card relative min-w-0"
           >
             <CardHeader>
-              <div className="mb-5 flex items-start justify-between">
-                <span className="course-monogram" data-tone={index % 3}>
-                  <Icon className="size-6" />
-                </span>
+              <span
+                className="course-monogram"
+                data-tone={index % 3}
+                aria-hidden="true"
+              >
+                <Icon className="size-6" />
+              </span>
+              <CardAction className="relative z-10 flex items-center gap-1">
+                {item.meta && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={`Details for ${item.title}`}
+                      >
+                        <Info />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{item.meta}</TooltipContent>
+                  </Tooltip>
+                )}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
@@ -92,14 +110,14 @@ export function ItemList({
                     {isSaved ? "Remove from saved" : "Save for later"}
                   </TooltipContent>
                 </Tooltip>
-              </div>
+              </CardAction>
               <CardDescription>
                 {typeNames[item.type] || "ILIAS object"}
               </CardDescription>
-              <CardTitle>
+              <CardTitle className="col-span-2 min-w-0">
                 <ItemAction
-                  variant="link"
-                  className="course-title"
+                  textLink
+                  className="inline-flex gap-1 after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
                   item={item}
                   demo={demo}
                   onOpen={onOpen}
@@ -115,23 +133,6 @@ export function ItemList({
                   "Open this learning space to find your materials."}
               </p>
             </CardContent>
-            <CardFooter className="justify-between">
-              <span className="truncate text-xs text-muted-foreground">
-                {item.meta ||
-                  (demo ? "Example course" : "From your ILIAS dashboard")}
-              </span>
-              <ItemAction
-                variant="ghost"
-                size="icon-sm"
-                aria-label={`Open ${item.title}`}
-                item={item}
-                demo={demo}
-                onOpen={onOpen}
-                onVisit={onVisit}
-              >
-                <ArrowUpRight />
-              </ItemAction>
-            </CardFooter>
           </Card>
         ) : (
           <ResourceItem

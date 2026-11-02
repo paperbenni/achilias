@@ -21,6 +21,7 @@ export function ItemAction({
   onOpen,
   onVisit,
   children,
+  textLink = false,
   ...props
 }: {
   item: Item;
@@ -28,12 +29,26 @@ export function ItemAction({
   onOpen: (item: Item) => void;
   onVisit: (item: Item) => void;
   children: React.ReactNode;
+  textLink?: boolean;
 } & Omit<React.ComponentProps<typeof Button>, "onClick" | "asChild">) {
   if (!isNavigableItem(item))
     return (
       <Button {...props} onClick={() => onOpen(item)}>
         {children}
       </Button>
+    );
+  if (textLink)
+    return (
+      <Link
+        href={itemHref(item, demo)}
+        prefetch={demo}
+        onClick={() => onVisit(item)}
+        className={props.className}
+        aria-label={props["aria-label"]}
+      >
+        {children}
+        <NavigationHint />
+      </Link>
     );
   return (
     <Button {...props} asChild>

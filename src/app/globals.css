@@ -144,9 +144,6 @@
   .course-card {
     @apply transition-shadow hover:shadow-md;
   }
-  .course-title {
-    @apply h-auto justify-start whitespace-normal p-0 text-left text-lg font-medium leading-snug text-foreground;
-  }
   .resource-title {
     @apply h-auto max-w-full justify-start whitespace-normal p-0 text-left text-sm font-medium text-foreground;
   }

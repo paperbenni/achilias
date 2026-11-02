@@ -1,3 +1,4 @@
+import { profileName } from "./profile-name";
 import { createHash } from "node:crypto";
 import { currentSession } from "./session";
 import { dashboardUrl, FREIBURG, instanceName } from "./config";
@@ -30,7 +31,7 @@ export async function getWorkspaceContext(demo = false) {
     mode: demo ? "demo" : connected ? "live" : "disconnected",
     instance,
     instanceName: instanceName(instance),
-    userName: demo ? "Alex" : connected ? session.userName || "" : "",
+    userName: demo ? "Alex" : connected ? profileName(session.userName) : "",
     storageKey: connected
       ? createHash("sha256").update(session.id).digest("hex").slice(0, 16)
       : undefined,

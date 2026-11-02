@@ -18,10 +18,68 @@ try {
     .getByRole("heading", { name: "Less friction. More learning." })
     .waitFor();
   await page.getByRole("link", { name: "Take a look around" }).click();
-  await page.getByRole("heading", { name: "Welcome back, Alex." }).waitFor();
+  await page.getByRole("heading", { name: "Overview" }).waitFor();
+  assert.equal(
+    await page
+      .getByText("A LITTLE LESS SEARCHING. A LITTLE MORE LEARNING.", {
+        exact: true,
+      })
+      .count(),
+    0,
+  );
+  assert.equal(
+    await page.getByText("A LITTLE MORE CLARITY", { exact: true }).count(),
+    0,
+  );
+  await page.getByRole("button", { name: "HTML-based", exact: true }).click();
+  await page
+    .getByText(
+      "ILIAS or theme updates can make this feature incomplete or incorrect.",
+      { exact: false },
+    )
+    .waitFor();
+  await page.keyboard.press("Escape");
+  await page
+    .getByRole("button", {
+      name: "Details for Introduction to Computer Science",
+      exact: true,
+    })
+    .hover();
+  await page
+    .getByRole("tooltip")
+    .filter({ hasText: "Winter semester" })
+    .waitFor();
+  const hci = page.locator(".course-card").filter({
+    has: page.getByRole("link", {
+      name: "Human–Computer Interaction",
+      exact: true,
+    }),
+  });
+  // The description belongs to the card's primary link, not only its title.
+  const body = await hci.locator('[data-slot="card-content"]').boundingBox();
+  assert.ok(body);
+  const point = { x: body.x + 24, y: body.y + 16 };
+  const hit = await page.evaluate(
+    ({ x, y }) =>
+      document.elementFromPoint(x, y)?.closest("a")?.getAttribute("href"),
+    point,
+  );
+  assert.equal(hit, "/browse/crs/103?demo=1");
+  await page.mouse.click(point.x, point.y);
+  await page
+    .getByRole("heading", { name: "Human–Computer Interaction", exact: true })
+    .waitFor();
+  await page.getByRole("link", { name: "Overview", exact: true }).click();
+  await page.getByRole("heading", { name: "Overview", exact: true }).waitFor();
+
   await page
     .getByRole("button", { name: "Save Linear Algebra I", exact: true })
     .click();
+  assert.equal(
+    new URL(page.url()).pathname,
+    "/",
+    "Bookmark click navigated the card",
+  );
   await page
     .getByRole("link", { name: "Saved for later", exact: true })
     .click();
@@ -52,9 +110,7 @@ try {
     .waitFor();
   await otherTab.close();
   await page.getByRole("link", { name: "Overview", exact: true }).click();
-  await page
-    .getByRole("heading", { name: "Welcome back, Alex.", exact: true })
-    .waitFor();
+  await page.getByRole("heading", { name: "Overview", exact: true }).waitFor();
   await page
     .getByRole("textbox", { name: "Filter courses and materials" })
     .fill("interaction");

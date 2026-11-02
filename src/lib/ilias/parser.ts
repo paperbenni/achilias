@@ -1,3 +1,4 @@
+import { profileName } from "./profile-name";
 import { load } from "cheerio";
 import type { IliasPage, Item } from "./types";
 const clean = (text: string) => text.replace(/\s+/g, " ").trim();
@@ -6,7 +7,7 @@ const clean = (text: string) => text.replace(/\s+/g, " ").trim();
 // Keep selectors here so a theme/version adaptation does not leak into the UI.
 export function parsePage(html: string, sourceUrl: string): IliasPage {
   const $ = load(html);
-  $("script, style, noscript").remove();
+  $("script, style, noscript, template").remove();
   const source = new URL(sourceUrl);
   const resolve = (href: string) => {
     if (!href.trim() || href.startsWith("#")) return "";
@@ -123,15 +124,37 @@ export function parsePage(html: string, sourceUrl: string): IliasPage {
         text.push(value.slice(0, 4000));
     },
   );
+  // Dialog templates are often present on the dashboard before any action.
+  // Their prompts are not page notifications and must not become live alerts.
   const notices = $(".alert, .il-message, .ilFailureMessage, .ilInfoMessage")
+    .filter((_, node) => {
+      const el = $(node);
+      if (
+        el.closest(
+          'template, dialog, [role="dialog"], .modal, .il-modal, [hidden], [aria-hidden="true"], .hidden, .d-none',
+        ).length
+      )
+        return false;
+      return !el
+        .parents()
+        .addBack()
+        .toArray()
+        .some((parent) =>
+          /(?:display\s*:\s*none|visibility\s*:\s*hidden)/i.test(
+            $(parent).attr("style") || "",
+          ),
+        );
+    })
     .map((_, el) => clean($(el).text()))
     .get()
-    .filter(Boolean);
-  const userName = clean(
-    $(".il-maincontrols-metabar .il-avatar").first().attr("aria-label") ||
-      $(".il-maincontrols-metabar img.il-avatar").first().attr("alt") ||
-      "",
-  );
+    .filter(
+      (value, index, notices) => !!value && notices.indexOf(value) === index,
+    );
+  const avatar = $(".il-maincontrols-metabar .il-avatar").first();
+  const userName =
+    [avatar.attr("aria-label"), avatar.attr("title"), avatar.attr("alt")]
+      .map(profileName)
+      .find(Boolean) || "";
   return {
     title:
       clean($("#ilHeader, .ilHeader h1, h1.ilHeader, h1").first().text()) ||

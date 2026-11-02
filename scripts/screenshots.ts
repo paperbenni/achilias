@@ -22,7 +22,7 @@ try {
       path: "/",
       heading: "Less friction. More learning.",
     },
-    { file: "overview.png", path: "/?demo=1", heading: "Welcome back, Alex." },
+    { file: "overview.png", path: "/?demo=1", heading: "Overview" },
     {
       file: "course.png",
       path: "/browse/crs/101?demo=1",

@@ -203,3 +203,29 @@ test("origin checks allow local Host normalization and reject foreign mutations"
     ),
   ).toThrow();
 });
+
+test("dashboard notification extraction excludes untriggered dialog templates while keeping visible warnings", () => {
+  const html = `<a href="logout.php">Logout</a><h1>Dashboard</h1>
+    <div class="alert">Real course notice</div>
+    <div role="dialog"><div class="alert">Do you want to remove this item?</div></div>
+    <template><div class="alert">Template confirmation</div></template>
+    <div hidden><div class="alert">Hidden notification</div></div>
+    <div aria-hidden="true"><div class="alert">Another hidden notification</div></div>
+    <div style="display: none"><div class="alert">Hidden by inline style</div></div>`;
+  expect(parsePage(html, FREIBURG).notices).toEqual(["Real course notice"]);
+});
+test("generic avatar labels are not interpreted as user names", () => {
+  for (const label of ["Profilbild", "Avatar", "Profile picture"])
+    expect(
+      parsePage(
+        `<div class="il-maincontrols-metabar"><img class="il-avatar" alt="${label}"></div>`,
+        FREIBURG,
+      ).userName,
+    ).toBe("");
+  expect(
+    parsePage(
+      '<div class="il-maincontrols-metabar"><img class="il-avatar" alt="Profilbild" title="Alex Example"></div>',
+      FREIBURG,
+    ).userName,
+  ).toBe("Alex Example");
+});

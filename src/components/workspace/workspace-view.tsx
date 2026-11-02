@@ -16,6 +16,7 @@ import type { ItemListProps } from "./item-list";
 import { useLibrary } from "@/hooks/use-library";
 import { mergeItems } from "@/lib/ilias/library";
 import {
+  isExternalItem,
   isSupportedItemType,
   isNavigableItem,
   itemKey,
@@ -107,14 +108,21 @@ export function WorkspaceView({
       return;
     }
     remember(enriched);
-    if (isNavigableItem(enriched)) router.push(itemHref(enriched, demo));
-    else setSelected(enriched);
+    if (isExternalItem(enriched)) {
+      window.open(enriched.sourceUrl, "_blank", "noopener,noreferrer");
+    } else if (isNavigableItem(enriched)) {
+      router.push(itemHref(enriched, demo));
+    } else {
+      setSelected(enriched);
+    }
   }
   const pageItems = useMemo(
     () =>
       view === "browse"
         ? data.page.items.map((item) =>
-            item.context ? item : { ...item, context: data.page.title },
+            item.context === data.page.title
+              ? { ...item, context: undefined }
+              : item,
           )
         : data.page.items,
     [data.page.items, data.page.title, view],

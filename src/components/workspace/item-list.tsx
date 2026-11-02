@@ -22,6 +22,7 @@ import {
 
 import {
   isContainerType,
+  isExternalItem,
   isSupportedItemType,
   itemKey,
   typeNames,
@@ -144,7 +145,9 @@ export function ItemList({
             <CardContent>
               <p className="line-clamp-2 min-h-10 text-sm leading-relaxed text-muted-foreground">
                 {cardSummary ||
-                  "Open this learning space to find your materials."}
+                  (item.type === "webr"
+                    ? "Open this website in a new tab."
+                    : "Open this learning space to find your materials.")}
               </p>
               {item.context && (
                 <p
@@ -198,6 +201,10 @@ export function ItemList({
             <ItemActions className="relative z-10">
               {!item.available ? (
                 <Badge variant="outline">Restricted</Badge>
+              ) : isExternalItem(item) ? (
+                <Badge variant="outline" className="hidden sm:inline-flex">
+                  External <ArrowUpRight />
+                </Badge>
               ) : !isSupportedItemType(item.type) ? (
                 <Badge variant="outline" className="hidden sm:inline-flex">
                   In ILIAS <ArrowUpRight />

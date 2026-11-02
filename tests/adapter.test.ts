@@ -120,6 +120,25 @@ describe("ILIAS 10 template adapter", () => {
       ).authenticated,
     ).toBe(false);
   });
+  test("keeps validated external web links as direct destinations", () => {
+    const page = parsePage(
+      `<a href="logout.php">Logout</a>
+      <div class="ilContainerListItemOuter" id="lg_div_88">
+        <img class="ilListItemIcon" src="./assets/icon_webr.svg">
+        <h3 class="il_ContainerItemTitle">
+          <a class="il_ContainerItemTitle" href="https://example.org/register" target="_blank">Register Your Github</a>
+        </h3>
+      </div>`,
+      FREIBURG + "ilias.php?ref_id=12",
+    );
+    expect(page.items[0]).toMatchObject({
+      id: "88",
+      type: "webr",
+      title: "Register Your Github",
+      sourceUrl: "https://example.org/register",
+      available: true,
+    });
+  });
   test("does not duplicate nested container wrappers", () => {
     const html =
       '<div class="ilContainerListItemOuter" id="lg_div_12"><div class="ilContainerListItem"><h3><a class="il_ContainerItemTitle" href="goto.php?target=crs_12">Course</a></h3></div></div>';

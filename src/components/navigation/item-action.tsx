@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   isContainerType,
+  isExternalItem,
   isNavigableItem,
   itemHref,
 } from "@/lib/ilias/items";
@@ -35,6 +36,44 @@ export function ItemAction({
   children: React.ReactNode;
   textLink?: boolean;
 } & Omit<React.ComponentProps<typeof Button>, "onClick" | "asChild">) {
+  if (isExternalItem(item)) {
+    if (textLink)
+      return (
+        <a
+          href={item.sourceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => onVisit(item)}
+          className={props.className}
+          aria-label={props["aria-label"]}
+        >
+          {children}
+        </a>
+      );
+    return (
+      <Button {...props} asChild>
+        <a
+          href={item.sourceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => onVisit(item)}
+        >
+          {children}
+        </a>
+      </Button>
+    );
+  }
+  // An unavailable container is non-clickable in ILIAS; do not turn it into
+  // a modal or a fake navigation target just because it was rendered as a card.
+  if (!item.available && isContainerType(item.type)) {
+    if (textLink)
+      return (
+        <span className={props.className} aria-disabled="true">
+          {children}
+        </span>
+      );
+    return null;
+  }
   if (!isNavigableItem(item))
     return (
       <Button {...props} onClick={() => onOpen(item)}>

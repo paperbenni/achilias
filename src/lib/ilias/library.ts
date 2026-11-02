@@ -22,7 +22,11 @@ function validItem(value: unknown): value is Item {
     return false;
   try {
     const url = new URL(item.sourceUrl as string);
-    return url.protocol === "https:" && !url.username && !url.password;
+    return (
+      (url.protocol === "https:" || url.protocol === "http:") &&
+      !url.username &&
+      !url.password
+    );
   } catch {
     return false;
   }

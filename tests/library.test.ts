@@ -7,6 +7,7 @@ import {
   toggleSaved,
 } from "../src/lib/ilias/library";
 import {
+  isExternalItem,
   isNavigableItem,
   isSupportedItemType,
   itemHref,
@@ -42,6 +43,14 @@ test("restoring a library discards malformed and unsafe entries, deduplicates, a
   expect(library.recent).toHaveLength(12);
   expect(decodeLibrary(null)).toEqual(emptyLibrary);
 });
+test("external web links may use http or https", () => {
+  const web = item("6", {
+    type: "webr",
+    sourceUrl: "http://example.org/register",
+  });
+  expect(decodeLibrary({ saved: [web], recent: [] }).saved).toEqual([web]);
+});
+
 test("current metadata wins over saved copies and resource identity includes object type", () => {
   const current = item("1", { title: "Renamed course", available: false });
   const old = item("1");
@@ -107,6 +116,23 @@ test("object capability rules agree with navigation while retaining restricted a
   }
   expect(isSupportedItemType("file")).toBe(true);
   expect(isNavigableItem(item("42", { type: "file" }))).toBe(false);
+  expect(
+    isExternalItem(
+      item("42", {
+        type: "webr",
+        sourceUrl: "https://example.org/register",
+      }),
+    ),
+  ).toBe(true);
+  expect(
+    isExternalItem(
+      item("42", {
+        type: "webr",
+        available: false,
+        sourceUrl: "https://example.org/register",
+      }),
+    ),
+  ).toBe(false);
   for (const type of ["tst", "custom"]) {
     const resource = item("42", { type });
     expect(isSupportedItemType(type)).toBe(false);

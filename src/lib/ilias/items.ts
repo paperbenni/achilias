@@ -50,6 +50,10 @@ export function isNavigableItem(item: Item) {
       ["forum", "exercise"].includes(objectTypes[item.type]?.kind))
   );
 }
+/** Web links leave Achilias and open at their original destination. */
+export function isExternalItem(item: Item) {
+  return item.available && item.type === "webr";
+}
 export function itemHref(item: Item, demo = false) {
   const suffix = demo ? "?demo=1" : "";
   switch (objectTypes[item.type]?.kind) {

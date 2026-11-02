@@ -57,6 +57,19 @@ export function parsePage(html: string, sourceUrl: string): IliasPage {
       return "";
     }
   };
+  const external = (href: string) => {
+    if (!href.trim() || href.startsWith("#")) return "";
+    try {
+      const u = new URL(href, source);
+      return (u.protocol === "https:" || u.protocol === "http:") &&
+        !u.username &&
+        !u.password
+        ? u.href
+        : "";
+    } catch {
+      return "";
+    }
+  };
   const logout =
     $("a[href], button[data-action]").filter((_, el) =>
       /(?:logout\.php|baseclass=illogoutgui|cmd=logout)/i.test(
@@ -96,7 +109,9 @@ export function parsePage(html: string, sourceUrl: string): IliasPage {
           .first();
     const title = clean(heading.text());
     if (!title) return;
-    const href = resolve(titleNode.attr("href") || "");
+    const rawHref = titleNode.attr("href") || "";
+    const href = resolve(rawHref);
+    const externalHref = external(rawHref);
     const icon = row
       .find(
         'img.ilListItemIcon, img[src*="icon_"], .il-card-repository-head img, svg use',
@@ -120,6 +135,7 @@ export function parsePage(html: string, sourceUrl: string): IliasPage {
     )?.[1];
     if (!id) return;
     const type = (targetType || iconType || "unknown").toLowerCase();
+    const webLink = type === "webr";
     const key = `${type}:${id}`;
     if (seen.has(key)) return;
     seen.add(key);
@@ -163,8 +179,10 @@ export function parsePage(html: string, sourceUrl: string): IliasPage {
           row.find(".il_ItemProperties, .il-item-properties").first().text(),
         ),
       ...(context ? { context: context.slice(0, 1000) } : {}),
-      sourceUrl: href || sourceUrl,
-      available: Boolean(titleNode.length && href),
+      sourceUrl: webLink && externalHref ? externalHref : href || sourceUrl,
+      available: Boolean(
+        titleNode.length && (href || (webLink && externalHref)),
+      ),
     });
   });
   const tools: IliasPage["tools"] = [];

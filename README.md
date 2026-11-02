@@ -185,6 +185,12 @@ ILIAS session jars stay server-side, encrypted using AES-256-GCM. The key and fi
 
 University identity-provider cookies are not copied into the ILIAS adapter. Remote session uploads are limited to 256 KiB, filtered to the exact ILIAS host, verified server-side, and discarded if the connection expires or is cancelled during verification. Server requests use an explicit instance boundary, validate each redirect, and never forward ILIAS cookies to an external identity provider. Personal pages and downloads use private/no-store responses. Downloaded content is served as an attachment with `nosniff` and sandbox headers. Saved titles and URLs remain in browser localStorage until cleared under **Features & connection**.
 
+## HTML-based features
+
+Sign-in/session verification, course listings, materials and availability, course information/tool links, and forum content/actions depend on parsing ILIAS HTML. These screens and their feature entries are marked **HTML-based**: ILIAS or theme updates can make them incomplete or incorrect. Each screen keeps an **Open original in ILIAS** button beside the notice, including on load errors. Item detail dialogs also label parsed metadata and link to the original object. Demo notices explain that the displayed content is an example and link to the real instance.
+
+File downloads use the authenticated download endpoint; local bookmarks and search operate on browser/current-page data. Their item details can still originate from parsed HTML.
+
 ## Development and verification
 
 ```sh

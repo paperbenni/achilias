@@ -13,6 +13,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+import { ParsedHtmlNotice } from "@/components/navigation/parsed-html-notice";
+import { dashboardUrl, loginUrl } from "@/lib/ilias/config";
 import type { Workspace } from "@/lib/ilias/types";
 
 import { OriginalLink } from "@/components/navigation/original-link";
@@ -59,6 +61,10 @@ export function SettingsView({
               sign-in browser. Sessions are encrypted on the server and expire
               here after 12 hours or earlier if ILIAS ends them.
             </p>
+            <ParsedHtmlNotice
+              feature="connection"
+              sourceUrl={loginUrl(data.instance)}
+            />
           </CardContent>
           <CardFooter>
             <Button onClick={onConnect}>
@@ -98,63 +104,85 @@ export function SettingsView({
         <CardHeader>
           <CardTitle>What works here</CardTitle>
           <CardDescription>
-            Start with everyday learning. Keep the full platform within reach.
+            Features marked “HTML-based” read ILIAS pages and may break or miss
+            details after ILIAS or theme updates. Use their original-page
+            buttons to check the source.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col divide-y">
             {[
-              [
-                "Courses & groups",
-                "Browse the items exposed on your dashboard and open their content.",
-                true,
-              ],
-              [
-                "Folders & categories",
-                "Navigate nested materials and read plain-text course information.",
-                true,
-              ],
-              [
-                "Files",
-                "Download files through your authenticated ILIAS session.",
-                true,
-              ],
-              [
-                "Search & saved items",
-                "Search this page, recently opened content, and items saved in this browser.",
-                true,
-              ],
-              [
-                "Assignments, tests & surveys",
-                "Visible in course content. Complete submissions, attempts, and surveys in ILIAS.",
-                false,
-              ],
-              [
-                "Forum reading",
-                "Browse discussions, read formatted replies, navigate pages, and mark a thread read.",
-                true,
-              ],
-              [
-                "Forum posting, subscriptions & moderation",
-                "Reply and new-topic links open the original editor. Attachments and media also use ILIAS.",
-                false,
-              ],
-              [
-                "Wikis & learning modules",
-                "Visible as objects; interactive content opens in ILIAS.",
-                false,
-              ],
-              [
-                "Calendar, mail, grades & administration",
-                "Use the original ILIAS interface. These areas are not synchronized here.",
-                false,
-              ],
-              [
-                "Rich content, pagination & custom plugins",
-                "Plain-text content is shown. Layouts, embedded media, additional pages, and custom tools may require ILIAS.",
-                false,
-              ],
-            ].map(([title, description, supported]) => (
+              {
+                title: "Courses & groups",
+                description:
+                  "Browse the items exposed on your dashboard and open their content.",
+                supported: true,
+                htmlBased: true,
+              },
+              {
+                title: "Folders & categories",
+                description:
+                  "Navigate nested materials and read plain-text course information.",
+                supported: true,
+                htmlBased: true,
+              },
+              {
+                title: "Files",
+                description:
+                  "Download files through your authenticated ILIAS session.",
+                supported: true,
+                htmlBased: false,
+              },
+              {
+                title: "Search & saved items",
+                description:
+                  "Search this page, recently opened content, and items saved in this browser.",
+                supported: true,
+                htmlBased: false,
+              },
+              {
+                title: "Assignments, tests & surveys",
+                description:
+                  "Visible in course content. Complete submissions, attempts, and surveys in ILIAS.",
+                supported: false,
+                htmlBased: false,
+              },
+              {
+                title: "Forum reading",
+                description:
+                  "Browse discussions, read formatted replies, navigate pages, and mark a thread read.",
+                supported: true,
+                htmlBased: true,
+              },
+              {
+                title: "Forum posting, subscriptions & moderation",
+                description:
+                  "Reply and new-topic links are discovered in ILIAS HTML and open the original editor. Attachments and media also use ILIAS.",
+                supported: false,
+                htmlBased: true,
+              },
+              {
+                title: "Wikis & learning modules",
+                description:
+                  "Visible as objects; interactive content opens in ILIAS.",
+                supported: false,
+                htmlBased: false,
+              },
+              {
+                title: "Calendar, mail, grades & administration",
+                description:
+                  "Use the original ILIAS interface. These areas are not synchronized here.",
+                supported: false,
+                htmlBased: false,
+              },
+              {
+                title: "Rich content, pagination & custom plugins",
+                description:
+                  "Plain-text content is shown. Layouts, embedded media, additional pages, and custom tools may require ILIAS.",
+                supported: false,
+                htmlBased: false,
+              },
+            ].map(({ title, description, supported, htmlBased }) => (
               <div key={String(title)} className="flex items-start gap-4 py-4">
                 <span className="mt-0.5 text-primary">
                   {supported ? (
@@ -164,10 +192,20 @@ export function SettingsView({
                   )}
                 </span>
                 <div className="flex-1">
-                  <p className="text-sm font-medium">{title}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-medium">{title}</p>
+                    {htmlBased && <Badge variant="outline">HTML-based</Badge>}
+                  </div>
                   <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
                     {description}
                   </p>
+                  {htmlBased && (
+                    <div className="mt-3">
+                      <OriginalLink href={dashboardUrl(data.instance)} compact>
+                        Open ILIAS
+                      </OriginalLink>
+                    </div>
+                  )}
                 </div>
                 <Badge variant={supported ? "secondary" : "outline"}>
                   {supported ? "Available" : "In ILIAS"}

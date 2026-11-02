@@ -149,9 +149,6 @@ export function ForumView({ state }: { state: ForumState }) {
   );
   const [marking, setMarking] = useState(false);
   if (!forum) return null;
-  const source = demo
-    ? workspace.instance
-    : thread?.sourceUrl || forum.sourceUrl;
   const selected = forum.topics.find((topic) => topic.id === threadId);
   const isMarked = demo && !!threadId && marked.includes(threadId);
   const topics = forum.topics.map((topic) =>
@@ -249,9 +246,6 @@ export function ForumView({ state }: { state: ForumState }) {
             {thread ? forum.title : "Back to your learning space"}
           </Link>
         </Button>
-        <OriginalLink compact href={source}>
-          Open in ILIAS
-        </OriginalLink>
       </div>
       <div className="flex flex-wrap items-end justify-between gap-5">
         <div className="max-w-3xl">

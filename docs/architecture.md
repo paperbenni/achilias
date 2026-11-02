@@ -25,7 +25,7 @@ Routes orchestrate server loaders; loaders adapt ILIAS into typed data; feature 
 
 ## Adding a feature
 
-1. Adapt the upstream representation in `src/lib/ilias`, with representative HTML fixtures when parsing a new layout. Preserve restricted objects and unknown counts instead of silently hiding them.
+1. Adapt the upstream representation in `src/lib/ilias`, with representative HTML fixtures when parsing a new layout. Preserve restricted objects and unknown counts instead of silently hiding them. Features that parse upstream HTML must display `ParsedHtmlNotice` with the exact source URL and an original-page button, including in failure states. Mark their Settings entries HTML-based too. Do not apply the label to local-only interactions or direct download transport.
 2. Add or update its capability in `items.ts`. Resource links, capability badges, browse-route validation, and activity dialogs use that shared classification. A supported downloadable file is distinct from a navigable course or forum.
 3. Build a feature loader using `getWorkspaceContext`. It reads account metadata without fetching ILIAS. Return only the `workspace` and feature data to browser components; the returned server session contains private cookies.
 4. Compose the feature UI from shadcn components. Reuse `OriginalLink`, `ItemAction`, and `RefreshButton` for the established handoffs and navigation behavior. Resource rows use the same shadcn Item composition as forum rows. `SidebarInset` already renders the main landmark; do not nest another main inside it.

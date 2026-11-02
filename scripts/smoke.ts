@@ -80,7 +80,7 @@ try {
     .click();
   await page
     .getByRole("dialog")
-    .getByRole("link", { name: "Visit Freiburg ILIAS" })
+    .getByRole("link", { name: "Visit ILIAS" })
     .waitFor();
   await page.getByRole("button", { name: "Close", exact: true }).click();
   await page
@@ -165,6 +165,20 @@ try {
     "One-time connection link was accepted twice",
   );
   // The deliberately credential-free session must produce a useful expiry state.
+  const parserNotice = page.getByRole("note", {
+    name: "Course listings: HTML-based feature",
+    exact: true,
+  });
+  await parserNotice.waitFor();
+  const sourceLink = parserNotice.getByRole("link", {
+    name: "Open original in ILIAS",
+    exact: true,
+  });
+  assert.equal(
+    await sourceLink.getAttribute("href"),
+    "https://ilias.uni-freiburg.de/ilias.php?baseClass=ilDashboardGUI",
+  );
+  assert.equal(await sourceLink.getAttribute("target"), "_blank");
   await page
     .getByText("Couldn’t load this learning space", { exact: true })
     .waitFor();

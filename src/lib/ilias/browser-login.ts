@@ -1,4 +1,5 @@
 import { chromium, type Browser } from "playwright";
+import { loginUrl } from "./config";
 import { parsePage } from "./parser";
 import { importInstanceCookies } from "./cookie-import";
 export async function browserLogin(
@@ -20,7 +21,7 @@ export async function browserLogin(
     options.onBrowser?.(browser);
     const context = await browser.newContext();
     const page = await context.newPage();
-    await page.goto(new URL("login.php?cmd=force_login", instance).href);
+    await page.goto(loginUrl(instance));
     const deadline = Date.now() + (options.timeoutMs || 5 * 60_000);
     while (Date.now() < deadline && !page.isClosed()) {
       if (page.url().startsWith(instance)) {

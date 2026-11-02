@@ -91,6 +91,7 @@ import {
 import type { Item, Workspace } from "@/lib/ilias/types";
 
 import { ItemAction } from "@/components/navigation/item-action";
+import { ParsedHtmlNotice } from "@/components/navigation/parsed-html-notice";
 import { OriginalLink } from "@/components/navigation/original-link";
 import { RefreshButton } from "@/components/navigation/refresh-button";
 
@@ -300,26 +301,33 @@ export function WorkspaceView({
             </Alert>
           )}
           {view === "forum" && data.mode !== "disconnected" ? (
-            data.error ? (
-              <Alert variant="destructive">
-                <CircleHelp />
-                <AlertTitle>Couldn’t load this discussion</AlertTitle>
-                <AlertDescription>
-                  {data.error}
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => setConnectOpen(true)}
-                    >
-                      Reconnect account
-                    </Button>
-                    <OriginalLink href={data.page.sourceUrl} />
-                  </div>
-                </AlertDescription>
-              </Alert>
-            ) : (
-              children
-            )
+            <>
+              <ParsedHtmlNotice
+                feature="forum"
+                sourceUrl={demo ? data.instance : source}
+                demo={demo}
+              />
+              {data.error ? (
+                <Alert variant="destructive">
+                  <CircleHelp />
+                  <AlertTitle>Couldn’t load this discussion</AlertTitle>
+                  <AlertDescription>
+                    {data.error}
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => setConnectOpen(true)}
+                      >
+                        Reconnect account
+                      </Button>
+                      <OriginalLink href={data.page.sourceUrl} />
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                children
+              )}
+            </>
           ) : view === "settings" ? (
             <SettingsView
               data={data}
@@ -469,14 +477,16 @@ export function WorkspaceView({
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  {view !== "saved" && (
-                    <>
-                      <RefreshButton />
-                      <OriginalLink href={source} />
-                    </>
-                  )}
+                  {view !== "saved" && <RefreshButton />}
                 </div>
               </div>
+              {view !== "saved" && (
+                <ParsedHtmlNotice
+                  feature={view === "browse" ? "materials" : "dashboard"}
+                  sourceUrl={demo ? data.instance : source}
+                  demo={demo}
+                />
+              )}
               {data.error ? (
                 <Alert variant="destructive">
                   <CircleHelp />
@@ -585,8 +595,10 @@ export function WorkspaceView({
                           <CardHeader>
                             <CardTitle>From your course page</CardTitle>
                             <CardDescription>
-                              Plain text from ILIAS. Open the original for
-                              links, media, and the full layout.
+                              HTML-based: introductory text is extracted from
+                              ILIAS. Changes to its layout can omit content.
+                              Open the original for links, media, and the full
+                              layout.
                             </CardDescription>
                           </CardHeader>
                           <CardContent className="flex flex-col gap-4">
@@ -617,7 +629,9 @@ export function WorkspaceView({
                               Keep the full course within reach
                             </CardTitle>
                             <CardDescription>
-                              These tools use the original ILIAS interface.
+                              HTML-based: these links are extracted from the
+                              course page and may be incomplete after an ILIAS
+                              update. Each opens the original interface.
                             </CardDescription>
                           </CardHeader>
                           <CardContent className="flex flex-wrap gap-3">
@@ -909,6 +923,11 @@ export function WorkspaceView({
                       ? "This is an example activity. In a connected account, the original ILIAS activity opens here."
                       : `This ${typeNames[selected.type]?.toLowerCase() || "activity"} is not implemented in Achilias yet. Open ILIAS to use the full feature. Your work stays on the original platform.`}
               </p>
+              <ParsedHtmlNotice
+                feature="item"
+                sourceUrl={demo ? data.instance : selected.sourceUrl}
+                demo={demo}
+              />
               <div className="flex flex-wrap gap-2">
                 {selected.type === "file" && selected.available && (
                   <Button
@@ -930,9 +949,6 @@ export function WorkspaceView({
                         : "Download file"}
                   </Button>
                 )}
-                <OriginalLink href={demo ? data.instance : selected.sourceUrl}>
-                  {demo ? "Visit Freiburg ILIAS" : "Open in ILIAS"}
-                </OriginalLink>
                 <Button variant="ghost" onClick={() => toggleSave(selected)}>
                   <Bookmark data-icon="inline-start" />
                   {local.saved.some((i) => itemKey(i) === itemKey(selected))

@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
+import { ParsedHtmlNotice } from "@/components/navigation/parsed-html-notice";
+import { loginUrl, normalizeInstance } from "@/lib/ilias/config";
 import { useBrowserOrigin } from "@/hooks/use-browser-origin";
 import {
   ArrowUpRight,
@@ -144,6 +146,12 @@ export function ConnectDialog({
   const busy = status === "starting" || status === "pending";
   const remote = method === "remote";
   const command = `bun run connect --server '${origin}'`;
+  let originalInstance = instance;
+  try {
+    originalInstance = normalizeInstance(url);
+  } catch {
+    // Keep the existing instance link while a new address is incomplete.
+  }
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-xl">
@@ -352,6 +360,10 @@ export function ConnectDialog({
             )}
           </FieldGroup>
         </form>
+        <ParsedHtmlNotice
+          feature="connection"
+          sourceUrl={loginUrl(originalInstance)}
+        />
         <p className="text-xs text-muted-foreground">
           For a remote server, use HTTPS or an SSH tunnel. If ILIAS rejects a
           transferred session, the helper can sign in through an SSH SOCKS proxy

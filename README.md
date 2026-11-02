@@ -75,6 +75,31 @@ The course and forum screens below use the demo workspace. All course names, mat
 
 </details>
 
+<details>
+<summary>See exercise units and tutor submission review</summary>
+
+![Demo exercise units with deadlines and links to review submissions](docs/screenshots/exercises.png)
+
+![Tutor review of demo submissions with assessment, missing/late filters, downloads, marks, and separate private and learner feedback](docs/screenshots/submissions.png)
+
+</details>
+
+<details>
+<summary>See assessment and unit deadline editing</summary>
+
+<img src="docs/screenshots/assessment.png" alt="Demo assessment editor separating pass/fail, marks, and private tutor notes, with an original ILIAS fallback" width="560" />
+
+![Exercise unit editor showing instructions, opening time, fixed deadline, late-submission deadline, and completion requirement](docs/screenshots/unit-settings.png)
+
+</details>
+
+<details>
+<summary>See team submission review on mobile</summary>
+
+<img src="docs/screenshots/mobile-submissions.png" alt="Mobile tutor view showing team submissions, review filters, and scoped assessment actions" width="390" />
+
+</details>
+
 ## Run locally
 
 ```sh
@@ -94,6 +119,7 @@ Try **http://127.0.0.1:3000/?demo=1** without an account. Example courses, activ
 - Server-rendered dashboard content, course/group browsing, nested folders and categories.
 - Authenticated, streamed file downloads. Errors stay in the interface rather than opening a JSON error page.
 - Course introduction text and original course-tool links.
+- Native exercise/tutor workspace: Übungseinheiten, submission review and downloads, assessment status and marks, private tutor notes, learner feedback, and unit creation/fixed-deadline editing.
 - Native forum browsing and reading: thread search, unread filtering, pin/closed indicators, formatted posts, reply context, post links, chronological views, and thread/post pagination. Search and sorting apply to the loaded page.
 - Explicit **Mark thread read** updates ILIAS using its currently offered action. Demo read status stays in this browser tab. Fresh live discussion links disable background data prefetch so unread/read requests happen when opened. Demo links may be prefetched.
 - Course filtering, grid/list views, and a keyboard-operated **Ctrl/Cmd+K** search palette. Search covers the current page, saved items, and recently opened objects; it is not a repository-wide search.
@@ -103,7 +129,7 @@ Try **http://127.0.0.1:3000/?demo=1** without an account. Example courses, activ
 
 ## What still opens in ILIAS
 
-Assignments/submissions, tests, wikis, learning modules, surveys, sessions, custom objects, calendar, mail, grades, and administration use the original interface. Forum reading is native; replies, new topics, subscriptions, moderation, attachments, and embedded media still open in ILIAS. Reply and new-topic actions are shown only when the loaded ILIAS page offers them. Interactive activity controls and rich course-page layouts are not reproduced. Plain text is extracted from course introductions; links, embedded media, and formatting require the original page. Course listings with pagination show a visible notice and a link to the original listing. Forum thread and post pages have native pagination when ILIAS exposes readable page controls, with an original-page fallback otherwise.
+Learner submission/upload, advanced exercise workflows, tests, wikis, learning modules, surveys, sessions, custom objects, calendar, mail, overall grades, and administration use the original interface. Forum reading is native; replies, new topics, subscriptions, moderation, attachments, and embedded media still open in ILIAS. Reply and new-topic actions are shown only when the loaded ILIAS page offers them. Interactive activity controls and rich course-page layouts are not reproduced. Plain text is extracted from course introductions; links, embedded media, and formatting require the original page. Course listings with pagination show a visible notice and a link to the original listing. Forum thread and post pages have native pagination when ILIAS exposes readable page controls, with an original-page fallback otherwise.
 
 The dashboard adapter reads the courses and groups ILIAS exposes on your dashboard. If a course is missing, add it to the dashboard in ILIAS. This first version does not crawl every enrollment or invent deadlines/progress from incomplete data. New or custom themes may require selector changes. A course always retains an **Open in ILIAS** link.
 
@@ -120,6 +146,21 @@ Open a forum from a course or a saved item. Try [the example forum](http://127.0
 - **Reply in ILIAS** opens the original editor, respecting the page’s available actions. Drafts are not presented as published posts. Closed threads retain ILIAS’s restrictions.
 
 Post formatting includes paragraphs, lists, code, quotes, links, and tables. Bodies are sanitized before rendering; scripts, event handlers, remote images, and embeds are excluded. Posts with embedded content show a visible original-page handoff. Author aliases, moderation notices, and approval status are preserved from ILIAS. An unsupported layout or selected subtree produces a visible notice.
+
+## Tutoring: Übungseinheiten and Abgaben
+
+Open an **Exercise / Übung** from your course or saved items. The [example tutor workspace](http://127.0.0.1:3000/exercises/401?demo=1) and [example submissions](http://127.0.0.1:3000/exercises/401/units/501?demo=1) work without an account.
+
+- Browse exercise units, instructions, opening times, deadlines, and completion requirements.
+- Review the participant/team rows exposed to your account. Filter for unassessed, missing, or late submissions, or search the loaded names/logins/marks. Counts cover the loaded rows and any ILIAS-side filters; absent columns remain unknown. Further pagination and upstream filters remain available through the original-page button.
+- Download a participant or team’s submission through the authenticated proxy. The server rediscovers the authorized download link instead of accepting arbitrary upstream URLs.
+- Save **Not assessed / Passed / Failed**, a mark or points string, and a **private tutor note**. The adapter sends exactly one `listed_part_ids` row so an individual edit cannot accidentally save the whole table. ILIAS applies a team assessment to its members; the editor calls this out explicitly.
+- Write **learner-visible feedback** separately. ILIAS may notify the learner or team on save. The adapter supports recognized feedback forms, including standard async modal URLs and opaque field names; unsupported forms keep their original-page fallback.
+- Create file-submission units and edit supported units’ title, instructions, start, fixed deadline, late-submission deadline, and required/optional setting. Times use the ILIAS profile’s timezone. Editing instructions uses plain text; leaving them unchanged preserves existing rich formatting.
+
+Tutor actions are bound to the displayed account connection, so changing accounts invalidates an open tutor form. Every live write reloads the offered form, retains fresh tokens and unrelated settings, checks the displayed version for stale edits where applicable, and verifies the saved values. A failed or ambiguous verification asks you to check ILIAS before retrying. Live links disable speculative prefetch; mutations invalidate recent page reuse. Server Actions authenticate the session, and ILIAS retains its permission checks.
+
+Relative/individual/locked deadlines, protected requirements, learner uploads, instruction/feedback files, peer review, team membership, unit deletion, and bulk downloads stay in the original interface with visible handoffs. These integrations are **HTML-based**, not an official ILIAS API. **Live tutor permissions and writes still need verification against an authenticated Freiburg account.** Stateful fixture tests and the demo do not establish that compatibility. Demo changes stay in the current browser tab and never grade or notify real learners.
 
 ## Navigation speed and freshness
 
@@ -222,7 +263,7 @@ University identity-provider cookies are not copied into the ILIAS adapter. Remo
 
 ## HTML-based features
 
-Sign-in/session verification, course listings, materials and availability, course information/tool links, and forum content/actions depend on parsing ILIAS HTML. These screens and their feature entries are marked **HTML-based**: ILIAS or theme updates can make them incomplete or incorrect. Each screen keeps an **Open original in ILIAS** button beside the notice, including on load errors. Item detail dialogs also label parsed metadata and link to the original object. Demo notices explain that the displayed content is an example and link to the real instance.
+Sign-in/session verification, course listings, materials and availability, course information/tool links, forum content/actions, and exercise/tutor tools depend on parsing ILIAS HTML. These screens and their feature entries are marked **HTML-based**: ILIAS or theme updates can make them incomplete or incorrect. Each screen keeps an **Open original in ILIAS** button beside the notice, including on load errors. Item detail dialogs also label parsed metadata and link to the original object. Demo notices explain that the displayed content is an example and link to the real instance.
 
 File downloads use the authenticated download endpoint; local bookmarks and search operate on browser/current-page data. Their item details can still originate from parsed HTML.
 
@@ -239,7 +280,7 @@ bun run build
 bun run start --hostname 127.0.0.1
 ```
 
-`bun run test` checks browser-store synchronization, restored-item validation, current-data precedence, object capabilities, concurrent connection claims, cookie-update and disconnect races, ILIAS template parsing, restricted/unsupported content, cookie rotation, redirect credential boundaries, expired sessions, pairing validation, and encrypted session persistence. Forum fixtures follow the ILIAS 10 standard-item and post templates and check counts, hierarchy, sanitization, drafts, permissions, pagination, and action scoping. `bun run test:e2e` checks the demo flows in Chromium, including download, bookmarks across reloads and tabs, quick search, mobile navigation, single-use connection claims, session expiry, and reconnect/disconnect behavior. The last checks use a deliberately credential-free test session against the public Freiburg endpoint; they do not sign in to a real account. `bun run test:forums` runs the forum browser checks alone, including filters, reply context, post search, unread jumps, copied links, read-state persistence in the demo, closed topics, and mobile layouts. `bun run test:headless` exercises the pairing UI, code renewal/cancellation, remote CLI over stdin, and rejection of an unauthenticated transfer. Unit tests mock successful validation to check replay protection and cancellation races; no real account is used. For production navigation, run `bun run test:navigation` and `bun run benchmark:navigation` against a production preview (port 3001 by default). Set `ACHILIAS_TEST_URL` to test another local port.
+`bun run test` checks browser-store synchronization, restored-item validation, current-data precedence, object capabilities, concurrent connection claims, cookie-update and disconnect races, ILIAS template parsing, restricted/unsupported content, cookie rotation, redirect credential boundaries, expired sessions, pairing validation, and encrypted session persistence. Forum fixtures follow the ILIAS 10 standard-item and post templates and check counts, hierarchy, sanitization, drafts, permissions, pagination, and action scoping. `bun run test:e2e` checks the demo flows in Chromium, including download, bookmarks across reloads and tabs, quick search, mobile navigation, single-use connection claims, session expiry, and reconnect/disconnect behavior. The last checks use a deliberately credential-free test session against the public Freiburg endpoint; they do not sign in to a real account. `bun run test:forums` runs the forum browser checks alone, including filters, reply context, post search, unread jumps, copied links, read-state persistence in the demo, closed topics, and mobile layouts. `bun run test:headless` exercises the pairing UI, code renewal/cancellation, remote CLI over stdin, and rejection of an unauthenticated transfer. Unit tests mock successful validation to check replay protection and cancellation races; no real account is used. For production navigation, run `bun run test:navigation` and `bun run benchmark:navigation` against a production preview (port 3001 by default). `bun run test:exercises` runs the tutor browser flows alone: saved exercise navigation, review filters, assessment/private-note persistence, learner feedback, downloads, unit editing/creation, team scope, mobile layout, and unauthenticated download rejection. Stateful exercise fixtures verify fresh-token POSTs, single-row scope, preserved settings, stale-edit rejection, and save confirmation. Set `ACHILIAS_TEST_URL` to test another local port.
 
 While `next dev` is running, use `ACHILIAS_BUILD_DIR=.next-build bun run build` to preserve its `.next` directory. Start that build with the same variable if you want to run it.
 
@@ -249,11 +290,11 @@ While `next dev` is running, use `ACHILIAS_BUILD_DIR=.next-build bun run build` 
 
 ### Refreshing screenshots
 
-With the app running, run `bun run screenshots` to refresh the images in `docs/screenshots/`. Each capture uses a fresh browser context and example content. The script also captures unread filtering, mobile thread reading, seeded demo bookmarks, feature support, and the headless sign-in dialog without creating a connection code. Set `ACHILIAS_SCREENSHOT_URL` to capture from another local address, such as `http://127.0.0.1:3001` for a separate production preview.
+With the app running, run `bun run screenshots` to refresh the images in `docs/screenshots/`. Each capture uses a fresh browser context and example content. The script also captures unread filtering, mobile thread reading, seeded demo bookmarks, feature support, the headless sign-in dialog without creating a connection code, and exercise units, submission review, assessment, and deadline settings. Set `ACHILIAS_SCREENSHOT_URL` to capture from another local address, such as `http://127.0.0.1:3001` for a separate production preview.
 
 ### Integration status
 
-The public Freiburg login/repository pages and upstream ILIAS templates were inspected during development. Automated integration fixtures are based on the upstream list-item, repository-card, standard-item, and ILIAS 10 forum structures. **Authenticated access, remote session portability, SOCKS-assisted sign-in, forum permissions, and the upstream mark-read action still need verification with a real Freiburg account.** Demo success does not establish account-specific compatibility.
+The public Freiburg login/repository pages and upstream ILIAS templates were inspected during development. Automated integration fixtures are based on the upstream list-item, repository-card, standard-item, and ILIAS 10 forum structures. **Authenticated access, remote session portability, SOCKS-assisted sign-in, forum permissions, the upstream mark-read action, and exercise/tutor permissions and write actions still need verification with a real Freiburg account.** Demo success does not establish account-specific compatibility.
 
 Reference sources:
 

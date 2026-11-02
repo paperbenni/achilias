@@ -2,26 +2,30 @@
 
 Routes orchestrate server loaders; loaders adapt ILIAS into typed data; feature components render that data using the installed shadcn components. Keep upstream markup and session secrets out of browser components.
 
-| Responsibility                                                    | Location                                                                 |
-| ----------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| App routes, HTTP endpoints, and Server Actions                    | `src/app`                                                                |
-| Shared account metadata and empty page state                      | `src/lib/ilias/workspace-context.ts`                                     |
-| Course/dashboard loading                                          | `src/lib/ilias/workspace.ts`                                             |
-| Forum loading and authorized upstream actions                     | `src/lib/ilias/forum.ts`                                                 |
-| ILIAS HTML adaptation and forum body sanitization                 | `src/lib/ilias/parser.ts`, `forum-parser.ts`                             |
-| Authenticated requests, redirect boundaries, and cookie rotation  | `src/lib/ilias/client.ts`                                                |
-| Session encryption, cookies, claims, and per-session locks        | `src/lib/ilias/session.ts`                                               |
-| Sign-in windows and laptop helper transfers                       | `login.ts`, `browser-login.ts`, `remote-login.ts`, `remote-client.ts`    |
-| Object labels, support classification, identity, and destinations | `src/lib/ilias/items.ts`                                                 |
-| Shared reference/thread/post ID validation                        | `src/lib/ilias/identifiers.ts`                                           |
-| Saved/recent item validation, merging, and updates                | `src/lib/ilias/library.ts`                                               |
-| Browser storage snapshots and subscriptions                       | `src/lib/browser-store.ts`, `src/hooks/use-browser-store.ts`             |
-| Bookmark/history actions and feedback                             | `src/hooks/use-library.ts`                                               |
-| Workspace composition and local interaction state                 | `src/components/workspace/workspace-view.tsx`                            |
-| Sidebar/account menu, resource lists, and settings                | `navigation.tsx`, `item-list.tsx`, `settings-view.tsx` in that directory |
-| Shared resource opening, upstream handoffs, and refresh           | `src/components/navigation`                                              |
-| Forum list/thread presentation                                    | `src/components/forums`                                                  |
-| Installed shadcn primitives                                       | `src/components/ui`                                                      |
+| Responsibility                                                                       | Location                                                                 |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| App routes, HTTP endpoints, and Server Actions                                       | `src/app`                                                                |
+| Shared account metadata and empty page state                                         | `src/lib/ilias/workspace-context.ts`                                     |
+| Course/dashboard loading                                                             | `src/lib/ilias/workspace.ts`                                             |
+| Exercise unit discovery, grading, feedback, and verified form submissions            | `src/lib/ilias/exercise.ts`                                              |
+| Exercise HTML adaptation, successful-control serialization, and version fingerprints | `src/lib/ilias/exercise-parser.ts`                                       |
+| Exercise payload validation shared by browser and server                             | `src/lib/ilias/exercise-validation.ts`                                   |
+| Tutor workspace and scoped editors                                                   | `src/components/exercises`                                               |
+| Forum loading and authorized upstream actions                                        | `src/lib/ilias/forum.ts`                                                 |
+| ILIAS HTML adaptation and forum body sanitization                                    | `src/lib/ilias/parser.ts`, `forum-parser.ts`                             |
+| Authenticated requests, redirect boundaries, and cookie rotation                     | `src/lib/ilias/client.ts`                                                |
+| Session encryption, cookies, claims, and per-session locks                           | `src/lib/ilias/session.ts`                                               |
+| Sign-in windows and laptop helper transfers                                          | `login.ts`, `browser-login.ts`, `remote-login.ts`, `remote-client.ts`    |
+| Object labels, support classification, identity, and destinations                    | `src/lib/ilias/items.ts`                                                 |
+| Shared reference/thread/post ID validation                                           | `src/lib/ilias/identifiers.ts`                                           |
+| Saved/recent item validation, merging, and updates                                   | `src/lib/ilias/library.ts`                                               |
+| Browser storage snapshots and subscriptions                                          | `src/lib/browser-store.ts`, `src/hooks/use-browser-store.ts`             |
+| Bookmark/history actions and feedback                                                | `src/hooks/use-library.ts`                                               |
+| Workspace composition and local interaction state                                    | `src/components/workspace/workspace-view.tsx`                            |
+| Sidebar/account menu, resource lists, and settings                                   | `navigation.tsx`, `item-list.tsx`, `settings-view.tsx` in that directory |
+| Shared resource opening, upstream handoffs, and refresh                              | `src/components/navigation`                                              |
+| Forum list/thread presentation                                                       | `src/components/forums`                                                  |
+| Installed shadcn primitives                                                          | `src/components/ui`                                                      |
 
 ## Adding a feature
 
@@ -52,3 +56,15 @@ Run `bun run lint`, `bun run typecheck`, and `bun run test`. Generated Next outp
 With `next dev` running, `bun run test:e2e` covers courses, cross-tab bookmarks, downloads, forums, and headless pairing. Wait for a destination's heading before asserting shared item text: the same resource can appear on both sides of a client navigation. A link visible on the outgoing page is not proof that navigation completed.
 
 Run `bun run test:navigation` against a production server to check real prefetch behavior and account cache clearing. Use `ACHILIAS_BUILD_DIR=.next-build` for a separate build while development is running. Authenticated Freiburg compatibility still needs a real account; fixture and demo tests do not establish it.
+
+## Tutor actions
+
+Exercise routes consume `ExerciseState`; browser components never receive upstream form tokens or cookie jars. Native tutor actions accept object/unit/member IDs, typed values, and the displayed connection key. They reject a changed account connection before contacting ILIAS, rediscover the current authorized form, preserve unrelated successful controls, and submit its actual command. Assessment saves restrict `listed_part_ids[]` to one row; this is the list ILIAS actually iterates, rather than selected checkboxes. Marks, private tutor notes, and learner-visible feedback remain distinct. ILIAS can expand an assessment or learner feedback to the selected participant’s team.
+
+Grading and unit editing compare fingerprints of the currently displayed fields to detect stale drafts; this is a fresh-read check, not a cross-system transaction lock. Changes made concurrently in another client can still race at the upstream server. Post-save reads verify the result. Never automatically retry a write after a timeout or uncertain verification, especially creation or feedback notifications. Unknown or protected form layouts require the original interface rather than guessed commands. Tests use stateful ILIAS 10-shaped fixtures; live Freiburg tutor compatibility requires an authenticated account.
+
+The shared upstream client supports URL-encoded POSTs and browser redirect semantics: 301/302/303 return to GET, while 307/308 preserve the method within the configured instance boundary. Cookies and credentials never follow cross-instance redirects. HTML instructions reuse the same sanitization policy as forum posts. File and exercise downloads share private attachment-response handling.
+
+Browser downloads use the same `downloadFile` helper for course materials and tutor submissions, so expired-session or permission errors stay in the app. The server streams the response; the current browser helper prepares a Blob before handing it to the download manager. Large submissions therefore use browser memory while preparing. Bulk archives remain available in the original interface.
+
+Exercise adapter reference (ILIAS 10, commit `d8dd98bc6cd09446465b2999199594f574babab3`): [exercise management and single-row assessment semantics](https://github.com/ILIAS-eLearning/ILIAS/blob/d8dd98bc6cd09446465b2999199594f574babab3/components/ILIAS/Exercise/classes/class.ilExerciseManagementGUI.php), [unit creation and schedule forms](https://github.com/ILIAS-eLearning/ILIAS/blob/d8dd98bc6cd09446465b2999199594f574babab3/components/ILIAS/Exercise/Assignment/class.ilExAssignmentEditorGUI.php), and [learner feedback and team notification semantics](https://github.com/ILIAS-eLearning/ILIAS/blob/d8dd98bc6cd09446465b2999199594f574babab3/components/ILIAS/Exercise/Submission/class.ilExerciseSubmissionFeedbackGUI.php).

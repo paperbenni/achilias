@@ -107,6 +107,61 @@ try {
       },
     },
     {
+      file: "exercises.png",
+      path: "/exercises/401?demo=1",
+      heading: "Algorithms — Übungen",
+    },
+    {
+      file: "submissions.png",
+      path: "/exercises/401/units/501?demo=1",
+      heading: "Übung 01 — Algorithms",
+    },
+    {
+      file: "assessment.png",
+      path: "/exercises/401/units/501?demo=1",
+      heading: "Übung 01 — Algorithms",
+      dialog: true,
+      prepare: async (page) => {
+        await page
+          .getByRole("list", { name: "Participant submissions" })
+          .getByRole("listitem")
+          .filter({ hasText: "Maya Chen" })
+          .getByRole("button", { name: "Assess", exact: true })
+          .click();
+        await page
+          .getByRole("textbox", {
+            name: "Mark or points / Note oder Punkte",
+            exact: true,
+          })
+          .fill("9 / 10");
+        await page
+          .getByRole("textbox", {
+            name: "Private tutor note / Interne Notiz",
+            exact: true,
+          })
+          .fill("Discuss task 3 in the tutorial.");
+      },
+    },
+    {
+      file: "unit-settings.png",
+      path: "/exercises/401/units/501?demo=1",
+      heading: "Übung 01 — Algorithms",
+      prepare: async (page) => {
+        await page
+          .getByRole("tab", { name: "Unit settings", exact: true })
+          .click();
+        await page
+          .getByRole("textbox", { name: "Title / Titel", exact: true })
+          .waitFor();
+      },
+    },
+    {
+      file: "mobile-submissions.png",
+      path: "/exercises/401/units/502?demo=1",
+      heading: "Übung 02 — Recursion",
+      mobile: true,
+    },
+    {
       file: "mobile-course.png",
       path: "/browse/crs/101?demo=1",
       heading: "Introduction to Computer Science",

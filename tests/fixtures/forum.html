@@ -1,0 +1,69 @@
+<!doctype html>
+<html>
+  <body>
+    <a href="logout.php">Logout</a>
+    <h1 id="ilHeader">Questions &amp; discussion</h1>
+    <div class="ilHeaderDesc">Course forum</div>
+    <button
+      data-action="ilias.php?ref_id=402&amp;cmd=createThread&amp;cmdClass=ilobjforumgui"
+    >
+      Neues Thema
+    </button>
+    <div class="il-panel-listing">
+      <div class="il-item il-std-item il-item-marker">
+        <h3 class="il-item-title">
+          <a
+            href="ilias.php?ref_id=402&amp;thr_pk=901&amp;cmd=viewThread&amp;page=0"
+            >Start here</a
+          >
+        </h3>
+        <div>
+          <span class="il-item-property-name">Erstellt von</span
+          ><span class="il-item-property-value">Moderator</span>
+        </div>
+        <div>
+          <span class="il-item-property-name">Beiträge</span
+          ><span class="il-item-property-value">5 (2 ungelesen)</span>
+        </div>
+        <div>
+          <span class="il-item-property-name">Letzter Beitrag</span
+          ><span class="il-item-property-value">02. Nov 2026, 10:00</span>
+        </div>
+      </div>
+      <div class="il-item il-std-item">
+        <h3 class="il-item-title">
+          <a href="ilias.php?ref_id=402&amp;thr_pk=902&amp;cmd=viewThread"
+            >Room change (geschlossen)</a
+          >
+        </h3>
+        <div>
+          <span class="il-item-property-name">Created by</span
+          ><span class="il-item-property-value">Alex</span>
+        </div>
+        <div>
+          <span class="il-item-property-name">Posts</span
+          ><span class="il-item-property-value">1</span>
+        </div>
+      </div>
+    </div>
+    <div class="il-item">
+      <h3 class="il-item-title">
+        <a
+          href="https://evil.example/ilias.php?ref_id=402&amp;thr_pk=999&amp;cmd=viewThread"
+          >External</a
+        >
+      </h3>
+    </div>
+    <div class="il-viewcontrol-pagination">
+      <button data-action="ilias.php?ref_id=402&amp;cmd=showThreads&amp;page=0">
+        1</button
+      ><button
+        data-action="ilias.php?ref_id=402&amp;cmd=showThreads&amp;page=1"
+      >
+        2</button
+      ><a href="ilias.php?ref_id=402&amp;cmd=markAllRead&amp;page=9"
+        >Wrong action</a
+      >
+    </div>
+  </body>
+</html>

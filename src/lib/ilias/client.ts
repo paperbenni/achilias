@@ -75,7 +75,7 @@ export async function fetchUpstream(
     "ILIAS redirected too many times. Reconnect your account.",
   );
 }
-export async function fetchPage(session: Session, target: string) {
+export async function fetchAuthenticatedHtml(session: Session, target: string) {
   const { response, url } = await fetchUpstream(session, target);
   if (!(response.headers.get("content-type") || "").includes("text/html")) {
     await response.body?.cancel();
@@ -90,5 +90,8 @@ export async function fetchPage(session: Session, target: string) {
       "Your ILIAS session has expired, or ILIAS requires an additional step. Reconnect to continue.",
       401,
     );
-  return page;
+  return { html, url, page };
+}
+export async function fetchPage(session: Session, target: string) {
+  return (await fetchAuthenticatedHtml(session, target)).page;
 }

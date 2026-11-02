@@ -36,8 +36,11 @@ const searchFormTtl = 5 * 60_000;
 const searchForms = new Map<string, { form: SearchForm; expiresAt: number }>();
 const discovering = new Map<string, Promise<SearchForm>>();
 /** `switchResultPage` renders whatever search ILIAS has cached for the
- * session, so a later page must belong to the query the user is looking at. */
-const lastSearches = new Map<string, { query: string; at: number }>();
+ * session, so a later page must belong to the query the user is looking at.
+ * Its links are taken from ILIAS' own result view: their token, sortation and
+ * routing are what the server issued for that search. */
+type SearchPaging = { query: string; at: number; links: Map<number, string> };
+const lastSearches = new Map<string, SearchPaging>();
 const maxSearchPage = 5;
 
 export function clearSearchFormCache(sessionId?: string) {
@@ -198,23 +201,60 @@ function echoedTerm(html: string) {
   );
 }
 
-/** ILIAS pages search results through `switchResultPage`, a read-only command
- * that re-renders the cached search at another offset. Only the ILIAS 10
- * controller shape keeps the executed command in the action URL; older
- * releases leave it to ilCtrl's `fallbackCmd`, so they stay on the single page
- * ILIAS returned and keep the handoff to the original search. */
-function pagingAction(form: SearchForm, page: number) {
-  if (page < 2) return null;
-  const action = new URL(form.action);
-  if (
-    action.searchParams.get("baseClass")?.toLowerCase() !== "ilsearchcontrollergui"
-  )
-    return null;
-  action.searchParams.set("cmd", "switchResultPage");
-  action.searchParams.delete("fallbackCmd");
-  // ILIAS' view control is 0-indexed while its search cache is 1-indexed.
-  action.searchParams.set("page_number", String(page - 1));
-  return action;
+/** Read one routing parameter, or null when PHP would see a different value
+ * than URLSearchParams does (PHP keeps the last duplicate). */
+function routing(url: URL, name: string) {
+  const values = url.searchParams.getAll(name);
+  return values.length > 1 ? null : (values[0] || "").toLowerCase();
+}
+
+/** Collect the result-page links ILIAS rendered for this search. Only the
+ * search controller's read-only `switchResultPage` is accepted, and only from
+ * the instance itself. ILIAS renders a next link only when another page
+ * exists, so this also tells us whether paging is possible at all. */
+function pagingLinks(html: string, instance: string, base: string) {
+  const links = new Map<number, string>();
+  for (const match of html.matchAll(/\shref="([^"]+)"/gi)) {
+    const href = match[1]
+      .replace(/&amp;|&#0*38;/gi, "&")
+      .replace(/&quot;|&#0*34;/gi, '"')
+      .replace(/&#0*39;/gi, "'");
+    let url: URL;
+    try {
+      url = upstreamUrl(instance, new URL(href, base).href);
+    } catch {
+      continue;
+    }
+    if (!/\/ilias\.php$/i.test(url.pathname)) continue;
+    const baseClass = routing(url, "baseClass");
+    const cmdClass = routing(url, "cmdClass");
+    const cmd = routing(url, "cmd");
+    const fallback = routing(url, "fallbackCmd");
+    const page = routing(url, "page_number");
+    if (
+      baseClass === null ||
+      cmdClass === null ||
+      cmd === null ||
+      fallback === null ||
+      page === null
+    )
+      continue;
+    if (
+      baseClass !== "ilsearchcontroller" &&
+      baseClass !== "ilsearchcontrollergui"
+    )
+      continue;
+    if (cmdClass && cmdClass !== "ilsearchgui") continue;
+    if (fallback && fallback !== "switchresultpage") continue;
+    if (
+      cmd !== "switchresultpage" &&
+      !(cmd === "post" && fallback === "switchresultpage")
+    )
+      continue;
+    if (!/^\d{1,3}$/.test(page)) continue;
+    if (!links.has(Number(page))) links.set(Number(page), url.href);
+  }
+  return links;
 }
 
 /**
@@ -244,15 +284,19 @@ export async function searchRepository(
       throw new IliasError("That search expired. Start it again.", 409);
   }
   const form = await discoverSearchForm(session);
-  const action = pagingAction(form, pageNumber);
-  if (pageNumber > 1 && !action)
-    throw new IliasError("That search expired. Start it again.", 409);
-  let upstream =
-    pageNumber > 1 && action
-      ? await fetchUpstream(session, action.href)
-      : await submitSearch(session, form, query);
-  if (pageNumber === 1)
-    lastSearches.set(session.id, { query, at: Date.now() });
+  let upstream: { response: Response; url: string };
+  if (pageNumber > 1) {
+    // ILIAS numbers its pages 0-based in the view control; page 2 is link 1.
+    const target = lastSearches.get(session.id)?.links.get(pageNumber - 1);
+    if (!target)
+      throw new IliasError(
+        "ILIAS did not offer that page. Start the search again.",
+        409,
+      );
+    upstream = await fetchUpstream(session, target);
+  } else {
+    upstream = await submitSearch(session, form, query);
+  }
   let results = await readSearchResults(upstream);
   const echoed = echoedTerm(results.html);
   if (echoed !== null && echoed !== query) {
@@ -261,8 +305,11 @@ export async function searchRepository(
     if (pageNumber > 1)
       throw new IliasError("That search expired. Start it again.", 409);
     clearSearchFormCache(session.id);
-    upstream = await submitSearch(session, await discoverSearchForm(session), query);
-    lastSearches.set(session.id, { query, at: Date.now() });
+    upstream = await submitSearch(
+      session,
+      await discoverSearchForm(session),
+      query,
+    );
     results = await readSearchResults(upstream);
   }
   const page = parsePage(results.html, results.url);
@@ -271,13 +318,13 @@ export async function searchRepository(
       "Your ILIAS session has expired. Reconnect your account.",
       401,
     );
+  const links = pagingLinks(results.html, session.instance, results.url);
+  lastSearches.set(session.id, { query, at: Date.now(), links });
   return {
     results: page.items,
     sourceUrl: results.url,
-    hasMore:
-      Boolean(pagingAction(form, pageNumber + 1)) &&
-      page.items.length > 0 &&
-      pageNumber < maxSearchPage,
+    // The link for the next page is ILIAS' own; without it there is no page.
+    hasMore: links.has(pageNumber) && pageNumber < maxSearchPage,
     page: pageNumber,
   };
 }

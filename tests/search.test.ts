@@ -22,6 +22,9 @@ const dashboard = `<a href="logout.php">Logout</a>
     </fieldset>
   </form>`;
 
+const pager = (next: number) =>
+  `<div class="il-viewcontrol-pagination"><a href="ilias.php?baseClass=ilSearchControllerGUI&amp;cmdClass=ilSearchGUI&amp;cmd=switchResultPage&amp;sortation=relevance_desc&amp;rtoken=page-token&amp;page_number=${next}">Next</a></div>`;
+
 const results = `<a href="logout.php">Logout</a><h1>Search results</h1>
   <div class="il-item il-std-item">
     <span class="il-item-title"><a href="goto.php?target=grp_601">Gruppe 02</a></span>
@@ -179,7 +182,7 @@ test("repository search fetches the next ILIAS result page on demand", async () 
         requests.length === 1
           ? dashboard
           : requests.length === 2
-            ? results
+            ? results + pager(1)
             : next;
       return new Response(body, {
         headers: { "content-type": "text/html; charset=utf-8" },
@@ -198,10 +201,36 @@ test("repository search fetches the next ILIAS result page on demand", async () 
   const action = new URL(requests[2].url);
   expect(action.searchParams.get("cmd")).toBe("switchResultPage");
   expect(action.searchParams.get("page_number")).toBe("1");
-  expect(action.searchParams.get("rtoken")).toBe("secret");
+  // The page link, not the form action, carries the token ILIAS issued for it.
+  expect(action.searchParams.get("rtoken")).toBe("page-token");
   expect(second.page).toBe(2);
+  expect(second.hasMore).toBe(false);
   expect(second.results.map((item) => item.id)).toEqual(["603"]);
-  expect(second.sourceUrl).toContain("cmd=switchResultPage");
+  expect(second.sourceUrl).toContain("page_number=1");
+});
+
+test("repository search only offers another page when ILIAS rendered one", async () => {
+  let requests = 0;
+  upstreamTransport.fetch = mock(
+    async () => {
+      requests++;
+      const body =
+        requests === 1
+          ? dashboard
+          : // A link to a different command must never be followed.
+            results +
+            `<a href="ilias.php?baseClass=ilSearchControllerGUI&amp;cmdClass=ilSearchGUI&amp;cmd=deleteObject&amp;page_number=1">Next</a>`;
+      return new Response(body, {
+        headers: { "content-type": "text/html; charset=utf-8" },
+      });
+    },
+  ) as unknown as typeof fetch;
+  const found = await searchRepository(session(), "Gruppe 02");
+  expect(found.hasMore).toBe(false);
+  await expect(searchRepository(session(), "Gruppe 02", 2)).rejects.toThrow(
+    "did not offer",
+  );
+  expect(requests).toBe(2);
 });
 
 test("repository search rejects a page that does not belong to a live search", async () => {

@@ -1,0 +1,32 @@
+"use client";
+import { useTransition } from "react";
+import { RefreshCw } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { refreshWorkspace } from "@/app/actions/workspace";
+import { cn } from "@/lib/utils";
+
+export function RefreshButton() {
+  const [pending, startTransition] = useTransition();
+  return (
+    <Button
+      variant="ghost"
+      disabled={pending}
+      onClick={() =>
+        startTransition(async () => {
+          try {
+            await refreshWorkspace();
+          } catch {
+            toast.error("Could not refresh. Try again.");
+          }
+        })
+      }
+    >
+      <RefreshCw
+        data-icon="inline-start"
+        className={cn(pending && "animate-spin")}
+      />
+      {pending ? "Refreshing" : "Refresh"}
+    </Button>
+  );
+}

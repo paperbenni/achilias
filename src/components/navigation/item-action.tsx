@@ -2,7 +2,8 @@
 import Link, { useLinkStatus } from "next/link";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { containers, itemHref, type Item } from "@/lib/ilias/types";
+import { isNavigableItem, itemHref } from "@/lib/ilias/items";
+import type { Item } from "@/lib/ilias/types";
 export function NavigationHint() {
   const { pending } = useLinkStatus();
   return (
@@ -28,9 +29,7 @@ export function ItemAction({
   onVisit: (item: Item) => void;
   children: React.ReactNode;
 } & Omit<React.ComponentProps<typeof Button>, "onClick" | "asChild">) {
-  const navigable =
-    item.available && (containers.has(item.type) || item.type === "frm");
-  if (!navigable)
+  if (!isNavigableItem(item))
     return (
       <Button {...props} onClick={() => onOpen(item)}>
         {children}

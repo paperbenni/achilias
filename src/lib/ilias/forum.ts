@@ -1,14 +1,11 @@
-import { createHash } from "node:crypto";
-import { currentSession, type Session } from "./session";
-import { FREIBURG, instanceName, objectUrl, upstreamUrl } from "./config";
+import type { Session } from "./session";
+import { objectUrl, upstreamUrl } from "./config";
 import { fetchAuthenticatedHtml, IliasError } from "./client";
 import { parseForumOverview, parseForumThread } from "./forum-parser";
 import { demoForum, demoThread } from "./forum-demo";
 import type { ForumOrder, ForumState } from "./forum-types";
-import type { Workspace } from "./types";
-export function validForumId(id: string) {
-  return /^[1-9]\d{0,11}$/.test(id);
-}
+import { emptyPage, getWorkspaceContext } from "./workspace-context";
+import { validObjectId } from "./identifiers";
 export function forumPageNumber(value?: string) {
   if (!value) return 0;
   if (!/^\d{1,5}$/.test(value)) throw new Error("Invalid forum page.");
@@ -29,8 +26,8 @@ export function forumViewUrl(
   order: ForumOrder,
 ) {
   if (
-    !validForumId(forumId) ||
-    (threadId && !validForumId(threadId)) ||
+    !validObjectId(forumId) ||
+    (threadId && !validObjectId(threadId)) ||
     !Number.isInteger(page) ||
     page < 0 ||
     page > 99999
@@ -105,32 +102,13 @@ export async function getForumState(
   page = 0,
   order: ForumOrder = "conversation",
 ): Promise<ForumState> {
-  const session = demo ? null : await currentSession();
-  const instance = session?.instance || FREIBURG;
-  const workspace: Workspace = {
-    mode: demo
-      ? "demo"
-      : session?.status === "connected"
-        ? "live"
-        : "disconnected",
-    instance,
-    instanceName: instanceName(instance),
-    userName: demo ? "Alex" : session?.userName || "",
-    storageKey: session
-      ? createHash("sha256").update(session.id).digest("hex").slice(0, 16)
-      : undefined,
-    page: {
-      title: "Discussion forum",
-      description: "",
-      items: [],
-      tools: [],
-      text: [],
-      notices: [],
-      sourceUrl: objectUrl(instance, "frm", forumId),
-      authenticated: session?.status === "connected",
-      userName: "",
-      hasMore: false,
-    },
+  const { workspace, session } = await getWorkspaceContext(demo);
+  workspace.page = {
+    ...emptyPage(
+      objectUrl(workspace.instance, "frm", forumId),
+      "Discussion forum",
+    ),
+    authenticated: workspace.mode === "live",
   };
   if (threadId) {
     const fallback = new URL(workspace.page.sourceUrl);
@@ -150,6 +128,7 @@ export async function getForumState(
     return { ...base, forum: null, thread: null };
   try {
     const result = await fetchForum(session, forumId, threadId, page, order);
+    workspace.userName = result.page.userName || workspace.userName;
     workspace.page = { ...result.page, items: [] };
     workspace.page.title = result.thread?.title || result.forum.title;
     workspace.fetchedAt = new Date().toISOString();
@@ -166,7 +145,7 @@ export async function markForumThreadRead(
   forumId: string,
   threadId: string,
 ) {
-  if (!validForumId(forumId) || !validForumId(threadId))
+  if (!validObjectId(forumId) || !validObjectId(threadId))
     throw new IliasError("Invalid discussion.", 400);
   // Mutations always rediscover the authorized action from a fresh ILIAS page.
   const { thread } = await fetchForum(session, forumId, threadId);

@@ -1,12 +1,8 @@
+import { validObjectId } from "@/lib/ilias/identifiers";
 import { notFound } from "next/navigation";
 import { WorkspaceView } from "@/components/workspace/workspace-view";
 import { ForumView } from "./forum-view";
-import {
-  forumOrder,
-  forumPageNumber,
-  getForumState,
-  validForumId,
-} from "@/lib/ilias/forum";
+import { forumOrder, forumPageNumber, getForumState } from "@/lib/ilias/forum";
 export async function ForumPage({
   forumId,
   threadId,
@@ -16,7 +12,7 @@ export async function ForumPage({
   threadId?: string;
   query: { demo?: string; page?: string; order?: string };
 }) {
-  if (!validForumId(forumId) || (threadId && !validForumId(threadId)))
+  if (!validObjectId(forumId) || (threadId && !validObjectId(threadId)))
     notFound();
   let page;
   let order;

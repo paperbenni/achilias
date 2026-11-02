@@ -1,3 +1,4 @@
+import { dashboardUrl } from "../src/lib/ilias/config";
 import { readFile } from "node:fs/promises";
 import { createInterface } from "node:readline/promises";
 import { randomUUID } from "node:crypto";
@@ -111,10 +112,7 @@ try {
         instance,
       );
       session.userName = (
-        await fetchPage(
-          session,
-          new URL("ilias.php?baseClass=ilDashboardGUI", instance).href,
-        )
+        await fetchPage(session, dashboardUrl(instance))
       ).userName;
     } else {
       console.log("Complete university sign-in in the browser window.");

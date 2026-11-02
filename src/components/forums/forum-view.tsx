@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -18,7 +18,6 @@ import {
   Pin,
   Plus,
   Reply,
-  RefreshCw,
   Search,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -69,8 +68,11 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { OriginalLink } from "@/components/navigation/original-link";
+import { RefreshButton } from "@/components/navigation/refresh-button";
+import { useBrowserStore } from "@/hooks/use-browser-store";
 import { cn } from "@/lib/utils";
-import { markThreadRead, refreshWorkspace } from "@/app/actions/workspace";
+import { markThreadRead } from "@/app/actions/workspace";
 import {
   forumHref,
   type ForumOrder,
@@ -78,21 +80,11 @@ import {
   type ForumState,
 } from "@/lib/ilias/forum-types";
 
-function Original({
-  href,
-  children,
-}: {
-  href: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Button variant="outline" size="sm" asChild>
-      <a href={href} target="_blank" rel="noopener noreferrer">
-        {children}
-        <ArrowUpRight data-icon="inline-end" />
-      </a>
-    </Button>
-  );
+const emptyReadThreads: string[] = [];
+function decodeReadThreads(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((id) => typeof id === "string")
+    : emptyReadThreads;
 }
 function Pagination({
   state,
@@ -144,25 +136,18 @@ function Pagination({
 export function ForumView({ state }: { state: ForumState }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const { forum, thread, forumId, threadId, workspace, page, order } = state;
+  const { forum, thread, forumId, threadId, workspace, order } = state;
   const demo = workspace.mode === "demo";
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("all");
   const [sort, setSort] = useState("source");
-  const [marked, setMarked] = useState<string[]>([]);
+  const { value: marked, update: updateMarked } = useBrowserStore(
+    "achilias:demo:read-threads",
+    "sessionStorage",
+    decodeReadThreads,
+    emptyReadThreads,
+  );
   const [marking, setMarking] = useState(false);
-  useEffect(() => {
-    if (!demo) return;
-    try {
-      const ids = JSON.parse(
-        sessionStorage.getItem("achilias:demo:read-threads") || "[]",
-      );
-      if (Array.isArray(ids))
-        setMarked(ids.filter((id) => typeof id === "string"));
-    } catch {
-      /* Demo read state is optional. */
-    }
-  }, [demo]);
   if (!forum) return null;
   const source = demo
     ? workspace.instance
@@ -204,12 +189,8 @@ export function ForumView({ state }: { state: ForumState }) {
     setMarking(true);
     try {
       if (demo) {
-        const next = [...new Set([...marked, thread.id])];
-        sessionStorage.setItem(
-          "achilias:demo:read-threads",
-          JSON.stringify(next),
-        );
-        setMarked(next);
+        if (!updateMarked((current) => [...new Set([...current, thread.id])]))
+          throw new Error("Your browser could not save this change.");
       } else {
         const result = await markThreadRead(forumId, thread.id);
         if (result.error) throw new Error(result.error);
@@ -268,7 +249,9 @@ export function ForumView({ state }: { state: ForumState }) {
             {thread ? forum.title : "Back to your learning space"}
           </Link>
         </Button>
-        <Original href={source}>Open in ILIAS</Original>
+        <OriginalLink compact href={source}>
+          Open in ILIAS
+        </OriginalLink>
       </div>
       <div className="flex flex-wrap items-end justify-between gap-5">
         <div className="max-w-3xl">
@@ -308,25 +291,7 @@ export function ForumView({ state }: { state: ForumState }) {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button
-            variant="ghost"
-            disabled={pending}
-            onClick={() =>
-              startTransition(async () => {
-                try {
-                  await refreshWorkspace();
-                } catch {
-                  toast.error("Could not refresh. Try again.");
-                }
-              })
-            }
-          >
-            <RefreshCw
-              data-icon="inline-start"
-              className={cn(pending && "animate-spin")}
-            />
-            Refresh
-          </Button>
+          <RefreshButton />
           {thread ? (
             <>
               {firstUnread && (
@@ -355,18 +320,24 @@ export function ForumView({ state }: { state: ForumState }) {
                 </Button>
               )}
               {thread.replyUrl && (
-                <Original href={demo ? workspace.instance : thread.replyUrl}>
+                <OriginalLink
+                  compact
+                  href={demo ? workspace.instance : thread.replyUrl}
+                >
                   <Reply data-icon="inline-start" />
                   Reply in ILIAS
-                </Original>
+                </OriginalLink>
               )}
             </>
           ) : (
             forum.createUrl && (
-              <Original href={demo ? workspace.instance : forum.createUrl}>
+              <OriginalLink
+                compact
+                href={demo ? workspace.instance : forum.createUrl}
+              >
                 <Plus data-icon="inline-start" />
                 New topic in ILIAS
-              </Original>
+              </OriginalLink>
             )
           )}
         </div>
@@ -691,7 +662,8 @@ export function ForumView({ state }: { state: ForumState }) {
                         {post.attachments.length > 0 && (
                           <div className="flex flex-wrap gap-2">
                             {post.attachments.map((attachment, i) => (
-                              <Original
+                              <OriginalLink
+                                compact
                                 key={i}
                                 href={
                                   demo ? workspace.instance : attachment.url
@@ -699,7 +671,7 @@ export function ForumView({ state }: { state: ForumState }) {
                               >
                                 <Paperclip data-icon="inline-start" />
                                 {attachment.title}
-                              </Original>
+                              </OriginalLink>
                             ))}
                           </div>
                         )}
@@ -710,12 +682,13 @@ export function ForumView({ state }: { state: ForumState }) {
                         </Button>
                         <div className="flex flex-wrap gap-2">
                           {post.replyUrl && (
-                            <Original
+                            <OriginalLink
+                              compact
                               href={demo ? workspace.instance : post.replyUrl}
                             >
                               <Reply data-icon="inline-start" />
                               Reply in ILIAS
-                            </Original>
+                            </OriginalLink>
                           )}
                           <Button variant="ghost" size="sm" asChild>
                             <a

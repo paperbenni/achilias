@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useBrowserOrigin } from "@/hooks/use-browser-origin";
 import {
   ArrowUpRight,
   Check,
@@ -48,10 +49,9 @@ export function ConnectDialog({
   const [localAvailable, setLocalAvailable] = useState(false);
   const [code, setCode] = useState("");
   const [expiresAt, setExpiresAt] = useState<number>();
-  const [origin, setOrigin] = useState("");
+  const origin = useBrowserOrigin();
   useEffect(() => {
     if (!open) return;
-    setOrigin(window.location.origin);
     let cancelled = false;
     void fetch("/api/connect")
       .then((r) => r.json())

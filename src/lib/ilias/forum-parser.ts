@@ -1,3 +1,4 @@
+import { validObjectId } from "./identifiers";
 import { load, type CheerioAPI } from "cheerio";
 import sanitizeHtml from "sanitize-html";
 import { upstreamUrl } from "./config";
@@ -9,7 +10,7 @@ import type {
   ForumTopic,
 } from "./forum-types";
 const clean = (s: string) => s.replace(/\s+/g, " ").trim();
-const idPattern = /^[1-9]\d{0,11}$/;
+
 export function forumLink(href: string, sourceUrl: string) {
   try {
     if (!href.trim() || href.startsWith("#")) return undefined;
@@ -182,7 +183,7 @@ export function parseForumOverview(
         const p = new URL(url).searchParams;
         return (
           (p.get("cmd") || "").toLowerCase() === "viewthread" &&
-          idPattern.test(p.get("thr_pk") || "") &&
+          validObjectId(p.get("thr_pk") || "") &&
           (!p.has("ref_id") || p.get("ref_id") === forumId)
         );
       })
@@ -264,7 +265,7 @@ export function parseForumThread(
       .find(".ilFrmPostContentContainer > a[id]")
       .map((_, a) => $(a).attr("id"))
       .get()
-      .find((v) => idPattern.test(v));
+      .find((v) => validObjectId(v));
     // Draft rows have draft_* anchors and must not look like published replies.
     if (!id) return;
     const raw = row.find(".ilFrmPostContent").first();

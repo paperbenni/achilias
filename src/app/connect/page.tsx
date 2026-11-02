@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,22 +17,20 @@ export default function ClaimSession() {
     started.current = true;
     const token = window.location.hash.slice(1);
     window.history.replaceState(null, "", "/connect");
-    if (!token) {
-      setError("Open the connection link printed by bun run connect.");
-      return;
+    async function claim() {
+      if (!token)
+        throw new Error("Open the connection link printed by bun run connect.");
+      const response = await fetch("/api/session/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+      if (!response.ok) throw new Error((await response.json()).error);
+      window.location.replace("/");
     }
-    void fetch("/api/session/import", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token }),
-    })
-      .then(async (res) => {
-        if (!res.ok) throw new Error((await res.json()).error);
-        window.location.replace("/");
-      })
-      .catch((e) =>
-        setError(e instanceof Error ? e.message : "Could not connect."),
-      );
+    void claim().catch((error) =>
+      setError(error instanceof Error ? error.message : "Could not connect."),
+    );
   }, []);
   return (
     <main className="flex min-h-screen items-center justify-center p-6">
@@ -49,7 +48,7 @@ export default function ClaimSession() {
         {error && (
           <CardContent>
             <Button asChild>
-              <a href="/">Back to overview</a>
+              <Link href="/">Back to overview</Link>
             </Button>
           </CardContent>
         )}

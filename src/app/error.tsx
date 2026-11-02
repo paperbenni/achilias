@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   Empty,
@@ -20,7 +21,7 @@ export default function ErrorPage({ reset }: { reset: () => void }) {
         <EmptyContent>
           <Button onClick={reset}>Try again</Button>
           <Button variant="outline" asChild>
-            <a href="/">Back to overview</a>
+            <Link href="/">Back to overview</Link>
           </Button>
         </EmptyContent>
       </Empty>

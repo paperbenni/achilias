@@ -1,5 +1,6 @@
+import { validObjectId } from "@/lib/ilias/identifiers";
 import { currentSession, requireSameOrigin } from "@/lib/ilias/session";
-import { markForumThreadRead, validForumId } from "@/lib/ilias/forum";
+import { markForumThreadRead } from "@/lib/ilias/forum";
 import { IliasError } from "@/lib/ilias/client";
 export const runtime = "nodejs";
 export async function POST(
@@ -15,7 +16,7 @@ export async function POST(
     );
   }
   const { forumId, threadId } = await params;
-  if (!validForumId(forumId) || !validForumId(threadId))
+  if (!validObjectId(forumId) || !validObjectId(threadId))
     return Response.json({ error: "Invalid discussion." }, { status: 400 });
   const session = await currentSession();
   if (session?.status !== "connected")

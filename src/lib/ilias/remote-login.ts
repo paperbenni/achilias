@@ -1,3 +1,4 @@
+import { dashboardUrl } from "./config";
 import {
   readSession,
   saveSession,
@@ -78,10 +79,7 @@ export async function completeRemoteLogin(code: string, data: unknown) {
     const candidate: Session = { ...session, jar, status: "pending" };
     let page;
     try {
-      page = await fetchPage(
-        candidate,
-        new URL("ilias.php?baseClass=ilDashboardGUI", session.instance).href,
-      );
+      page = await fetchPage(candidate, dashboardUrl(session.instance));
     } catch {
       throw new RemoteLoginError(
         "The server could not verify this ILIAS session. It may have expired or be tied to your login IP. Try the helper through an SSH SOCKS proxy to this server, then sign in again.",

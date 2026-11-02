@@ -1,7 +1,8 @@
+import { validObjectId } from "@/lib/ilias/identifiers";
 import { notFound } from "next/navigation";
 import { WorkspaceView } from "@/components/workspace/workspace-view";
 import { getWorkspace } from "@/lib/ilias/workspace";
-import { containers } from "@/lib/ilias/types";
+import { isContainerType } from "@/lib/ilias/items";
 export default async function Browse({
   params,
   searchParams,
@@ -11,7 +12,7 @@ export default async function Browse({
 }) {
   const { type, id } = await params;
   const { demo } = await searchParams;
-  if (!containers.has(type) || !/^[1-9]\d{0,11}$/.test(id)) notFound();
+  if (!isContainerType(type) || !validObjectId(id)) notFound();
   return (
     <WorkspaceView
       data={await getWorkspace(demo === "1", type, id)}

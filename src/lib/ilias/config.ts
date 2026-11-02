@@ -1,3 +1,4 @@
+import { validObjectId } from "./identifiers";
 export const FREIBURG = "https://ilias.uni-freiburg.de/";
 export function normalizeInstance(input: string) {
   const url = new URL(input);
@@ -53,10 +54,14 @@ export function objectUrl(
   id: string,
   download = false,
 ) {
-  if (!/^[a-z]{2,8}$/.test(type) || !/^[1-9]\d{0,11}$/.test(id))
+  if (!/^[a-z]{2,8}$/.test(type) || !validObjectId(id))
     throw new Error("Invalid ILIAS object.");
   const url = upstreamUrl(instance, "goto.php");
   url.searchParams.set("target", `${type}_${id}`);
   if (download) url.searchParams.set("cmd", "download");
   return url.href;
+}
+
+export function dashboardUrl(instance: string) {
+  return upstreamUrl(instance, "ilias.php?baseClass=ilDashboardGUI").href;
 }

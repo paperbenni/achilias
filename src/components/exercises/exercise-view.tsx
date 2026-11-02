@@ -333,7 +333,10 @@ export function ExerciseView({ state }: { state: ExerciseState }) {
       ) : (
         <Tabs defaultValue={state.tutor ? "submissions" : "instructions"}>
           <TabsList className="max-w-full">
-            <TabsTrigger value="submissions">Submissions / Abgaben</TabsTrigger>
+            <TabsTrigger value="submissions">
+              <span className="hidden sm:inline">Submissions / Abgaben</span>
+              <span className="sm:hidden">Abgaben</span>
+            </TabsTrigger>
             <TabsTrigger value="instructions">Instructions</TabsTrigger>
             <TabsTrigger value="settings">Unit settings</TabsTrigger>
           </TabsList>

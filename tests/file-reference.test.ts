@@ -1,3 +1,7 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { load } from "cheerio";
+import { ItemAction } from "../src/components/navigation/item-action";
 import { expect, test } from "bun:test";
 import { fileControllerReference } from "../src/lib/ilias/file-reference";
 import { parsePage } from "../src/lib/ilias/parser";
@@ -74,4 +78,30 @@ test("legacy bookmarks and recent entries upgrade and deduplicate without changi
   expect(decodeLibrary({ saved: [{ ...old, id: "999" }] }).saved[0].type).toBe(
     "unknown",
   );
+});
+
+test("the second supplied URL renders a proxy link on the actual file button", () => {
+  const url =
+    "https://ilias.uni-freiburg.de/ilias.php?baseClass=ilrepositorygui&cmdNode=102:p8&cmdClass=ilObjFileGUI&cmd=sendfile&ref_id=4394217";
+  for (const icon of ["", '<img class="ilListItemIcon" src="icon_webr.svg">']) {
+    const item = parsePage(
+      row(url, icon),
+      "https://ilias.uni-freiburg.de/ilias.php",
+    ).items[0];
+    expect(item.type).toBe("file");
+    expect(item.id).toBe("4394217");
+    const html = renderToStaticMarkup(
+      createElement(ItemAction, {
+        item,
+        demo: false,
+        onOpen: () => {},
+        onVisit: () => {},
+        children: "Lecture document",
+      }),
+    );
+    const $ = load(html);
+    expect($("a").attr("href")).toBe("/api/files/4394217?view=1");
+    expect($("a").attr("target")).toBe("_blank");
+    expect($("button").length).toBe(0);
+  }
 });

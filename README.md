@@ -48,9 +48,9 @@ bun run browser:install
 bun run dev --hostname 127.0.0.1
 ```
 
-Open **http://127.0.0.1:3000**. Choose **Connect your ILIAS**. A Chromium window opens on the computer running the server. On Freiburg’s real ILIAS page, select **Anmelden / Login**, complete **myLogin**, and wait until you reach ILIAS. Achilias connects automatically. No university password is entered into Achilias.
+Open **http://127.0.0.1:3000**. Choose **Connect your ILIAS**. On a desktop server, the **Server browser** method opens a Chromium window there. Headless servers default to **On my computer**, described below. On Freiburg’s real ILIAS page, select **Anmelden / Login**, complete **myLogin**, and wait until you reach ILIAS. Achilias connects automatically. No university password is entered into Achilias.
 
-The browser bridge needs a desktop display. Sign-in has a five-minute timeout; cancel and retry from the connection dialog if needed. Chromium’s `headless` option is deliberately disabled for interactive sign-in.
+The **Server browser** method needs a desktop display and has a five-minute timeout. **On my computer** needs neither a server display nor server Chromium; its temporary connection code lasts ten minutes. Cancel and retry from the dialog if needed.
 
 Try **http://127.0.0.1:3000/?demo=1** without an account. Example courses, activities, and PDFs are explicitly marked as demo content. Demo bookmarks are isolated from connected accounts.
 
@@ -86,6 +86,51 @@ Open a forum from a course or a saved item. Try [the example forum](http://127.0
 
 Post formatting includes paragraphs, lists, code, quotes, links, and tables. Bodies are sanitized before rendering; scripts, event handlers, remote images, and embeds are excluded. Posts with embedded content show a visible original-page handoff. Author aliases, moderation notices, and approval status are preserved from ILIAS. An unsupported layout or selected subtree produces a visible notice.
 
+## Running on a headless server
+
+The server can run without a display, Xvfb, VNC, or Chromium. You complete Freiburg’s interactive myLogin step on your laptop, then the helper transfers only the resulting ILIAS cookies to the server. University passwords and identity-provider cookies are not transferred. The server validates the dashboard from its own network before connecting your account.
+
+On the server, install dependencies, build, and start the app. `bun run browser:install` is **not needed on the server** for this method. Set these in its `.env.local` when serving over HTTPS:
+
+```dotenv
+ACHILIAS_LOGIN_MODE=remote
+ACHILIAS_ORIGIN=https://your-achilias.example
+ACHILIAS_SECURE_COOKIE=true
+```
+
+On Linux, `auto` mode already chooses remote sign-in when neither `DISPLAY` nor `WAYLAND_DISPLAY` is set. The explicit setting is useful for containers and services. Bind the server to loopback behind your reverse proxy and keep the private data directory persistent.
+
+1. Open Achilias in your normal browser, choose **Connect your ILIAS**, then **On my computer** if a method chooser is shown. Select **Get a connection code**.
+2. On your laptop, use an Achilias checkout, run `bun install` and `bun run browser:install` once, then run the helper command shown in the dialog:
+
+   ```sh
+   bun run connect --server https://your-achilias.example
+   ```
+
+3. Paste the code into the helper’s terminal prompt. It is read from stdin, rather than a shell argument or URL. Complete myLogin in the local browser window. Achilias connects automatically when the server verifies the transferred session.
+
+No shared filesystem or cookie-export file is needed. The code is bound to the browser connection that requested it, expires after ten minutes, and cannot be reused after success. Cancelling the connection or generating a new code invalidates the old code. The helper sends codes in an Authorization header, refuses redirects, and accepts only HTTPS or loopback HTTP. You need to repeat sign-in after the ILIAS/Achilias session expires; this is not unattended password-based login.
+
+### Using SSH, including IP-bound sessions
+
+You can keep the app private and avoid setting up public HTTPS by forwarding it over SSH. From your laptop:
+
+```sh
+ssh -N -L 3000:127.0.0.1:3000 -D 1080 user@your-server
+```
+
+Open **http://127.0.0.1:3000** in your normal browser. On the server, use `ACHILIAS_LOGIN_MODE=remote`; leave `ACHILIAS_SECURE_COOKIE` unset for loopback HTTP and set `ACHILIAS_ORIGIN=http://127.0.0.1:3000` if you configure an origin explicitly. The external connection is protected by SSH.
+
+If ILIAS rejects a transferred session because login and server requests originate from different IPs, use the same SSH tunnel as a SOCKS proxy for the helper’s university browser:
+
+```sh
+bun run connect --server http://127.0.0.1:3000 --proxy socks5://127.0.0.1:1080
+```
+
+The login browser’s university traffic then exits through your server, while its window remains on your laptop. This accommodates address-bound sessions without a server display. It still depends on the installation’s authentication policy and needs verification with an actual Freiburg account. [Shibboleth supports session address checks](https://shibboleth.atlassian.net/wiki/spaces/SHIB2/pages/2577072330); the exact Freiburg configuration is not known.
+
+If you already have a cookie export, `--server` also accepts `--cookies /absolute/path/to/cookies.json`. The server still verifies it. Using `--proxy` cannot change the source IP of a session that was already created elsewhere; sign in again through the helper if necessary.
+
 ## Connection command and session import
 
 You can also initiate sign-in from the terminal, while the app is running:
@@ -96,7 +141,7 @@ bun run connect
 
 Complete university sign-in in the opened browser. Open the **single-use connection link** printed by the command within five minutes. The secret travels in a URL fragment, is removed from browser history immediately, and is claimed with a same-origin POST. Treat that link as private.
 
-If the server has no display, import an existing **Playwright storageState JSON** or an exported cookie array:
+As an alternative, the same-machine command can import an existing **Playwright storageState JSON** or an exported cookie array:
 
 ```sh
 bun run connect --cookies /absolute/path/to/cookies.json
@@ -104,7 +149,7 @@ bun run connect --cookies /absolute/path/to/cookies.json
 
 Only cookies whose domain exactly matches the ILIAS instance are imported. The command checks the authenticated dashboard before creating a connection link. Do not commit cookie exports. Remove the export after importing it. Some ILIAS installations bind a session to its source IP; a remotely imported session may need the same network egress as its browser.
 
-Run this command from the same checkout and with the same `ACHILIAS_DATA_DIR` as the app. `--instance https://your-instance.example/ilias/` and `--app http://127.0.0.1:3000` are supported. `bun run connect --help` describes the options.
+Without `--server`, run this command from the same checkout and with the same `ACHILIAS_DATA_DIR` as the app. With `--server`, run it on your laptop; no shared data directory is used. `--instance https://your-instance.example/ilias/` and `--app http://127.0.0.1:3000` are supported. `bun run connect --help` describes the options.
 
 ## Configuration
 
@@ -116,6 +161,7 @@ Copy `.env.example` to `.env.local` when changing defaults. Bun loads `.env.loca
 | `ACHILIAS_DATA_DIR`      | Directory for encrypted sessions and the encryption key. Default: `.local/` in the checkout.                                                                                          |
 | `ACHILIAS_ORIGIN`        | Exact browser-visible app origin for mutation origin checks, especially behind a reverse proxy. Defaults to the local browser-visible host; configure this explicitly for remote use. |
 | `ACHILIAS_SECURE_COOKIE` | Set `true` when serving over HTTPS. Leave unset for local HTTP.                                                                                                                       |
+| `ACHILIAS_LOGIN_MODE`    | `auto` (default), `local`, or `remote`. `remote` uses the laptop helper and never launches a browser on the server.                                                                   |
 | `ACHILIAS_BROWSER_PATH`  | Optional path to a compatible local Chromium executable.                                                                                                                              |
 | `ACHILIAS_BUILD_DIR`     | Optional separate build output directory, useful while `next dev` is running.                                                                                                         |
 
@@ -123,11 +169,11 @@ Restart the server after configuration changes. Additional instances appear thro
 
 ### Data and hosting
 
-This version is intended for a **personal, local Node/Bun server**, not serverless hosting or a publicly shared sign-in service. The server must have a writable data directory. Run a single server process for login jobs and single-use connection claims.
+This version supports a **personal local or headless Node/Bun server**, rather than serverless hosting or a publicly shared sign-in service. The server must have a writable data directory. Remote access uses HTTPS or an SSH tunnel. Run a single server process for login jobs and single-use connection claims.
 
 ILIAS session jars stay server-side, encrypted using AES-256-GCM. The key and files have owner-only permissions; the directory is ignored by Git. The app browser gets an opaque HttpOnly, SameSite=Strict cookie. Achilias sessions expire after 12 hours, or earlier when ILIAS invalidates its session. Disconnect removes the active server-side session; it does not log out other university services. Expired session files are deleted when accessed. To remove all retained session data, stop the server and delete the `.local/` directory (or your configured data directory).
 
-University identity-provider cookies are not copied into the ILIAS adapter. Server requests use an explicit instance boundary, validate each redirect, and never forward ILIAS cookies to an external identity provider. Personal pages and downloads use private/no-store responses. Downloaded content is served as an attachment with `nosniff` and sandbox headers. Saved titles and URLs remain in browser localStorage until cleared under **Features & connection**.
+University identity-provider cookies are not copied into the ILIAS adapter. Remote session uploads are limited to 256 KiB, filtered to the exact ILIAS host, verified server-side, and discarded if the connection expires or is cancelled during verification. Server requests use an explicit instance boundary, validate each redirect, and never forward ILIAS cookies to an external identity provider. Personal pages and downloads use private/no-store responses. Downloaded content is served as an attachment with `nosniff` and sandbox headers. Saved titles and URLs remain in browser localStorage until cleared under **Features & connection**.
 
 ## Development and verification
 
@@ -141,7 +187,7 @@ bun run build
 bun run start --hostname 127.0.0.1
 ```
 
-`bun run test` checks ILIAS template parsing, restricted/unsupported content, cookie rotation, redirect credential boundaries, expired sessions, pairing validation, and encrypted session persistence. Forum fixtures follow the ILIAS 10 standard-item and post templates and check counts, hierarchy, sanitization, drafts, permissions, pagination, and action scoping. `bun run test:e2e` checks the demo flows in Chromium, including download, bookmarks across reloads, quick search, mobile navigation, single-use connection claims, session expiry, and reconnect/disconnect behavior. The last checks use a deliberately credential-free test session against the public Freiburg endpoint; they do not sign in to a real account. `bun run test:forums` runs the forum browser checks alone, including filters, reply context, post search, unread jumps, copied links, read-state persistence in the demo, closed topics, and mobile layouts. Set `ACHILIAS_TEST_URL` to test another local port.
+`bun run test` checks ILIAS template parsing, restricted/unsupported content, cookie rotation, redirect credential boundaries, expired sessions, pairing validation, and encrypted session persistence. Forum fixtures follow the ILIAS 10 standard-item and post templates and check counts, hierarchy, sanitization, drafts, permissions, pagination, and action scoping. `bun run test:e2e` checks the demo flows in Chromium, including download, bookmarks across reloads, quick search, mobile navigation, single-use connection claims, session expiry, and reconnect/disconnect behavior. The last checks use a deliberately credential-free test session against the public Freiburg endpoint; they do not sign in to a real account. `bun run test:forums` runs the forum browser checks alone, including filters, reply context, post search, unread jumps, copied links, read-state persistence in the demo, closed topics, and mobile layouts. `bun run test:headless` exercises the pairing UI, code renewal/cancellation, remote CLI over stdin, and rejection of an unauthenticated transfer. Unit tests mock successful validation to check replay protection and cancellation races; no real account is used. Set `ACHILIAS_TEST_URL` to test another local port.
 
 While `next dev` is running, use `ACHILIAS_BUILD_DIR=.next-build bun run build` to preserve its `.next` directory. Start that build with the same variable if you want to run it.
 
@@ -151,7 +197,7 @@ With the app running, run `bun run screenshots` to refresh the images in `docs/s
 
 ### Integration status
 
-The public Freiburg login/repository pages and upstream ILIAS templates were inspected during development. Automated integration fixtures are based on the upstream list-item, repository-card, standard-item, and ILIAS 10 forum structures. **Authenticated access, forum permissions, and the upstream mark-read action still need verification with a real Freiburg account.** Demo success does not establish account-specific compatibility.
+The public Freiburg login/repository pages and upstream ILIAS templates were inspected during development. Automated integration fixtures are based on the upstream list-item, repository-card, standard-item, and ILIAS 10 forum structures. **Authenticated access, remote session portability, SOCKS-assisted sign-in, forum permissions, and the upstream mark-read action still need verification with a real Freiburg account.** Demo success does not establish account-specific compatibility.
 
 Reference sources:
 

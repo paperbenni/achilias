@@ -14,16 +14,6 @@ async function openDialog() {
   await page
     .getByRole("button", { name: "Connect your ILIAS", exact: true })
     .click();
-  const capabilities = await (
-    await context.request.get(origin + "/api/connect")
-  ).json();
-  const status = (
-    await (await context.request.get(origin + "/api/session")).json()
-  ).status;
-  if (capabilities.localBrowserAvailable && status !== "pending")
-    await page
-      .getByRole("radio", { name: "On my computer", exact: true })
-      .click();
 }
 try {
   await page.goto(origin);
@@ -128,7 +118,6 @@ try {
         DISPLAY: "",
         WAYLAND_DISPLAY: "",
         ACHILIAS_DATA_DIR: laptopData,
-        ACHILIAS_BROWSER_PATH: "/no-browser-installed",
       },
       stdin: "pipe",
       stdout: "pipe",

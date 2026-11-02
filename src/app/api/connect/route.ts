@@ -12,21 +12,14 @@ import {
   requireSameOrigin,
 } from "@/lib/ilias/session";
 import { prepareRemoteLogin } from "@/lib/ilias/remote-login";
-import { serverLoginMode } from "@/lib/ilias/login";
-import { beginLogin, cancelLogin } from "@/lib/ilias/login";
+import { passwordLoginEnabled } from "@/lib/ilias/login-flags";
 import { noStore } from "@/lib/api";
 export const runtime = "nodejs";
 export async function GET() {
-  const session = await currentSession();
   return Response.json(
     {
-      mode:
-        session?.status === "pending"
-          ? session.remotePairing
-            ? "remote"
-            : "local"
-          : serverLoginMode(),
-      localBrowserAvailable: serverLoginMode() === "local",
+      mode: "remote",
+      passwordLoginAvailable: passwordLoginEnabled(),
     },
     { headers: noStore },
   );
@@ -35,20 +28,9 @@ export async function POST(request: Request) {
   try {
     requireSameOrigin(request);
     await limitSignIn(request, "start");
-    const { instance, mode: requestedMode } = (await readSmallJson(
-      request,
-    )) as { instance?: unknown; mode?: string };
-    const mode = requestedMode || serverLoginMode();
-    if (mode !== "remote" && mode !== "local")
-      return Response.json(
-        { error: "Choose a valid sign-in method." },
-        { status: 400, headers: noStore },
-      );
-    if (mode === "local" && serverLoginMode() === "remote")
-      return Response.json(
-        { error: "This server has no desktop sign-in. Choose On my computer." },
-        { status: 400, headers: noStore },
-      );
+    const { instance } = (await readSmallJson(request)) as {
+      instance?: unknown;
+    };
     if (typeof instance !== "string")
       return Response.json(
         { error: "Enter an ILIAS instance URL." },
@@ -67,7 +49,6 @@ export async function POST(request: Request) {
     if (
       previous?.status === "pending" &&
       previous.instance === target &&
-      mode === "remote" &&
       previous.remotePairing
     ) {
       const remote = await prepareRemoteLogin(previous);
@@ -76,31 +57,11 @@ export async function POST(request: Request) {
         { headers: noStore },
       );
     }
-    if (
-      previous?.status === "pending" &&
-      previous.instance === target &&
-      mode === "local" &&
-      !previous.remotePairing
-    )
-      return Response.json(
-        { status: "pending", mode: "local" },
-        { headers: noStore },
-      );
-    if (previous) {
-      await cancelLogin(previous.id);
-      await deleteSession(previous.id);
-    }
+    if (previous) await deleteSession(previous.id);
     const session = await createSession(target);
-    if (mode === "remote") {
-      const remote = await prepareRemoteLogin(session);
-      return Response.json(
-        { status: "pending", mode: "remote", ...remote },
-        { headers: noStore },
-      );
-    }
-    beginLogin(session);
+    const remote = await prepareRemoteLogin(session);
     return Response.json(
-      { status: "pending", mode: "local" },
+      { status: "pending", mode: "remote", ...remote },
       { headers: noStore },
     );
   } catch (e) {

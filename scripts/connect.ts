@@ -6,7 +6,7 @@ import {
   dashboardUrl,
   FREIBURG,
 } from "../src/lib/ilias/config";
-import { browserLogin } from "../src/lib/ilias/browser-login";
+import { browserLogin } from "./browser-login";
 import { importInstanceCookies } from "../src/lib/ilias/cookie-import";
 import { remoteRequest, remoteServerUrl } from "../src/lib/ilias/remote-client";
 const args = process.argv.slice(2);
@@ -19,7 +19,7 @@ if (args.includes("--help")) {
 bun run connect --server https://your-achilias.example [--cookies /path/to/cookies.json] [--proxy socks5://127.0.0.1:1080]
 
 Without --server, run on the same computer/data directory as Achilias. A local browser opens for university sign-in, or --cookies imports an existing export. The command prints a single-use browser connection link.
-With --server, run on your laptop. Paste the temporary code from the server's “On my computer” connection dialog when prompted. The helper signs in locally and transfers only ILIAS cookies over HTTPS or loopback HTTP. No shared filesystem, server display, or server Chromium is needed. Use --proxy with an SSH SOCKS tunnel if ILIAS binds sessions to the login IP.
+With --server, run on your laptop. Paste the temporary code from the server's connection dialog when prompted. The helper signs in locally and transfers only ILIAS cookies over HTTPS or loopback HTTP. No shared filesystem, server display, or server Chromium is needed. Use --proxy with an SSH SOCKS tunnel if ILIAS binds sessions to the login IP.
 The connection code is read from stdin and is never passed as a command-line argument.`);
   process.exit(0);
 }

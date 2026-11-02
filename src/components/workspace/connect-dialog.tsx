@@ -6,10 +6,11 @@ import { useBrowserOrigin } from "@/hooks/use-browser-origin";
 import {
   ArrowUpRight,
   Check,
+  Cookie,
   Copy,
+  KeyRound,
   Laptop,
   Loader2,
-  Monitor,
   ShieldCheck,
 } from "lucide-react";
 import {
@@ -21,6 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Field,
   FieldDescription,
@@ -33,7 +35,6 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from "@/components/ui/input-group";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 export function ConnectDialog({
   open,
@@ -47,8 +48,12 @@ export function ConnectDialog({
   const [url, setUrl] = useState(instance);
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
-  const [method, setMethod] = useState("remote");
-  const [localAvailable, setLocalAvailable] = useState(false);
+  const [passwordAvailable, setPasswordAvailable] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordBusy, setPasswordBusy] = useState(false);
+  const [cookie, setCookie] = useState("");
+  const [cookieBusy, setCookieBusy] = useState(false);
   const [code, setCode] = useState("");
   const [expiresAt, setExpiresAt] = useState<number>();
   const origin = useBrowserOrigin();
@@ -58,10 +63,8 @@ export function ConnectDialog({
     void fetch("/api/connect")
       .then((r) => r.json())
       .then((data) => {
-        if (!cancelled) {
-          setLocalAvailable(data.localBrowserAvailable);
-          setMethod(data.mode);
-        }
+        if (!cancelled)
+          setPasswordAvailable(Boolean(data.passwordLoginAvailable));
       })
       .catch(() => {});
     return () => {
@@ -85,7 +88,6 @@ export function ConnectDialog({
           onOpenChange(false);
         } else if (data.status === "pending") {
           setStatus("pending");
-          if (data.method === "remote") setMethod("remote");
         } else if (data.status === "failed") {
           setStatus("idle");
           setCode("");
@@ -110,7 +112,7 @@ export function ConnectDialog({
       const res = await fetch("/api/connect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ instance: url, mode: method }),
+        body: JSON.stringify({ instance: url }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -120,6 +122,52 @@ export function ConnectDialog({
     } catch (e) {
       setStatus("idle");
       setError(e instanceof Error ? e.message : "Could not start sign-in.");
+    }
+  }
+  async function passwordConnect(event: React.FormEvent) {
+    event.preventDefault();
+    setError("");
+    setPasswordBusy(true);
+    try {
+      const res = await fetch("/api/connect/password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ instance: url, username, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not sign in.");
+      setPassword("");
+      // A full navigation clears any previous account's router cache.
+      window.location.replace("/");
+      onOpenChange(false);
+    } catch (e) {
+      setPassword("");
+      setError(e instanceof Error ? e.message : "Could not sign in.");
+    } finally {
+      setPasswordBusy(false);
+    }
+  }
+  async function cookieConnect(event: React.FormEvent) {
+    event.preventDefault();
+    setError("");
+    setCookieBusy(true);
+    try {
+      const res = await fetch("/api/connect/cookie", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ instance: url, cookies: cookie }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not connect.");
+      setCookie("");
+      // A full navigation clears any previous account's router cache.
+      window.location.replace("/");
+      onOpenChange(false);
+    } catch (e) {
+      setCookie("");
+      setError(e instanceof Error ? e.message : "Could not connect.");
+    } finally {
+      setCookieBusy(false);
     }
   }
   async function cancel() {
@@ -144,7 +192,6 @@ export function ConnectDialog({
     }
   }
   const busy = status === "starting" || status === "pending";
-  const remote = method === "remote";
   const command = `bun run connect --server '${origin}'`;
   let originalInstance = instance;
   try {
@@ -161,8 +208,8 @@ export function ConnectDialog({
           </div>
           <DialogTitle>Connect your learning space</DialogTitle>
           <DialogDescription>
-            Sign in directly with your university. Your password stays on their
-            page.
+            Use the helper on your laptop so your university password never
+            reaches this server. You can also paste an existing ILIAS cookie.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={connect}>
@@ -183,54 +230,21 @@ export function ConnectDialog({
                 its installation path if needed. Freiburg is prefilled.
               </FieldDescription>
             </Field>
-            {localAvailable && (
-              <Field>
-                <FieldLabel>Where to sign in</FieldLabel>
-                <ToggleGroup
-                  type="single"
-                  value={method}
-                  onValueChange={(v) => v && setMethod(v)}
-                  variant="outline"
-                  spacing={0}
-                  disabled={busy}
-                  aria-label="Sign-in method"
-                >
-                  <ToggleGroupItem value="remote">
-                    <Laptop />
-                    On my computer
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value="local">
-                    <Monitor />
-                    Server browser
-                  </ToggleGroupItem>
-                </ToggleGroup>
-              </Field>
-            )}
             <div className="flex flex-col gap-4 py-2 text-sm">
               <div className="flex gap-3">
-                {remote ? (
-                  <Laptop className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                ) : (
-                  <Monitor className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                )}
+                <Laptop className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                 <p>
-                  {remote ? (
-                    "Use the helper on your computer to open the real university sign-in. This currently requires Bun and an Achilias checkout on your computer; the server can run without a desktop or browser."
-                  ) : (
-                    <>
-                      A sign-in window opens on the computer running Achilias.
-                      Choose <strong>Anmelden / Login</strong> and complete
-                      myLogin.
-                    </>
-                  )}
+                  Use the helper on your computer to open the real university
+                  sign-in. This currently requires Bun and an Achilias checkout
+                  on your computer; the server runs without a desktop or
+                  browser.
                 </p>
               </div>
               <div className="flex gap-3">
                 <Check className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                 <p>
-                  {remote
-                    ? "Only your ILIAS session is transferred. The server checks it before connecting, and stores it encrypted."
-                    : "Once you reach ILIAS, this page connects automatically. The session is stored encrypted on the server."}
+                  Only your ILIAS session is transferred. The server checks it
+                  before connecting, and stores it encrypted.
                 </p>
               </div>
             </div>
@@ -240,7 +254,7 @@ export function ConnectDialog({
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            {remote && status === "pending" && (
+            {status === "pending" && (
               <>
                 <Field>
                   <FieldLabel htmlFor="helper-command">
@@ -329,22 +343,10 @@ export function ConnectDialog({
                 )}
               </>
             )}
-            {!remote && busy && (
-              <Alert>
-                <Loader2 className="animate-spin" />
-                <AlertTitle>Waiting for university sign-in</AlertTitle>
-                <AlertDescription>
-                  Complete sign-in in the server’s browser window. This can take
-                  up to five minutes.
-                </AlertDescription>
-              </Alert>
-            )}
             {!busy && (
               <Button type="submit" size="lg">
                 <ArrowUpRight data-icon="inline-start" />
-                {remote
-                  ? "Get a connection code"
-                  : "Continue to university sign-in"}
+                Get a connection code
               </Button>
             )}
             {status === "starting" && (
@@ -360,6 +362,112 @@ export function ConnectDialog({
             )}
           </FieldGroup>
         </form>
+        <details className="rounded-lg border p-4">
+          <summary className="flex cursor-pointer items-center gap-2 font-heading text-sm font-medium">
+            <Cookie className="size-4" />
+            Use cookies from your browser
+          </summary>
+          <form onSubmit={cookieConnect} className="mt-4 flex flex-col gap-4">
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              Paste the ILIAS <code>Cookie</code> request header from your
+              browser’s DevTools, or a Playwright storageState/cookie JSON
+              export. Only cookies for the exact ILIAS host are kept, and the
+              server verifies the dashboard before connecting.
+            </p>
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="cookie-value">
+                  Cookie header or JSON export
+                </FieldLabel>
+                <Textarea
+                  id="cookie-value"
+                  rows={4}
+                  value={cookie}
+                  onChange={(e) => setCookie(e.target.value)}
+                  disabled={busy || passwordBusy || cookieBusy}
+                  placeholder="PHPSESSID=…; other=…"
+                  spellCheck={false}
+                  required
+                  className="font-mono text-xs"
+                />
+                <FieldDescription>
+                  Cookies are bearer credentials. Remove any export file after
+                  using it, and disconnect when finished.
+                </FieldDescription>
+              </Field>
+              <Button
+                type="submit"
+                variant="outline"
+                disabled={busy || passwordBusy || cookieBusy || !url}
+              >
+                {cookieBusy ? (
+                  <Loader2 data-icon="inline-start" className="animate-spin" />
+                ) : (
+                  <Cookie data-icon="inline-start" />
+                )}
+                {cookieBusy ? "Verifying cookies…" : "Connect with cookies"}
+              </Button>
+            </FieldGroup>
+          </form>
+        </details>
+        {passwordAvailable && (
+          <form
+            onSubmit={passwordConnect}
+            className="flex flex-col gap-4 rounded-lg border p-4"
+          >
+            <div>
+              <h3 className="font-heading text-sm font-medium">
+                Use your university password
+              </h3>
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                Only enable this on a server you control. Achilias sends these
+                credentials to your university’s sign-in page, uses them once,
+                and never stores them. Accounts with a second factor must use
+                the browser helper.
+              </p>
+            </div>
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="university-username">
+                  University username
+                </FieldLabel>
+                <Input
+                  id="university-username"
+                  autoComplete="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  disabled={passwordBusy || busy || cookieBusy}
+                  required
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="university-password">Password</FieldLabel>
+                <Input
+                  id="university-password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={passwordBusy || busy || cookieBusy}
+                  required
+                />
+              </Field>
+              <Button
+                type="submit"
+                disabled={passwordBusy || busy || cookieBusy || !url}
+              >
+                {passwordBusy ? (
+                  <Loader2 data-icon="inline-start" className="animate-spin" />
+                ) : (
+                  <KeyRound data-icon="inline-start" />
+                )}
+                {passwordBusy
+                  ? "Signing in…"
+                  : "Sign in with university account"}
+              </Button>
+            </FieldGroup>
+          </form>
+        )}
         <ParsedHtmlNotice
           feature="connection"
           sourceUrl={loginUrl(originalInstance)}

@@ -4,9 +4,11 @@ Achilias supports independent users on one server process. Each browser profile 
 
 ## Sign-in experience
 
-Users enter their instance URL in **Connect your learning space**, request a connection code, and run the laptop helper shown there. The helper opens their university’s real login/SSO page and transfers only that ILIAS instance’s cookies to their browser’s pending server session. Users enter their university credentials on the university page; Achilias has no password form. A public deployment always uses this helper and cannot launch a shared server browser.
+The server never launches a browser. Users enter their instance URL in **Connect your learning space** and either request a connection code for the laptop helper or paste an existing ILIAS cookie. The helper opens their university’s real login/SSO page and transfers only that ILIAS instance’s cookies to their browser’s pending server session. The direct cookie form accepts a `Cookie` header or a Playwright/cookie JSON export; the server keeps only exact-instance cookies and verifies the dashboard before connecting. Users enter their university credentials on the university page; by default, Achilias has no password form.
 
-This means sign-in currently requires Bun, this checkout, and the browser helper on the user’s computer. It is **not a browser-only login service**. Native university SSO cannot simply be embedded into a third-party origin. Session portability, MFA and IP-binding depend on the instance; the README documents the optional SOCKS workaround. Confirm the flow with a real test account before inviting users.
+By default, sign-in requires Bun, this checkout, and the browser helper on the user’s computer. It is **not a browser-only login service**. Native university SSO cannot simply be embedded into a third-party origin. Session portability, MFA and IP-binding depend on the instance; the README documents the optional SOCKS workaround. Confirm the flow with a real test account before inviting users.
+
+A single-user deployment can opt into `ACHILIAS_PASSWORD_LOGIN=true`. In that mode the server receives the username and password in memory, submits the instance’s real myLogin/IdP form over HTTPS, and stores only the resulting ILIAS cookies. It is disabled by default, restricted to configured instances, and should never be enabled on a shared or public deployment: the operator can see credentials that may unlock more than ILIAS, and credential proxying may violate the university’s SSO terms. MFA and JavaScript-only sign-in pages are not supported.
 
 ## Run behind HTTPS
 
@@ -22,7 +24,6 @@ Set these in `.env.local` before building/starting, replacing the example origin
 
 ```dotenv
 ACHILIAS_ORIGIN=https://learn.example.org
-ACHILIAS_LOGIN_MODE=remote
 ACHILIAS_DATA_DIR=/var/lib/achilias
 # Only enable behind a trusted proxy that overwrites X-Forwarded-For.
 ACHILIAS_TRUST_PROXY=true

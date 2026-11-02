@@ -8,7 +8,7 @@ Live changes are **disabled by default**. Browse locally first and compare the p
 
 ## Multiple users and instances
 
-One server process supports separate user sessions and user-entered public HTTPS ILIAS base URLs. University sign-in uses the helper on each user’s computer; it currently requires Bun and this checkout, rather than a browser-only password form. See the [multi-user deployment guide](docs/deployment.md) for HTTPS/proxy configuration, account isolation, supported instance policy, and the single-process limit.
+One server process supports separate user sessions and user-entered public HTTPS ILIAS base URLs. By default, university sign-in uses the helper on each user’s computer and requires Bun and this checkout rather than a browser-only password form. Users can also paste an existing ILIAS cookie, and a single-user deployment can opt into the local password form described below. See the [multi-user deployment guide](docs/deployment.md) for HTTPS/proxy configuration, account isolation, supported instance policy, and the single-process limit.
 
 ## Screenshots
 
@@ -112,13 +112,22 @@ The course and forum screens below use the demo workspace. All course names, mat
 
 ```sh
 bun install
-bun run browser:install
 bun run dev --hostname 127.0.0.1
 ```
 
-Open **http://127.0.0.1:3000**. Choose **Connect your ILIAS**. On a desktop server, the **Server browser** method opens a Chromium window there. Headless servers default to **On my computer**, described below. On Freiburg’s real ILIAS page, select **Anmelden / Login**, complete **myLogin**, and wait until you reach ILIAS. Achilias connects automatically. No university password is entered into Achilias.
+Open **http://127.0.0.1:3000**. Choose **Connect your ILIAS**. Achilias never launches a server browser. The primary path is the helper on your laptop: it opens the real university sign-in and transfers only the resulting ILIAS cookies. On Freiburg’s real ILIAS page, select **Anmelden / Login**, complete **myLogin**, and wait until you reach ILIAS. Achilias connects automatically. By default, no university password is entered into Achilias. You can also paste an existing ILIAS cookie or, on a single-user machine, enable the password form below.
 
-The **Server browser** method needs a desktop display and has a five-minute timeout. **On my computer** needs neither a server display nor server Chromium; its temporary connection code lasts ten minutes. Cancel and retry from the dialog if needed.
+The helper needs Bun, an Achilias checkout, and Chromium on your laptop. Its temporary connection code lasts ten minutes. The server itself needs neither a display nor Chromium. Cancel and retry from the dialog if needed.
+
+### Optional password sign-in
+
+On a machine only you control, set `ACHILIAS_PASSWORD_LOGIN=true` in `.env.local` to show a username/password form in the connection dialog. The server submits your university’s real myLogin form over HTTPS and keeps only the resulting ILIAS session cookies. The password is used in memory for that request and is never written to the session store or logs.
+
+This mode is disabled by default and only accepts the configured instances (Freiburg plus `ILIAS_INSTANCES`). Do **not** enable it on a shared or public deployment: the server sees your university password, which may unlock more than ILIAS, and myLogin/SSO terms may prohibit credential proxying. Accounts that require MFA, or a sign-in page that changes to JavaScript-only, must use the browser helper.
+
+### Cookie import
+
+In the connection dialog, expand **Use cookies from your browser** and paste either the ILIAS `Cookie` request header from DevTools or a Playwright storageState/cookie JSON export. Achilias keeps only cookies for the exact ILIAS host, verifies the dashboard from the server, and stores the session encrypted. Cookies are bearer credentials: remove any export file after use and disconnect when finished. A server that cannot reach the same ILIAS network as your browser may reject the session.
 
 Try **http://127.0.0.1:3000/?demo=1** without an account. Example courses, activities, and PDFs are explicitly marked as demo content. Demo bookmarks are isolated from connected accounts.
 
@@ -141,7 +150,7 @@ Learner submission/upload, advanced exercise workflows, tests, wikis, learning m
 
 The dashboard adapter reads the courses and groups ILIAS exposes on your dashboard. If a course is missing, add it to the dashboard in ILIAS. This first version does not crawl every enrollment or invent deadlines/progress from incomplete data. New or custom themes may require selector changes. A course always retains an **Open in ILIAS** link.
 
-The temporary sign-in browser and your normal browser have separate cookie stores. Opening original ILIAS links in your normal browser can require another university sign-in.
+The helper’s sign-in browser and your normal browser have separate cookie stores. Opening original ILIAS links in your normal browser can require another university sign-in.
 
 ## Reading forums
 
@@ -184,17 +193,16 @@ See the [measurements, limitations, and reproduction steps](docs/performance/REA
 
 The server can run without a display, Xvfb, VNC, or Chromium. You complete Freiburg’s interactive myLogin step on your laptop, then the helper transfers only the resulting ILIAS cookies to the server. University passwords and identity-provider cookies are not transferred. The server validates the dashboard from its own network before connecting your account.
 
-On the server, install dependencies, build, and start the app. `bun run browser:install` is **not needed on the server** for this method. Set these in its `.env.local` when serving over HTTPS:
+On the server, install dependencies, build, and start the app. The server never needs a display or Chromium. Set these in its `.env.local` when serving over HTTPS:
 
 ```dotenv
-ACHILIAS_LOGIN_MODE=remote
 ACHILIAS_ORIGIN=https://your-achilias.example
 ACHILIAS_SECURE_COOKIE=true
 ```
 
-On Linux, `auto` mode already chooses remote sign-in when neither `DISPLAY` nor `WAYLAND_DISPLAY` is set. The explicit setting is useful for containers and services. Bind the server to loopback behind your reverse proxy and keep the private data directory persistent.
+Bind the server to loopback behind your reverse proxy and keep the private data directory persistent.
 
-1. Open Achilias in your normal browser, choose **Connect your ILIAS**, then **On my computer** if a method chooser is shown. Select **Get a connection code**.
+1. Open Achilias in your normal browser, choose **Connect your ILIAS**, and select **Get a connection code**.
 2. On your laptop, use an Achilias checkout, run `bun install` and `bun run browser:install` once, then run the helper command shown in the dialog:
 
    ```sh
@@ -203,7 +211,7 @@ On Linux, `auto` mode already chooses remote sign-in when neither `DISPLAY` nor 
 
 3. Paste the code into the helper’s terminal prompt. It is read from stdin, rather than a shell argument or URL. Complete myLogin in the local browser window. Achilias connects automatically when the server verifies the transferred session.
 
-No shared filesystem or cookie-export file is needed. The code is bound to the browser connection that requested it, expires after ten minutes, and cannot be reused after success. Cancelling the connection or generating a new code invalidates the old code. The helper sends codes in an Authorization header, refuses redirects, and accepts only HTTPS or loopback HTTP. You need to repeat sign-in after the ILIAS/Achilias session expires; this is not unattended password-based login.
+No shared filesystem or cookie-export file is needed. The code is bound to the browser connection that requested it, expires after ten minutes, and cannot be reused after success. Cancelling the connection or generating a new code invalidates the old code. The helper sends codes in an Authorization header, refuses redirects, and accepts only HTTPS or loopback HTTP. You need to repeat sign-in after the ILIAS/Achilias session expires; the helper flow is not unattended password-based login. (The optional local password form is separate and requires `ACHILIAS_PASSWORD_LOGIN=true`.)
 
 ### Using SSH, including IP-bound sessions
 
@@ -213,7 +221,7 @@ You can keep the app private and avoid setting up public HTTPS by forwarding it 
 ssh -N -L 3000:127.0.0.1:3000 -D 1080 user@your-server
 ```
 
-Open **http://127.0.0.1:3000** in your normal browser. On the server, use `ACHILIAS_LOGIN_MODE=remote`; leave `ACHILIAS_SECURE_COOKIE` unset for loopback HTTP and set `ACHILIAS_ORIGIN=http://127.0.0.1:3000` if you configure an origin explicitly. The external connection is protected by SSH.
+Open **http://127.0.0.1:3000** in your normal browser. Leave `ACHILIAS_SECURE_COOKIE` unset for loopback HTTP and set `ACHILIAS_ORIGIN=http://127.0.0.1:3000` if you configure an origin explicitly. The external connection is protected by SSH.
 
 If ILIAS rejects a transferred session because login and server requests originate from different IPs, use the same SSH tunnel as a SOCKS proxy for the helper’s university browser:
 
@@ -258,8 +266,7 @@ Copy `.env.example` to `.env.local` when changing defaults. Bun loads `.env.loca
 | `ACHILIAS_DATA_DIR`           | Directory for encrypted sessions and the encryption key. Default: `.local/` in the checkout.                                                                                                                                 |
 | `ACHILIAS_ORIGIN`             | Exact browser-visible app origin for mutation origin checks, especially behind a reverse proxy. Defaults to the local browser-visible host; configure this explicitly for remote use.                                        |
 | `ACHILIAS_SECURE_COOKIE`      | Automatically enabled for an HTTPS `ACHILIAS_ORIGIN`; set `true` to force it. Leave unset for local HTTP.                                                                                                                    |
-| `ACHILIAS_LOGIN_MODE`         | `auto` (default), `local`, or `remote`. `remote` uses the laptop helper. Public HTTPS origins always use remote mode.                                                                                                        |
-| `ACHILIAS_BROWSER_PATH`       | Optional path to a compatible local Chromium executable.                                                                                                                                                                     |
+| `ACHILIAS_PASSWORD_LOGIN`     | Set `true` to enable the opt-in university password form. Disabled by default; only use on a single-user server you control.                                                                                                  |
 | `ACHILIAS_BUILD_DIR`          | Optional separate build output directory, useful while `next dev` is running.                                                                                                                                                |
 
 Restart the server after configuration changes. Additional instances appear through the URL field in the connection dialog; their specific themes/authentication have not been verified.

@@ -86,20 +86,9 @@ try {
       heading: "Less friction. More learning.",
       dialog: true,
       prepare: async (page) => {
-        const capabilities = page.waitForResponse(
-          (response) =>
-            new URL(response.url()).pathname === "/api/connect" &&
-            response.request().method() === "GET",
-        );
         await page
           .getByRole("button", { name: "Connect your ILIAS", exact: true })
           .click();
-        const { localBrowserAvailable } = await (await capabilities).json();
-        if (localBrowserAvailable) {
-          await page
-            .getByRole("radio", { name: "On my computer", exact: true })
-            .click();
-        }
         await page
           .getByRole("button", { name: "Get a connection code", exact: true })
           .waitFor();

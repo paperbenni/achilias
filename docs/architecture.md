@@ -16,7 +16,8 @@ Routes orchestrate server loaders; loaders adapt ILIAS into typed data; feature 
 | ILIAS HTML adaptation and forum body sanitization                                    | `src/lib/ilias/parser.ts`, `forum-parser.ts`                             |
 | Authenticated requests, redirect boundaries, and cookie rotation                     | `src/lib/ilias/client.ts`                                                |
 | Session encryption, cookies, claims, and per-session locks                           | `src/lib/ilias/session.ts`                                               |
-| Sign-in windows and laptop helper transfers                                          | `login.ts`, `browser-login.ts`, `remote-login.ts`, `remote-client.ts`    |
+| Laptop helper and direct cookie sign-in                                              | `scripts/browser-login.ts` (helper), `remote-login.ts`, `remote-client.ts`, `cookie-login.ts` |
+| Opt-in myLogin form sign-in over HTTP                                                 | `password-login.ts`, `app/api/connect/password`                          |
 | Object labels, support classification, identity, and destinations                    | `src/lib/ilias/items.ts`                                                 |
 | Shared reference/thread/post ID validation                                           | `src/lib/ilias/identifiers.ts`                                           |
 | Saved/recent item validation, merging, and updates                                   | `src/lib/ilias/library.ts`                                               |
@@ -48,9 +49,9 @@ Saved items and recent history are scoped to a connection's hashed storage key, 
 
 ## Session coordination
 
-Single-use local connection claims, local and remote sign-in completion, cookie rotation writes, and deletion share `withSessionLock`, keyed by session ID. Claims reread and consume the token while holding that lock. Local sign-in completion verifies that the session is still pending. Cookie writes merge only the response’s changes into the latest jar, preserving concurrent rotations and refusing to recreate a deleted session. The shared pairing parser defines the wire format for both local links and helper codes; their distinct authorization and expiry checks remain in the owning service.
+Single-use local connection claims, helper and direct-cookie sign-in completion, cookie rotation writes, and deletion share `withSessionLock`, keyed by session ID. Claims reread and consume the token while holding that lock. Helper completion verifies that the session is still pending. Cookie writes merge only the response’s changes into the latest jar, preserving concurrent rotations and refusing to recreate a deleted session. The shared pairing parser defines the wire format for both the same-machine link and helper codes; their distinct authorization and expiry checks remain in the owning service.
 
-These locks coordinate one server process (including its development reloads). The encrypted file store and in-process sign-in jobs are intended for a single server deployment. Multiple replicas would require a shared session store and distributed coordination.
+These locks coordinate one server process (including its development reloads). The encrypted file store and in-process sign-in limits are intended for a single server deployment. Multiple replicas would require a shared session store and distributed coordination.
 
 ## Verification
 

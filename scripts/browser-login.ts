@@ -1,7 +1,7 @@
 import { chromium, type Browser } from "playwright";
-import { loginUrl } from "./config";
-import { parsePage } from "./parser";
-import { importInstanceCookies } from "./cookie-import";
+import { loginUrl } from "../src/lib/ilias/config";
+import { parsePage } from "../src/lib/ilias/parser";
+import { importInstanceCookies } from "../src/lib/ilias/cookie-import";
 export async function browserLogin(
   instance: string,
   options: {

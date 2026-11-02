@@ -1,3 +1,4 @@
+import { parsePage } from "../src/lib/ilias/parser";
 import { expect, test } from "bun:test";
 import { downloadResponse } from "../src/lib/ilias/download";
 import { fileName } from "../src/lib/file-disposition";
@@ -117,4 +118,11 @@ test("file opening URLs are native viewer targets and ordinary navigation stays 
   expect(itemOpenHref(item)).toBe("/api/files/301?view=1");
   expect(itemOpenHref(item, true)).toBe("/api/files/301?demo=1&view=1");
   expect(itemOpenHref({ ...item, type: "crs" })).toBe("/browse/crs/301");
+  // ILIAS also uses file_inline icons and controller URLs, without a .pdf title.
+  const parsed = parsePage(
+    '<div class="ilContainerListItemOuter" id="lg_div_42"><img class="ilListItemIcon" src="icon_file_inline.svg"><h3><a class="il_ContainerItemTitle" href="ilias.php?ref_id=42&amp;baseClass=ilObjFileGUI&amp;cmd=sendfile">Lecture slides</a></h3></div>',
+    "https://ilias.uni-freiburg.de/ilias.php",
+  ).items[0];
+  expect(parsed.type).toBe("file");
+  expect(itemOpenHref(parsed)).toBe("/api/files/42?view=1");
 });

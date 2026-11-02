@@ -11,11 +11,9 @@ try {
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(origin + "/browse/crs/101?demo=1");
   await page
-    .getByRole("button", { name: "Save Exercises / Übungen", exact: true })
+    .getByRole("button", { name: "Bookmark Exercises / Übungen", exact: true })
     .click();
-  await page
-    .getByRole("link", { name: "Bookmarks", exact: true })
-    .click();
+  await page.getByRole("link", { name: "Bookmarks", exact: true }).click();
   await page
     .getByRole("heading", { name: "Bookmarks.", exact: true })
     .waitFor();

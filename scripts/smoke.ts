@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { newPairing } from "../src/lib/ilias/pairing";
 import { saveSession, deleteSession } from "../src/lib/ilias/session";
 const origin = process.env.ACHILIAS_TEST_URL || "http://127.0.0.1:3000";
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ channel: "chromium", headless: true });
 const errors: string[] = [];
 const testSessionId = randomUUID();
 try {
@@ -158,7 +158,7 @@ try {
     .getByRole("link", { name: "01 — Getting started.pdf", exact: true })
     .click();
   const pdfPage = await pdfOpened;
-  await pdfPage.waitForURL(/\/api\/files\/.*view=1/);
+  await pdfPage.waitForURL(/\/api\/files\/.*view=1/, { waitUntil: "commit" });
   assert.equal(await page.getByRole("dialog").count(), 0);
   const response = await context.request.get(pdfPage.url());
   assert.match(response.headers()["content-disposition"], /^inline/);

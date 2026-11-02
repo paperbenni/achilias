@@ -62,7 +62,9 @@ try {
     .first()
     .click();
   const searchPdf = await searchOpened;
-  await searchPdf.waitForURL(/\/api\/files\/301.*view=1/);
+  await searchPdf.waitForURL(/\/api\/files\/301.*view=1/, {
+    waitUntil: "commit",
+  });
   await searchPdf.close();
   await page.setViewportSize({ width: 390, height: 844 });
   await page

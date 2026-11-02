@@ -33,7 +33,13 @@ export async function downloadResponse(
   headers.set("Content-Type", pdf ? "application/pdf" : type);
   headers.set(
     "Content-Disposition",
-    fileDisposition(original, pdf ? `${fallbackName}.pdf` : fallbackName, pdf),
+    fileDisposition(
+      original,
+      pdf && !fallbackName.toLowerCase().endsWith(".pdf")
+        ? `${fallbackName}.pdf`
+        : fallbackName,
+      pdf,
+    ),
   );
   return new Response(body, { headers });
 }

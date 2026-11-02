@@ -22,6 +22,15 @@ import {
 import { isSupportedItemType, itemKey, typeNames } from "@/lib/ilias/items";
 import type { Item } from "@/lib/ilias/types";
 import { cn } from "@/lib/utils";
+import {
+  Item as ResourceItem,
+  ItemGroup,
+  ItemMedia,
+  ItemContent,
+  ItemTitle,
+  ItemDescription,
+  ItemActions,
+} from "@/components/ui/item";
 import { ItemAction } from "@/components/navigation/item-action";
 
 import { iconFor } from "./item-icon";
@@ -45,7 +54,8 @@ export function ItemList({
   onToggleSave: (item: Item) => void;
 }) {
   return (
-    <div
+    <ItemGroup
+      aria-label="Learning resources"
       className={cn(
         grid && layout === "grid"
           ? "grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
@@ -56,7 +66,11 @@ export function ItemList({
         const Icon = iconFor(item.type);
         const isSaved = saved.some((i) => itemKey(i) === itemKey(item));
         return grid && layout === "grid" ? (
-          <Card key={itemKey(item)} className="course-card group">
+          <Card
+            key={itemKey(item)}
+            role="listitem"
+            className="course-card group"
+          >
             <CardHeader>
               <div className="mb-5 flex items-start justify-between">
                 <span className="course-monogram" data-tone={index % 3}>
@@ -120,65 +134,71 @@ export function ItemList({
             </CardFooter>
           </Card>
         ) : (
-          <div
+          <ResourceItem
             key={itemKey(item)}
-            className="resource-row group flex min-w-0 items-center gap-3 rounded-xl border px-4 py-3"
+            role="listitem"
+            variant="outline"
+            className="resource-row min-w-0 flex-nowrap"
           >
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-primary">
-              <Icon className="size-5" />
-            </span>
-            <div className="min-w-0 flex-1">
+            <ItemMedia variant="icon">
+              <Icon />
+            </ItemMedia>
+            <ItemContent className="min-w-0">
+              <ItemTitle className="max-w-full">
+                <ItemAction
+                  variant="link"
+                  className="resource-title"
+                  item={item}
+                  demo={demo}
+                  onOpen={onOpen}
+                  onVisit={onVisit}
+                >
+                  {item.title}
+                </ItemAction>
+              </ItemTitle>
+              <ItemDescription className="line-clamp-1">
+                {item.meta ||
+                  item.description ||
+                  typeNames[item.type] ||
+                  item.type}
+              </ItemDescription>
+            </ItemContent>
+            <ItemActions>
+              {!item.available ? (
+                <Badge variant="outline">Restricted</Badge>
+              ) : !isSupportedItemType(item.type) ? (
+                <Badge variant="outline" className="hidden sm:inline-flex">
+                  In ILIAS <ArrowUpRight />
+                </Badge>
+              ) : (
+                <Badge variant="secondary" className="hidden sm:inline-flex">
+                  {typeNames[item.type]}
+                </Badge>
+              )}
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => onToggleSave(item)}
+                aria-label={`${isSaved ? "Unsave" : "Save"} ${item.title}`}
+                aria-pressed={isSaved}
+              >
+                <Bookmark className={cn(isSaved && "fill-current")} />
+              </Button>
               <ItemAction
-                variant="link"
-                className="resource-title"
+                variant="ghost"
+                size="icon-sm"
+                aria-label={`Open ${item.title}`}
                 item={item}
                 demo={demo}
                 onOpen={onOpen}
                 onVisit={onVisit}
               >
-                {item.title}
+                <ChevronRight />
               </ItemAction>
-              <p className="truncate text-xs text-muted-foreground">
-                {item.meta ||
-                  item.description ||
-                  typeNames[item.type] ||
-                  item.type}
-              </p>
-            </div>
-            {!item.available ? (
-              <Badge variant="outline">Restricted</Badge>
-            ) : !isSupportedItemType(item.type) ? (
-              <Badge variant="outline" className="hidden sm:inline-flex">
-                In ILIAS <ArrowUpRight />
-              </Badge>
-            ) : (
-              <Badge variant="secondary" className="hidden sm:inline-flex">
-                {typeNames[item.type]}
-              </Badge>
-            )}
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => onToggleSave(item)}
-              aria-label={`${isSaved ? "Unsave" : "Save"} ${item.title}`}
-              aria-pressed={isSaved}
-            >
-              <Bookmark className={cn(isSaved && "fill-current")} />
-            </Button>
-            <ItemAction
-              variant="ghost"
-              size="icon-sm"
-              aria-label={`Open ${item.title}`}
-              item={item}
-              demo={demo}
-              onOpen={onOpen}
-              onVisit={onVisit}
-            >
-              <ChevronRight />
-            </ItemAction>
-          </div>
+            </ItemActions>
+          </ResourceItem>
         );
       })}
-    </div>
+    </ItemGroup>
   );
 }

@@ -98,7 +98,7 @@ export function Navigation({
   const { setOpenMobile } = useSidebar();
   const suffix = data.mode === "demo" ? "?demo=1" : "";
   return (
-    <Sidebar collapsible="offcanvas">
+    <Sidebar collapsible="offcanvas" role="navigation" aria-label="Workspace">
       <SidebarHeader className="px-5 pt-7 pb-6">
         <Brand demo={data.mode === "demo"} />
         <div className="mt-5 flex items-center gap-2.5 rounded-lg border bg-background px-3 py-3">

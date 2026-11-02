@@ -188,6 +188,7 @@ University identity-provider cookies are not copied into the ILIAS adapter. Remo
 ## Development and verification
 
 ```sh
+bun run lint
 bun run typecheck
 bun run test
 # Start the dev server first, then:
@@ -197,7 +198,7 @@ bun run build
 bun run start --hostname 127.0.0.1
 ```
 
-`bun run test` checks ILIAS template parsing, restricted/unsupported content, cookie rotation, redirect credential boundaries, expired sessions, pairing validation, and encrypted session persistence. Forum fixtures follow the ILIAS 10 standard-item and post templates and check counts, hierarchy, sanitization, drafts, permissions, pagination, and action scoping. `bun run test:e2e` checks the demo flows in Chromium, including download, bookmarks across reloads, quick search, mobile navigation, single-use connection claims, session expiry, and reconnect/disconnect behavior. The last checks use a deliberately credential-free test session against the public Freiburg endpoint; they do not sign in to a real account. `bun run test:forums` runs the forum browser checks alone, including filters, reply context, post search, unread jumps, copied links, read-state persistence in the demo, closed topics, and mobile layouts. `bun run test:headless` exercises the pairing UI, code renewal/cancellation, remote CLI over stdin, and rejection of an unauthenticated transfer. Unit tests mock successful validation to check replay protection and cancellation races; no real account is used. For production navigation, run `bun run test:navigation` and `bun run benchmark:navigation` against a production preview (port 3001 by default). Set `ACHILIAS_TEST_URL` to test another local port.
+`bun run test` checks browser-store synchronization, restored-item validation, current-data precedence, object capabilities, concurrent connection claims, cookie-update and disconnect races, ILIAS template parsing, restricted/unsupported content, cookie rotation, redirect credential boundaries, expired sessions, pairing validation, and encrypted session persistence. Forum fixtures follow the ILIAS 10 standard-item and post templates and check counts, hierarchy, sanitization, drafts, permissions, pagination, and action scoping. `bun run test:e2e` checks the demo flows in Chromium, including download, bookmarks across reloads and tabs, quick search, mobile navigation, single-use connection claims, session expiry, and reconnect/disconnect behavior. The last checks use a deliberately credential-free test session against the public Freiburg endpoint; they do not sign in to a real account. `bun run test:forums` runs the forum browser checks alone, including filters, reply context, post search, unread jumps, copied links, read-state persistence in the demo, closed topics, and mobile layouts. `bun run test:headless` exercises the pairing UI, code renewal/cancellation, remote CLI over stdin, and rejection of an unauthenticated transfer. Unit tests mock successful validation to check replay protection and cancellation races; no real account is used. For production navigation, run `bun run test:navigation` and `bun run benchmark:navigation` against a production preview (port 3001 by default). Set `ACHILIAS_TEST_URL` to test another local port.
 
 While `next dev` is running, use `ACHILIAS_BUILD_DIR=.next-build bun run build` to preserve its `.next` directory. Start that build with the same variable if you want to run it.
 
@@ -217,4 +218,4 @@ Reference sources:
 
 ### Code map
 
-`src/lib/ilias/parser.ts` owns ILIAS DOM adaptation. `forum-parser.ts` adapts the ILIAS forum pages and sanitizes posts, `forum.ts` resolves authenticated forum navigation, and `src/components/forums` renders the discussion reader. `client.ts` owns authenticated requests and redirects. `session.ts`, `login.ts`, and `pairing.ts` own session storage and browser sign-in. `src/app` contains server-rendered routes and API handlers. `src/components/workspace` composes the application interface from CLI-installed shadcn primitives in `src/components/ui`. Upstream ILIAS code is reference material, not vendored into the app.
+See [code organization and feature development](docs/architecture.md) for the module map, shared object capabilities, browser-state rules, session coordination, and verification guidance. The workspace composes separate navigation, resource-list, and settings components from CLI-installed shadcn primitives. Course and forum loaders share account context, while their parsers own the upstream HTML adaptation. Upstream ILIAS code is reference material, not vendored into the app.

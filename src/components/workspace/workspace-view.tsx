@@ -277,8 +277,9 @@ export function WorkspaceView({
             )}
           </div>
         </header>
-        <main
+        <div
           id="main-content"
+          tabIndex={-1}
           className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-5 py-8 lg:px-10 lg:py-10"
         >
           {demo && (
@@ -806,7 +807,7 @@ export function WorkspaceView({
                   : "Built for the everyday."}
             </span>
           </footer>
-        </main>
+        </div>
       </SidebarInset>
       <CommandDialog
         open={searchOpen}

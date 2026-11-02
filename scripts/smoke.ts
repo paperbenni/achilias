@@ -26,13 +26,35 @@ try {
     .getByRole("link", { name: "Saved for later", exact: true })
     .click();
   await page
+    .getByRole("heading", { name: "Saved for later.", exact: true })
+    .waitFor();
+  await page
     .getByRole("link", { name: "Linear Algebra I", exact: true })
     .waitFor();
   await page.reload();
   await page
     .getByRole("link", { name: "Linear Algebra I", exact: true })
     .waitFor();
+  // A second tab must update the already-mounted Saved screen immediately.
+  const otherTab = await context.newPage();
+  await otherTab.goto(origin + "/?demo=1");
+  await otherTab
+    .getByRole("button", { name: "Unsave Linear Algebra I", exact: true })
+    .click();
+  await page
+    .getByRole("link", { name: "Linear Algebra I", exact: true })
+    .waitFor({ state: "hidden" });
+  await otherTab
+    .getByRole("button", { name: "Save Linear Algebra I", exact: true })
+    .click();
+  await page
+    .getByRole("link", { name: "Linear Algebra I", exact: true })
+    .waitFor();
+  await otherTab.close();
   await page.getByRole("link", { name: "Overview", exact: true }).click();
+  await page
+    .getByRole("heading", { name: "Welcome back, Alex.", exact: true })
+    .waitFor();
   await page
     .getByRole("textbox", { name: "Filter courses and materials" })
     .fill("interaction");
@@ -169,7 +191,7 @@ try {
   );
   assert.deepEqual(errors, []);
   console.log(
-    "Passed: onboarding, navigation, saved-item persistence, filtering, list view, course tabs, activity handoff, folders, PDF download, quick search, mobile navigation/layout, API origin checks, unauthenticated download, invalid pairing, one-time connection claim, expired-session state, reconnect dialog, disconnect.",
+    "Passed: onboarding, navigation, saved-item persistence and cross-tab synchronization, filtering, list view, course tabs, activity handoff, folders, PDF download, quick search, mobile navigation/layout, API origin checks, unauthenticated download, invalid pairing, one-time connection claim, expired-session state, reconnect dialog, disconnect.",
   );
 } finally {
   await deleteSession(testSessionId);

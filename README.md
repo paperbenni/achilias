@@ -22,6 +22,15 @@ The course and forum screens below use the demo workspace. All course names, mat
 
 ![Demo overview showing four course cards, search, and bookmarks](docs/screenshots/overview.png)
 
+<details>
+<summary>Dark mode</summary>
+
+![Dark demo overview with readable course cards and navigation](docs/screenshots/overview-dark.png)
+
+Choose **Light**, **Dark**, or **System** from the account menu at the bottom of the sidebar. Before connecting, use **Appearance** in the same place. The preference stays on this browser and follows the operating system when set to System.
+
+</details>
+
 **Materials and activities in one place**
 
 ![Demo course showing folders, a downloadable file, and activities labeled as available in ILIAS](docs/screenshots/course.png)
@@ -266,7 +275,7 @@ Copy `.env.example` to `.env.local` when changing defaults. Bun loads `.env.loca
 | `ACHILIAS_DATA_DIR`           | Directory for encrypted sessions and the encryption key. Default: `.local/` in the checkout.                                                                                                                                 |
 | `ACHILIAS_ORIGIN`             | Exact browser-visible app origin for mutation origin checks, especially behind a reverse proxy. Defaults to the local browser-visible host; configure this explicitly for remote use.                                        |
 | `ACHILIAS_SECURE_COOKIE`      | Automatically enabled for an HTTPS `ACHILIAS_ORIGIN`; set `true` to force it. Leave unset for local HTTP.                                                                                                                    |
-| `ACHILIAS_PASSWORD_LOGIN`     | Set `true` to enable the opt-in university password form. Disabled by default; only use on a single-user server you control.                                                                                                  |
+| `ACHILIAS_PASSWORD_LOGIN`     | Set `true` to enable the opt-in university password form. Disabled by default; only use on a single-user server you control.                                                                                                 |
 | `ACHILIAS_BUILD_DIR`          | Optional separate build output directory, useful while `next dev` is running.                                                                                                                                                |
 
 Restart the server after configuration changes. Additional instances appear through the URL field in the connection dialog; their specific themes/authentication have not been verified.
@@ -323,3 +332,5 @@ Reference sources:
 ### Code map
 
 See [code organization and feature development](docs/architecture.md) for the module map, shared object capabilities, browser-state rules, session coordination, and verification guidance. The workspace composes separate navigation, resource-list, and settings components from CLI-installed shadcn primitives. Course and forum loaders share account context, while their parsers own the upstream HTML adaptation. Upstream ILIAS code is reference material, not vendored into the app.
+
+PDF titles open a new browser tab through the authenticated file proxy, including from saved items and quick search. The proxy checks the actual PDF signature before allowing inline display; other content remains an attachment. No custom PDF viewer or PDF parsing service is used. Browser PDF settings can still choose downloading instead of previewing. `bun run test:pdf-theme` checks native Chromium preview plus theme persistence, system preference, cross-tab updates and mobile access.

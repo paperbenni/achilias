@@ -24,6 +24,14 @@ try {
     },
     { file: "overview.png", path: "/?demo=1", heading: "Overview" },
     {
+      file: "overview-dark.png",
+      path: "/?demo=1",
+      heading: "Overview",
+      setup: async (page) => {
+        await page.addInitScript(() => localStorage.setItem("theme", "dark"));
+      },
+    },
+    {
       file: "course.png",
       path: "/browse/crs/101?demo=1",
       heading: "Introduction to Computer Science",
@@ -65,7 +73,7 @@ try {
           "Questions & discussion",
         ]) {
           await page
-            .getByRole("button", { name: `Save ${title}`, exact: true })
+            .getByRole("button", { name: `Bookmark ${title}`, exact: true })
             .click();
         }
       },

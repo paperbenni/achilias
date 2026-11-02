@@ -29,9 +29,25 @@ try {
       heading: "Introduction to Computer Science",
     },
     {
+      file: "forum.png",
+      path: "/forums/402?demo=1",
+      heading: "Questions & discussion",
+    },
+    {
+      file: "thread.png",
+      path: "/forums/402/threads/902?demo=1",
+      heading: "Why does binary search need a sorted array?",
+    },
+    {
       file: "mobile-course.png",
       path: "/browse/crs/101?demo=1",
       heading: "Introduction to Computer Science",
+      mobile: true,
+    },
+    {
+      file: "mobile-forum.png",
+      path: "/forums/402?demo=1",
+      heading: "Questions & discussion",
       mobile: true,
     },
   ];

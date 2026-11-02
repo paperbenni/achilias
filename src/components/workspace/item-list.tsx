@@ -142,22 +142,26 @@ export function ItemList({
                 </ItemAction>
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="line-clamp-2 min-h-10 text-sm leading-relaxed text-muted-foreground">
-                {cardSummary ||
-                  (item.type === "webr"
-                    ? "Open this website in a new tab."
-                    : "Open this learning space to find your materials.")}
-              </p>
-              {item.context && (
-                <p
-                  className="mt-2 line-clamp-1 text-xs text-muted-foreground/80"
-                  title={item.context}
-                >
-                  {item.context}
-                </p>
-              )}
-            </CardContent>
+            {(cardSummary || item.context) && (
+              <CardContent>
+                {cardSummary && (
+                  <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">
+                    {cardSummary}
+                  </p>
+                )}
+                {item.context && (
+                  <p
+                    className={cn(
+                      cardSummary && "mt-2",
+                      "line-clamp-1 text-xs text-muted-foreground/80",
+                    )}
+                    title={item.context}
+                  >
+                    {item.context}
+                  </p>
+                )}
+              </CardContent>
+            )}
           </Card>
         ) : (
           <ResourceItem
@@ -172,8 +176,8 @@ export function ItemList({
             <ItemContent className="min-w-0">
               <ItemTitle className="max-w-full">
                 <ItemAction
-                  variant="link"
-                  className="resource-title px-0 after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
+                  textLink
+                  className="resource-title hover:underline px-0 after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
                   item={item}
                   demo={demo}
                   onOpen={onOpen}

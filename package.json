@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "browser:install": "playwright install chromium",
     "connect": "bun scripts/connect.ts",
-    "test:e2e": "bun scripts/smoke.ts && bun scripts/forum-smoke.ts && bun scripts/headless-smoke.ts && bun scripts/exercise-smoke.ts && bun scripts/multi-user-smoke.ts && bun scripts/form-serialization-smoke.ts && bun scripts/pdf-theme-smoke.ts",
+    "test:e2e": "bun scripts/smoke.ts && bun scripts/forum-smoke.ts && bun scripts/headless-smoke.ts && bun scripts/exercise-smoke.ts && bun scripts/multi-user-smoke.ts && bun scripts/form-serialization-smoke.ts && bun scripts/pdf-theme-smoke.ts && bun scripts/card-actions-smoke.ts",
     "screenshots": "bun scripts/screenshots.ts",
     "test:forums": "bun scripts/forum-smoke.ts",
     "test:headless": "bun scripts/headless-smoke.ts",
@@ -21,7 +21,8 @@
     "test:multi-user": "bun scripts/multi-user-smoke.ts",
     "test:forms": "bun scripts/form-serialization-smoke.ts",
     "test:search": "bun scripts/search-smoke.ts",
-    "test:pdf-theme": "bun scripts/pdf-theme-smoke.ts"
+    "test:pdf-theme": "bun scripts/pdf-theme-smoke.ts",
+    "test:cards": "bun scripts/card-actions-smoke.ts"
   },
   "dependencies": {
     "acorn": "^8.19.0",

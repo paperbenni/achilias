@@ -2,6 +2,7 @@
 import Link, { useLinkStatus } from "next/link";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   isContainerType,
   isExternalItem,
@@ -76,9 +77,22 @@ export function ItemAction({
       );
     return null;
   }
+  // Popup semantics also prevent Button's active translation from changing
+  // the containing block of a stretched card or row hit area.
   if (!isNavigableItem(item))
     return (
-      <Button {...props} onClick={() => onOpen(item)}>
+      <Button
+        {...props}
+        type="button"
+        variant={textLink ? "link" : props.variant}
+        className={cn(
+          "cursor-pointer",
+          textLink && "h-auto justify-start whitespace-normal p-0 text-left",
+          props.className,
+        )}
+        aria-haspopup="dialog"
+        onClick={() => onOpen(item)}
+      >
         {children}
       </Button>
     );

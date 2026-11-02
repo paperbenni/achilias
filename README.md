@@ -172,7 +172,7 @@ Relative/individual/locked deadlines, protected requirements, learner uploads, i
 
 ## Navigation speed and freshness
 
-Achilias uses Next.js client-side navigation and production prefetching. Settings and Saved can be prepared in the background without calling ILIAS. Recently visited pages can be reused for **30 seconds** in the current browser, making return visits quick; filters and post search stay local.
+Achilias uses Next.js client-side navigation and production prefetching. Settings and Bookmarks can be prepared in the background without calling ILIAS. Recently visited pages can be reused for **30 seconds** in the current browser, making return visits quick; filters and post search stay local.
 
 Fresh live course, folder, and forum pages load when opened. They are not fetched in the background because ILIAS can record visits/read events or change forum view preferences during a read. Demo content can be prefetched freely. Use **Refresh** to fetch current content and invalidate recent pages. The forum UI’s mark-read action invalidates the cache too. Sign-in and disconnect clear the client router state so another account does not inherit it.
 

@@ -11,15 +11,43 @@ import { parsePage } from "./parser";
 import { IliasError } from "./errors";
 import { requireLiveWrite } from "./write-policy";
 export { IliasError } from "./errors";
-/** The main-menu search form is the only form we may submit without a write allowlist. */
+/**
+ * Read one routing parameter, or null when ILIAS would see a different value
+ * than we do: PHP keeps the last duplicate while URLSearchParams returns the
+ * first, so repeated names must never pass the allowlist.
+ */
+function routingParameter(action: URL, name: string) {
+  const values = action.searchParams.getAll(name);
+  return values.length > 1 ? null : (values[0] || "").toLowerCase();
+}
+/**
+ * The main-menu search form is the only form we may submit without a write
+ * allowlist. ILIAS 10 (ilMainMenuSearchGUI::buildSearchLink) links to
+ * baseClass=ilSearchControllerGUI&cmdClass=ilSearchGUI&cmd=remoteSearch;
+ * older releases post cmd=post&fallbackCmd=remoteSearch to the bare controller.
+ * Every parameter that selects the executed command is pinned, because ilCtrl
+ * falls back to a different command when the requested one is not callable.
+ */
 function isReadOnlySearchAction(action: URL) {
-  const parameter = (name: string) =>
-    (action.searchParams.get(name) || "").toLowerCase();
+  if (!/\/ilias\.php$/i.test(action.pathname)) return false;
+  const baseClass = routingParameter(action, "baseClass");
+  const cmdClass = routingParameter(action, "cmdClass");
+  const cmd = routingParameter(action, "cmd");
+  const fallbackCmd = routingParameter(action, "fallbackCmd");
+  if (
+    baseClass === null ||
+    cmdClass === null ||
+    cmd === null ||
+    fallbackCmd === null
+  )
+    return false;
+  if (baseClass !== "ilsearchcontroller" && baseClass !== "ilsearchcontrollergui")
+    return false;
+  if (cmdClass && cmdClass !== "ilsearchgui") return false;
+  if (fallbackCmd && fallbackCmd !== "remotesearch") return false;
   return (
-    /\/ilias\.php$/i.test(action.pathname) &&
-    parameter("baseClass") === "ilsearchcontroller" &&
-    parameter("fallbackCmd") === "remotesearch" &&
-    (!action.searchParams.has("cmd") || parameter("cmd") === "post")
+    cmd === "remotesearch" ||
+    (cmd === "post" && fallbackCmd === "remotesearch")
   );
 }
 export async function fetchUpstream(

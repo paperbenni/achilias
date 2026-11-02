@@ -107,9 +107,9 @@ try {
     .getByRole("heading", { name: "A clear view of what’s here.", exact: true })
     .waitFor();
   await app.getByRole("button", { name: /Cached example account/ }).waitFor();
-  await app.getByRole("link", { name: "Saved for later", exact: true }).click();
+  await app.getByRole("link", { name: "Bookmarks", exact: true }).click();
   await app
-    .getByRole("heading", { name: "Saved for later.", exact: true })
+    .getByRole("heading", { name: "Bookmarks.", exact: true })
     .waitFor();
   await app.evaluate(() => {
     (window as typeof window & { documentMarker?: boolean }).documentMarker =

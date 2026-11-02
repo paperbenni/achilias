@@ -15,10 +15,10 @@ try {
     .getByRole("button", { name: "Save Questions & discussion", exact: true })
     .click();
   await page
-    .getByRole("link", { name: "Saved for later", exact: true })
+    .getByRole("link", { name: "Bookmarks", exact: true })
     .click();
   await page
-    .getByRole("heading", { name: "Saved for later.", exact: true })
+    .getByRole("heading", { name: "Bookmarks.", exact: true })
     .waitFor();
   await page
     .getByRole("link", { name: "Questions & discussion", exact: true })

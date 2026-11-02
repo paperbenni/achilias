@@ -56,7 +56,7 @@ try {
     {
       file: "saved.png",
       path: "/saved?demo=1",
-      heading: "Saved for later.",
+      heading: "Bookmarks.",
       setup: async (page) => {
         await page.goto(new URL("/browse/crs/101?demo=1", origin).href);
         for (const title of [

@@ -69,6 +69,13 @@ test("read-only search posts bypass the write allowlist only for the search cont
     readOnlyForm: true,
   });
   expect(request).toHaveBeenCalledTimes(1);
+  await fetchUpstream(
+    session,
+    instance +
+      "ilias.php?baseClass=ilSearchControllerGUI&cmdClass=ilSearchGUI&cmd=remoteSearch",
+    { form: new URLSearchParams({ queryString: "Gruppe 02" }), readOnlyForm: true },
+  );
+  expect(request).toHaveBeenCalledTimes(2);
   await expect(
     fetchUpstream(session, action, {
       form: new URLSearchParams({ title: "Not a search" }),
@@ -86,7 +93,25 @@ test("read-only search posts bypass the write allowlist only for the search cont
       },
     ),
   ).rejects.toThrow("not an ILIAS repository search");
-  expect(request).toHaveBeenCalledTimes(1);
+  for (const rejected of [
+    // ilCtrl would dispatch to another command class.
+    "ilias.php?baseClass=ilSearchControllerGUI&cmdClass=ilExAssignmentEditorGUI&cmd=updateAssignment",
+    // Duplicate routing fields: PHP keeps the last value, we would read the first.
+    "ilias.php?baseClass=ilSearchControllerGUI&cmdClass=ilSearchGUI&cmdClass=ilExAssignmentEditorGUI&cmd=remoteSearch",
+    "ilias.php?baseClass=ilSearchControllerGUI&cmdClass=ilSearchGUI&cmd=remoteSearch&cmd=updateAssignment",
+    // ilCtrl falls back to fallbackCmd when cmd is not callable.
+    "ilias.php?baseClass=ilSearchControllerGUI&cmdClass=ilSearchGUI&cmd=remoteSearch&fallbackCmd=updateAssignment",
+    // A different base class or another entry script.
+    "ilias.php?baseClass=ilRepositoryGUI&cmdClass=ilSearchGUI&cmd=remoteSearch",
+    "goto.php?baseClass=ilSearchControllerGUI&cmdClass=ilSearchGUI&cmd=remoteSearch",
+  ])
+    await expect(
+      fetchUpstream(session, instance + rejected, {
+        form: new URLSearchParams({ queryString: "Gruppe 02" }),
+        readOnlyForm: true,
+      }),
+    ).rejects.toThrow("not an ILIAS repository search");
+  expect(request).toHaveBeenCalledTimes(2);
 });
 test("every live mutation and raw POST is rejected before contacting ILIAS when disabled", async () => {
   delete process.env.ACHILIAS_WRITE_TARGETS;

@@ -99,8 +99,8 @@ try {
   await page.waitForTimeout(500);
   await measure(
     page,
-    byName(page, "Saved for later"),
-    "Saved for later.",
+    byName(page, "Bookmarks"),
+    "Bookmarks.",
     "Settings → Saved",
   );
   await measure(page, byName(page, "Overview"), "Overview", "Saved → Overview");

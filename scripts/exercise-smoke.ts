@@ -14,10 +14,10 @@ try {
     .getByRole("button", { name: "Save Exercises / Übungen", exact: true })
     .click();
   await page
-    .getByRole("link", { name: "Saved for later", exact: true })
+    .getByRole("link", { name: "Bookmarks", exact: true })
     .click();
   await page
-    .getByRole("heading", { name: "Saved for later.", exact: true })
+    .getByRole("heading", { name: "Bookmarks.", exact: true })
     .waitFor();
   await page
     .getByRole("link", { name: "Exercises / Übungen", exact: true })

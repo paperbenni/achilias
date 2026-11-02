@@ -10,10 +10,15 @@ afterEach(() => {
 });
 
 const dashboard = `<a href="logout.php">Logout</a>
-  <form id="mm_search_form" action="ilias.php?baseClass=ilSearchController&amp;cmd=post&amp;rtoken=secret&amp;fallbackCmd=remoteSearch" method="post">
-    <input type="text" name="queryString">
-    <input type="radio" name="root_id" value="1" checked>
-    <input type="hidden" name="cmd" value="post">
+  <form role="search" id="mm_search_form" action="ilias.php?baseClass=ilSearchControllerGUI&amp;cmdClass=ilSearchGUI&amp;cmd=remoteSearch&amp;rtoken=secret" method="post" target="_top">
+    <input type="text" name="queryString" autocomplete="off">
+    <input type="submit" value="Search">
+    <fieldset>
+      <input type="radio" name="root_id" value="1" checked="checked" id="ilmmsg">
+      <label for="ilmmsg">Search globally</label>
+      <input type="radio" name="root_id" value="12" id="ilmmsc">
+      <label for="ilmmsc">Search at current position</label>
+    </fieldset>
   </form>`;
 
 const results = `<a href="logout.php">Logout</a><h1>Search results</h1>
@@ -71,7 +76,8 @@ test("repository search discovers the ILIAS form action and parses result paths"
   const body = new URLSearchParams(String(requests[1].init?.body));
   expect(body.get("queryString")).toBe("Gruppe 02");
   expect(body.get("root_id")).toBe("1");
-  expect(body.get("cmd")).toBe("post");
+  // ILIAS 10 carries the command in the form action, not in a hidden field.
+  expect(body.has("cmd")).toBe(false);
   expect(
     found.results.map((item) => [item.id, item.type, item.context]),
   ).toEqual([
@@ -82,7 +88,7 @@ test("repository search discovers the ILIAS form action and parses result paths"
     ],
     ["602", "grp", "Linear Algebra I › Exercise groups"],
   ]);
-  expect(found.sourceUrl).toContain("fallbackCmd=remoteSearch");
+  expect(found.sourceUrl).toContain("cmd=remoteSearch");
 });
 
 test("repository search reports a missing ILIAS search form without posting", async () => {

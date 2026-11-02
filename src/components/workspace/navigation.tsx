@@ -153,7 +153,7 @@ export function Navigation({
                     view === "exercise",
                 },
                 {
-                  title: "Saved for later",
+                  title: "Bookmarks",
                   icon: Bookmark,
                   href: "/saved",
                   active: view === "saved",

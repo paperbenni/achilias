@@ -335,7 +335,7 @@ export function WorkspaceView({
       href: "/courses",
     },
     {
-      title: "Saved for later",
+      title: "Bookmarks",
       icon: Bookmark,
       href: "/saved",
     },
@@ -403,7 +403,7 @@ export function WorkspaceView({
               {view === "home"
                 ? "Overview"
                 : view === "saved"
-                  ? "Saved for later"
+                  ? "Bookmarks"
                   : view === "courses"
                     ? "Courses"
                     : view === "settings"
@@ -620,7 +620,7 @@ export function WorkspaceView({
                     )}
                     <h1 className="page-title mt-3">
                       {view === "saved"
-                        ? "Saved for later."
+                        ? "Bookmarks."
                         : view === "browse"
                           ? data.page.title
                           : view === "courses"
@@ -629,7 +629,7 @@ export function WorkspaceView({
                     </h1>
                     <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
                       {view === "saved"
-                        ? "The courses and materials you’ve kept close. Saved only in this browser."
+                        ? "The courses and materials you’ve bookmarked. Stored only in this browser."
                         : view === "browse"
                           ? data.page.description ||
                             "Everything in this space, with a clearer way through."
@@ -1019,8 +1019,7 @@ export function WorkspaceView({
               )}
             </>
           )}
-          <footer className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t pt-6 text-xs text-muted-foreground">
-            <span>A calmer way to ILIAS.</span>
+          <footer className="mt-3 flex flex-wrap items-center justify-end gap-3 border-t pt-6 text-xs text-muted-foreground">
             <span>
               Independent frontend ·{" "}
               {data.fetchedAt

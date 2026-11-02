@@ -1,6 +1,6 @@
 import { WorkspaceView } from "@/components/workspace/workspace-view";
 import { getWorkspaceMetadata } from "@/lib/ilias/workspace";
-export const metadata = { title: "Saved for later" };
+export const metadata = { title: "Bookmarks" };
 export default async function Saved({
   searchParams,
 }: {

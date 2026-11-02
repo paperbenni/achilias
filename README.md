@@ -2,6 +2,14 @@
 
 A calmer frontend for ILIAS, built with **Bun, Next.js App Router, React, Tailwind CSS, and shadcn/ui (Radix Nova)**. Freiburg’s ILIAS is the default instance. This is an independent project, not a university service.
 
+## Before connecting a real account
+
+Live changes are **disabled by default**. Browse locally first and compare the parsed data with the original. ILIAS can still record visits, downloads, or read status while browsing. Follow the [real-instance testing guide](docs/live-testing.md) before enabling any grade, deadline, feedback, or explicit mark-as-read changes. Authenticated Freiburg compatibility still needs a controlled real-account test.
+
+## Multiple users and instances
+
+One server process supports separate user sessions and user-entered public HTTPS ILIAS base URLs. University sign-in uses the helper on each user’s computer; it currently requires Bun and this checkout, rather than a browser-only password form. See the [multi-user deployment guide](docs/deployment.md) for HTTPS/proxy configuration, account isolation, supported instance policy, and the single-process limit.
+
 ## Screenshots
 
 The course and forum screens below use the demo workspace. All course names, materials, discussions, and saved items are examples. The connection screenshot shows the headless setup before generating a sign-in code.
@@ -241,21 +249,24 @@ Without `--server`, run this command from the same checkout and with the same `A
 
 Copy `.env.example` to `.env.local` when changing defaults. Bun loads `.env.local` for the connection command too.
 
-| Variable                 | Purpose                                                                                                                                                                               |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ILIAS_INSTANCES`        | Comma-separated additional HTTPS base URLs, including an installation subdirectory when applicable. Freiburg is always allowed. Only explicitly configured instances are fetched.     |
-| `ACHILIAS_DATA_DIR`      | Directory for encrypted sessions and the encryption key. Default: `.local/` in the checkout.                                                                                          |
-| `ACHILIAS_ORIGIN`        | Exact browser-visible app origin for mutation origin checks, especially behind a reverse proxy. Defaults to the local browser-visible host; configure this explicitly for remote use. |
-| `ACHILIAS_SECURE_COOKIE` | Set `true` when serving over HTTPS. Leave unset for local HTTP.                                                                                                                       |
-| `ACHILIAS_LOGIN_MODE`    | `auto` (default), `local`, or `remote`. `remote` uses the laptop helper and never launches a browser on the server.                                                                   |
-| `ACHILIAS_BROWSER_PATH`  | Optional path to a compatible local Chromium executable.                                                                                                                              |
-| `ACHILIAS_BUILD_DIR`     | Optional separate build output directory, useful while `next dev` is running.                                                                                                         |
+| Variable                      | Purpose                                                                                                                                                                                                                      |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ILIAS_INSTANCES`             | Comma-separated additional HTTPS base URLs, including an installation subdirectory when applicable. Freiburg is always allowed. Used when `ACHILIAS_RESTRICT_INSTANCES=true`; public HTTPS instances are otherwise accepted. |
+| `ACHILIAS_WRITE_TARGETS`      | Comma-separated canonical exercise/forum URLs allowed to make live changes. Unset means disabled. See [live testing](docs/live-testing.md).                                                                                  |
+| `ACHILIAS_RESTRICT_INSTANCES` | Set `true` to accept only Freiburg and the configured `ILIAS_INSTANCES`. Default accepts public HTTPS hostnames.                                                                                                             |
+| `ACHILIAS_TRUST_PROXY`        | Set `true` only behind a proxy that overwrites `X-Forwarded-For` and prevents direct app access. Enables per-client sign-in limits.                                                                                          |
+| `ACHILIAS_DATA_DIR`           | Directory for encrypted sessions and the encryption key. Default: `.local/` in the checkout.                                                                                                                                 |
+| `ACHILIAS_ORIGIN`             | Exact browser-visible app origin for mutation origin checks, especially behind a reverse proxy. Defaults to the local browser-visible host; configure this explicitly for remote use.                                        |
+| `ACHILIAS_SECURE_COOKIE`      | Automatically enabled for an HTTPS `ACHILIAS_ORIGIN`; set `true` to force it. Leave unset for local HTTP.                                                                                                                    |
+| `ACHILIAS_LOGIN_MODE`         | `auto` (default), `local`, or `remote`. `remote` uses the laptop helper. Public HTTPS origins always use remote mode.                                                                                                        |
+| `ACHILIAS_BROWSER_PATH`       | Optional path to a compatible local Chromium executable.                                                                                                                                                                     |
+| `ACHILIAS_BUILD_DIR`          | Optional separate build output directory, useful while `next dev` is running.                                                                                                                                                |
 
 Restart the server after configuration changes. Additional instances appear through the URL field in the connection dialog; their specific themes/authentication have not been verified.
 
 ### Data and hosting
 
-This version supports a **personal local or headless Node/Bun server**, rather than serverless hosting or a publicly shared sign-in service. The server must have a writable data directory. Remote access uses HTTPS or an SSH tunnel. Run a single server process for login jobs and single-use connection claims.
+This version supports **multiple users on one persistent Node server process**, locally or behind an HTTPS reverse proxy. It needs a writable private data directory. Serverless hosting, multiple workers and multiple replicas are not supported. Follow the [deployment guide](docs/deployment.md) for public hosting, proxy trust and sign-in limits.
 
 ILIAS session jars stay server-side, encrypted using AES-256-GCM. The key and files have owner-only permissions; the directory is ignored by Git. The app browser gets an opaque HttpOnly, SameSite=Strict cookie. Achilias sessions expire after 12 hours, or earlier when ILIAS invalidates its session. Disconnect removes the active server-side session; it does not log out other university services. Expired session files are deleted when accessed. To remove all retained session data, stop the server and delete the `.local/` directory (or your configured data directory).
 

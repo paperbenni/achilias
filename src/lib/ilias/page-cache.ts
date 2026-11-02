@@ -1,74 +1,35 @@
+import { workspaceStore, existingWorkspaceStore } from "./workspace-store";
 import type { IliasPage } from "./types";
 
-/**
- * ILIAS page loads are the slowest part of a navigation. The browser router
- * already reuses a visited route for 30 seconds; this keeps the upstream
- * download and the HTML parse out of the next navigation, a second tab, or the
- * sibling dashboard route. Entries are per session and never shared.
- */
+// Responses are reused briefly for navigation; search can discover their items
+// for longer without presenting old activity data as a fresh page.
 export const workspacePageTtl = 30_000;
-const maxPages = 200;
-
 export type CachedWorkspacePage = { page: IliasPage; fetchedAt: number };
-type Entry = CachedWorkspacePage & { expiresAt: number };
-const pages = new Map<string, Entry>();
 const pending = new Map<string, Promise<CachedWorkspacePage>>();
 const keyFor = (sessionId: string, url: string) => `${sessionId}\n${url}`;
 
-function prune() {
-  const now = Date.now();
-  for (const [key, entry] of pages)
-    if (entry.expiresAt <= now) pages.delete(key);
-  while (pages.size > maxPages) {
-    const oldest = pages.keys().next().value;
-    if (oldest === undefined) break;
-    pages.delete(oldest);
-  }
-}
-
-/** Drop reuse for one account, or for every account after an explicit refresh. */
-export function clearWorkspacePages(sessionId?: string) {
-  if (sessionId === undefined) {
-    pages.clear();
-    pending.clear();
-    return;
-  }
-  const prefix = `${sessionId}\n`;
-  for (const key of pages.keys())
-    if (key.startsWith(prefix)) pages.delete(key);
+export async function clearWorkspacePages(sessionId?: string) {
   for (const key of pending.keys())
-    if (key.startsWith(prefix)) pending.delete(key);
+    if (sessionId === undefined || key.startsWith(`${sessionId}\n`)) pending.delete(key);
+  (await existingWorkspaceStore())?.clear(sessionId);
 }
 
-export async function loadWorkspacePage(
-  sessionId: string,
-  url: string,
-  load: () => Promise<IliasPage>,
-): Promise<CachedWorkspacePage> {
+export async function loadWorkspacePage(sessionId: string, url: string, load: () => Promise<IliasPage>): Promise<CachedWorkspacePage> {
   const key = keyFor(sessionId, url);
-  const cached = pages.get(key);
-  if (cached && cached.expiresAt > Date.now()) {
-    // Re-insert so the least recently used entry is evicted first.
-    pages.delete(key);
-    pages.set(key, cached);
-    return { page: cached.page, fetchedAt: cached.fetchedAt };
-  }
-  pages.delete(key);
   const shared = pending.get(key);
   if (shared) return shared;
-  // A synchronous throw and a rejected request must both stay uncached.
-  const task = Promise.resolve()
-    .then(load)
-    .then((page) => {
-      const fetchedAt = Date.now();
-      pages.set(key, { page, fetchedAt, expiresAt: fetchedAt + workspacePageTtl });
-      prune();
-      return { page, fetchedAt };
-    });
+  const task = Promise.resolve().then(async () => {
+    const store = await workspaceStore();
+    const cached = store.read(sessionId, url, workspacePageTtl);
+    if (cached) return { page: cached.page, fetchedAt: cached.fetchedAt };
+    const page = await load();
+    const fetchedAt = Date.now();
+    // A refresh/disconnect while the request was running must not resurrect it.
+    if (page.authenticated && pending.get(key) === task)
+      store.write(sessionId, { url, page, fetchedAt });
+    return { page, fetchedAt };
+  });
   pending.set(key, task);
-  try {
-    return await task;
-  } finally {
-    if (pending.get(key) === task) pending.delete(key);
-  }
+  try { return await task; }
+  finally { if (pending.get(key) === task) pending.delete(key); }
 }

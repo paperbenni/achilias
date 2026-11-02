@@ -40,7 +40,7 @@ export async function POST(
   try {
     await markForumThreadRead(session, forumId, threadId);
     // Reused dashboard pages still carry the old unread counts.
-    clearWorkspacePages(session.id);
+    await clearWorkspacePages(session.id);
     // Keep every cached route's unread state in sync after a read.
     revalidatePath("/", "layout");
     return Response.json({ status: "read" }, { headers: noStore });

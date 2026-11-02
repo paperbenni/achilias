@@ -5,9 +5,9 @@ import { loadMemberships } from "../src/lib/ilias/memberships";
 import type { Session } from "../src/lib/ilias/session";
 
 const originalFetch = upstreamTransport.fetch;
-afterEach(() => {
+afterEach(async () => {
   upstreamTransport.fetch = originalFetch;
-  clearWorkspacePages();
+  await clearWorkspacePages();
 });
 const session = (id: string): Session => ({
   id, instance: "https://campus.example/ilias/", status: "pending", createdAt: Date.now(),

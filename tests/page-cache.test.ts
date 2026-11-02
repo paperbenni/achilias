@@ -20,8 +20,8 @@ const page = (title: string): IliasPage => ({
 });
 
 beforeEach(() => clearWorkspacePages());
-afterEach(() => {
-  clearWorkspacePages();
+afterEach(async () => {
+  await clearWorkspacePages();
   setSystemTime(new Date());
 });
 
@@ -68,8 +68,8 @@ test("concurrent requests for one page share a single upstream load", async () =
   };
   const first = loadWorkspacePage("session-a", "url", load);
   const second = loadWorkspacePage("session-a", "url", load);
-  // The shared load starts on the next microtask, not in the first call.
-  await Promise.resolve();
+  // The persistent cache is checked before starting upstream work.
+  while (!resolve) await new Promise((done) => setTimeout(done, 0));
   expect(loads).toBe(1);
   resolve(page("Dashboard"));
   expect(await first).toEqual(await second);
@@ -102,10 +102,21 @@ test("invalidation clears one session or every session", async () => {
   };
   await loadWorkspacePage("session-a", "url", load);
   await loadWorkspacePage("session-b", "url", load);
-  clearWorkspacePages("session-a");
+  await clearWorkspacePages("session-a");
   await loadWorkspacePage("session-b", "url", load);
   expect(loads).toBe(2);
-  clearWorkspacePages();
+  await clearWorkspacePages();
   await loadWorkspacePage("session-b", "url", load);
   expect(loads).toBe(3);
+});
+
+test("refresh during an upstream request prevents it from repopulating the cache", async () => {
+  let resolve!: (value: IliasPage) => void;
+  const pending = loadWorkspacePage("session-a", "race", () => new Promise((done) => { resolve = done; }));
+  while (!resolve) await new Promise((done) => setTimeout(done, 0));
+  await clearWorkspacePages("session-a");
+  resolve(page("Old listing"));
+  await pending;
+  const fresh = await loadWorkspacePage("session-a", "race", async () => page("New listing"));
+  expect(fresh.page.title).toBe("New listing");
 });

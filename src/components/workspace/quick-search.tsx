@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/command";
 import { iconFor } from "./item-icon";
 import { demoHref, settingsEntry, workspaceNav } from "./nav-items";
+import { readSearchStream } from "@/lib/ilias/search-stream";
 import { mergeItems } from "@/lib/ilias/library";
 import {
   matchesItem,
@@ -117,6 +118,12 @@ export function QuickSearch({
     hasMore: boolean;
     error?: string;
   } | null>(null);
+  const [discovered, setDiscovered] = useState<{ scope: string; items: Item[] } | null>(null);
+  const [nearbyLoading, setNearbyLoading] = useState(false);
+  const [nearbyError, setNearbyError] = useState("");
+  const rememberItems = useCallback((items: Item[]) => {
+    setDiscovered((current) => ({ scope, items: mergeItems(items, current?.scope === scope ? current.items : []).slice(0, 4000) }));
+  }, [scope]);
   const [catalogRetry, setCatalogRetry] = useState(0);
   const [showAllLocal, setShowAllLocal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -169,18 +176,21 @@ export function QuickSearch({
         );
         const body = (await response.json()) as {
           items?: Item[];
+          discovered?: Item[];
           hasMore?: boolean;
           error?: string;
         };
         if (!response.ok)
           throw new Error(body.error || "Could not load your courses.");
-        if (!controller.signal.aborted)
+        if (!controller.signal.aborted) {
+          rememberItems(body.discovered || []);
           setCatalog({
             scope,
             items: Array.isArray(body.items) ? body.items : [],
             status: "ready",
             hasMore: Boolean(body.hasMore),
           });
+        }
       } catch (error) {
         if (!controller.signal.aborted)
           setCatalog({
@@ -193,12 +203,36 @@ export function QuickSearch({
       }
     })();
     return () => controller.abort();
-  }, [open, scope, demo, data.mode, catalogRetry]);
+  }, [open, scope, demo, data.mode, catalogRetry, rememberItems]);
   const accountCatalog = catalog?.scope === scope ? catalog : null;
   const catalogItems = useMemo(
     () => accountCatalog?.items || [],
     [accountCatalog],
   );
+  const nearbyRoots = [
+    ...(currentRoot ? [`${pathname.split("/")[2]}:${currentRoot}`] : []),
+    ...mergeItems(recent, catalogItems).filter((item) => ["crs", "grp", "fold", "cat"].includes(item.type)).map(itemKey),
+  ].slice(0, 4).join(",");
+  // Begin discovery on opening, before the user finishes typing. It is independent
+  // of the query: new keystrokes reuse the same incoming folder listings.
+  useEffect(() => {
+    if (!open || demo || data.mode !== "live") return;
+    const controller = new AbortController();
+    const params = new URLSearchParams();
+    for (const root of nearbyRoots.split(",").filter(Boolean)) params.append("root", root);
+    void fetch(`/api/search/nearby?${params}`, { cache: "no-store", signal: controller.signal })
+      .then((response) => {
+        if (controller.signal.aborted) return;
+        setNearbyLoading(true);
+        setNearbyError("");
+        return readSearchStream(response, controller.signal, rememberItems);
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted) setNearbyError(error instanceof Error ? error.message : "Nearby folder search failed.");
+      })
+      .finally(() => { if (!controller.signal.aborted) setNearbyLoading(false); });
+    return () => controller.abort();
+  }, [open, demo, data.mode, nearbyRoots, rememberItems]);
   const catalogLoading = data.mode !== "disconnected" && !accountCatalog;
   const runDeepSearch = useCallback(async () => {
     const term = searchQuery.trim();
@@ -241,6 +275,7 @@ export function QuickSearch({
           throw new Error(body.error || "ILIAS search failed.");
         }
         const results = Array.isArray(body.results) ? body.results : [];
+        rememberItems(results);
         if (root) scopedKeys = results.map(itemKey);
         accumulated = mergeItems(accumulated, results);
         setDeep({
@@ -265,7 +300,7 @@ export function QuickSearch({
       if (searchAbort.current === controller) searchAbort.current = null;
       if (request === searchRequest.current) setDeepLoadingQuery(null);
     }
-  }, [searchQuery, currentRoot, demo, scope, data.page.sourceUrl, data.page.title]);
+  }, [searchQuery, currentRoot, demo, scope, data.page.sourceUrl, data.page.title, rememberItems]);
   // Local results remain instant. Give typing a pause before starting the
   // recursive upstream search, and cancel every stage on close or query change.
   useEffect(() => {
@@ -279,14 +314,14 @@ export function QuickSearch({
   const trimmedQuery = searchQuery.trim();
   const localSearchResults = useMemo(() => {
     const terms = searchTerms(trimmedQuery);
-    const candidates = mergeItems(pageItems, catalogItems, allItems);
+    const candidates = mergeItems(pageItems, catalogItems, discovered?.scope === scope ? discovered.items : [], allItems);
     return terms.length
       ? rankByTitle(
           candidates.filter((item) => matchesItem(item, terms)),
           trimmedQuery,
         )
       : mergeItems(recent, catalogItems, pageItems, saved);
-  }, [allItems, recent, pageItems, saved, catalogItems, trimmedQuery]);
+  }, [allItems, recent, pageItems, saved, catalogItems, trimmedQuery, discovered, scope]);
   const visibleLocalResults = showAllLocal
     ? localSearchResults
     : localSearchResults.slice(0, 16);
@@ -454,6 +489,12 @@ export function QuickSearch({
               )}
             </CommandGroup>
           )}
+          {nearbyLoading && (
+            <div role="status" className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" /> Searching nearby folders…
+            </div>
+          )}
+          {nearbyError && <div role="status" className="px-3 py-2 text-sm text-muted-foreground">{nearbyError} Repository search is still available.</div>}
           {catalogLoading && (
             <div
               role="status"
@@ -553,7 +594,7 @@ export function QuickSearch({
         <span>
           {data.mode === "disconnected"
             ? "Local search works now. Connect to search the whole repository."
-            : "Search widens automatically into subfolders and across ILIAS. Your courses come first."}
+            : "Discovered items appear immediately. Nearby folders and ILIAS search load additional matches."}
         </span>
         {deepForQuery && (
           <a

@@ -330,3 +330,19 @@ test("cancelled queued searches never submit to ILIAS", async () => {
   await expect(searchRepository(session(), "Gruppe", 1, undefined, controller.signal)).rejects.toThrow("cancelled");
   expect(request).not.toHaveBeenCalled();
 });
+
+test("repeat and simultaneous first-page searches reuse completed upstream results", async () => {
+  let requests = 0;
+  upstreamTransport.fetch = (async (_url: Parameters<typeof fetch>[0], init?: RequestInit) => {
+    requests++;
+    return new Response(init?.method === "POST" ? results : dashboard, { headers: { "content-type": "text/html" } });
+  }) as typeof fetch;
+  const [first, second] = await Promise.all([
+    searchRepository(session(), "Gruppe 04"), searchRepository(session(), "Gruppe 04"),
+  ]);
+  expect(second).toEqual(first);
+  expect(await searchRepository(session(), "Gruppe 04")).toEqual(first);
+  expect(requests).toBe(2);
+  await searchRepository({ ...session(), id: "another-user" }, "Gruppe 04");
+  expect(requests).toBe(4);
+});

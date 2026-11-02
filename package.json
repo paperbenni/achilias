@@ -20,7 +20,7 @@
     "test:exercises": "bun scripts/exercise-smoke.ts",
     "test:multi-user": "bun scripts/multi-user-smoke.ts",
     "test:forms": "bun scripts/form-serialization-smoke.ts",
-    "test:search": "bun scripts/search-smoke.ts",
+    "test:search": "bun scripts/search-smoke.ts && bun scripts/search-discovery-smoke.ts",
     "test:pdf-theme": "bun scripts/pdf-theme-smoke.ts",
     "test:cards": "bun scripts/card-actions-smoke.ts"
   },
@@ -51,7 +51,7 @@
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
     "@types/bun": "^1.4.4",
-    "@types/node": "^20",
+    "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/sanitize-html": "^2.16.2",

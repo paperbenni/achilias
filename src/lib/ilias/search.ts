@@ -44,14 +44,27 @@ type SearchPaging = { query: string; root?: string; at: number; links: Map<numbe
 const lastSearches = new Map<string, SearchPaging>();
 const searchQueues = new Map<string, Promise<void>>();
 const maxSearchPage = 5;
+const resultCache = new Map<string, { at: number; value: SearchResults }>();
+const resultTtl = 30_000;
+function cachedResults(session: Session, query: string, root?: string) {
+  const key = JSON.stringify([session.id, session.instance, query, root]);
+  const cached = resultCache.get(key);
+  const last = lastSearches.get(session.id);
+  // A paginated hit is only reusable while ILIAS still holds that same search.
+  if (cached && Date.now() - cached.at < resultTtl &&
+      (!cached.value.hasMore || (last?.query === query && last.root === root))) return cached.value;
+}
 
 export function clearSearchFormCache(sessionId?: string) {
   if (sessionId === undefined) {
+    resultCache.clear();
     searchForms.clear();
     discovering.clear();
     lastSearches.clear();
     return;
   }
+  for (const key of resultCache.keys())
+    if (JSON.parse(key)[0] === sessionId) resultCache.delete(key);
   searchForms.delete(sessionId);
   discovering.delete(sessionId);
   lastSearches.delete(sessionId);
@@ -286,6 +299,11 @@ export async function searchRepository(
 ): Promise<SearchResults> {
   if (root !== undefined && !validObjectId(root))
     throw new IliasError("That search location is invalid.", 400);
+  if (signal?.aborted) throw new IliasError("Search was cancelled.", 499);
+  if (pageNumber === 1) {
+    const cached = cachedResults(session, query, root);
+    if (cached) return cached;
+  }
   // ILIAS stores one mutable search per session. Serialize queries and paging
   // separately from the cookie lock, which fetchUpstream may itself acquire.
   const previous = searchQueues.get(session.id);
@@ -295,7 +313,17 @@ export async function searchRepository(
   await previous;
   try {
     if (signal?.aborted) throw new IliasError("Search was cancelled.", 499);
-    return await searchRepositoryUnlocked(session, query, pageNumber, root);
+    // Recheck after waiting: another tab may have completed this exact query.
+    const cached = pageNumber === 1 ? cachedResults(session, query, root) : undefined;
+    if (cached) return cached;
+    const value = await searchRepositoryUnlocked(session, query, pageNumber, root);
+    if (pageNumber === 1) {
+      const key = JSON.stringify([session.id, session.instance, query, root]);
+      resultCache.delete(key);
+      resultCache.set(key, { at: Date.now(), value });
+      while (resultCache.size > 200) resultCache.delete(resultCache.keys().next().value!);
+    }
+    return value;
   } finally {
     release();
     if (searchQueues.get(session.id) === queued) searchQueues.delete(session.id);

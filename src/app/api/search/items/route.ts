@@ -1,6 +1,7 @@
 import { errorResponse, noStore } from "@/lib/api";
 import { demoPage } from "@/lib/ilias/demo";
 import { loadMemberships } from "@/lib/ilias/memberships";
+import { indexedSearchItems } from "@/lib/ilias/search-index";
 import { currentSession } from "@/lib/ilias/session";
 
 export const runtime = "nodejs";
@@ -21,8 +22,9 @@ export async function GET(request: Request) {
         { error: "Connect your account to load your courses." },
         { status: 401, headers: noStore },
       );
+    const memberships = await loadMemberships(session);
     return Response.json(
-      await loadMemberships(session),
+      { ...memberships, discovered: await indexedSearchItems(session.id) },
       { headers: noStore },
     );
   } catch (error) {

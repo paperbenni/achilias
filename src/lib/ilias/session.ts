@@ -5,7 +5,6 @@ import {
   randomUUID,
 } from "node:crypto";
 import {
-  mkdir,
   readFile,
   writeFile,
   rename,
@@ -14,15 +13,15 @@ import {
   stat,
 } from "node:fs/promises";
 import path from "node:path";
+import { dataDirectory, getStorageKey } from "./private-storage";
+import { clearWorkspacePages } from "./page-cache";
 import { cookies } from "next/headers";
 import type { SerializedCookieJar } from "tough-cookie";
 import { parsePairingCode, verifyPairing } from "./pairing";
 import { isLoopbackHostname } from "./loopback";
 
 export const SESSION_COOKIE = "achilias_session";
-const dir = path.resolve(
-  /* turbopackIgnore: true */ process.env.ACHILIAS_DATA_DIR || ".local",
-);
+const dir = dataDirectory;
 const maxAge = 60 * 60 * 12;
 export type Session = {
   id: string;
@@ -35,32 +34,12 @@ export type Session = {
   error?: string;
   userName?: string;
 };
-let keyPromise: Promise<Buffer> | undefined;
-async function getKey() {
-  return (keyPromise ||= (async () => {
-    await mkdir(dir, { recursive: true, mode: 0o700 });
-    const file = path.join(dir, "session.key");
-    try {
-      return await readFile(file);
-    } catch (e) {
-      if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
-    }
-    const key = randomBytes(32);
-    try {
-      await writeFile(file, key, { flag: "wx", mode: 0o600 });
-      return key;
-    } catch (e) {
-      if ((e as NodeJS.ErrnoException).code === "EEXIST") return readFile(file);
-      throw e;
-    }
-  })());
-}
 function sessionPath(id: string) {
   if (!/^[a-f0-9-]{36}$/.test(id)) throw new Error("Invalid session.");
   return path.join(dir, `${id}.enc`);
 }
 export async function saveSession(session: Session) {
-  const key = await getKey();
+  const key = await getStorageKey();
   const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", key, iv);
   const data = Buffer.concat([
@@ -88,7 +67,7 @@ export async function readSession(id?: string): Promise<Session | null> {
   try {
     const decipher = createDecipheriv(
       "aes-256-gcm",
-      await getKey(),
+      await getStorageKey(),
       raw.subarray(0, 12),
     );
     decipher.setAuthTag(raw.subarray(12, 28));
@@ -104,6 +83,7 @@ export async function readSession(id?: string): Promise<Session | null> {
   if (session.id !== id || !Number.isFinite(session.createdAt)) return null;
   if (session.createdAt + maxAge * 1000 < Date.now()) {
     await unlink(sessionPath(id)).catch(() => {});
+    await clearWorkspacePages(id);
     return null;
   }
   if (
@@ -146,6 +126,7 @@ export async function withSessionLock<T>(
 export async function deleteSession(id: string) {
   await withSessionLock(id, async () => {
     await unlink(sessionPath(id)).catch(() => {});
+    await clearWorkspacePages(id);
   });
 }
 export async function setSessionCookie(id: string) {

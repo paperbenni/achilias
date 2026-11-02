@@ -7,6 +7,8 @@ Routes orchestrate server loaders; loaders adapt ILIAS into typed data; feature 
 | App routes, HTTP endpoints, and Server Actions                                       | `src/app`                                                                |
 | Shared account metadata and empty page state                                         | `src/lib/ilias/workspace-context.ts`                                     |
 | Course/dashboard loading                                                             | `src/lib/ilias/workspace.ts`                                             |
+| Listing response cache and in-flight request coalescing                             | `src/lib/ilias/workspace-store.ts`, `page-cache.ts`                       |
+| Search projection, nearby discovery, and stream decoding                            | `src/lib/ilias/search-index.ts`, `nearby-search.ts`, `search-stream.ts`    |
 | Repository search form discovery, read-only POST, and demo index                     | `src/lib/ilias/search.ts`                                                |
 | Exercise unit discovery, grading, feedback, and verified form submissions            | `src/lib/ilias/exercise.ts`                                              |
 | Exercise HTML adaptation, successful-control serialization, and version fingerprints | `src/lib/ilias/exercise-parser.ts`                                       |
@@ -100,3 +102,69 @@ Cookies, HTTPS and IP classification already use **tough-cookie**, **Undici** an
 `itemOpenHref` is the common opening target for file links and command search; explicit download actions keep `itemHref`. File titles use a normal anchor to the authenticated proxy with `view=1`, avoiding both the unsupported-object dialog and Next prefetching file bodies. The proxy peeks at the `%PDF-` signature without buffering the document. Only that response becomes `application/pdf` with inline disposition; other content remains a sandboxed attachment. Native PDF viewers cannot run under CSP sandbox, so signature-matching PDF responses omit that directive while retaining `default-src 'none'`, nosniff, private/no-store and frame restrictions. Browser PDF preferences still apply. HTTP filename parsing/formatting is delegated to `content-disposition` on both the server and browser.
 
 Appearance uses the standard `next-themes` provider (`class` attribute, system default, persistence and transition suppression). Its shadcn radio menu lives with the account controls in the sidebar, with a separate Appearance entry before sign-in. Semantic color variables, including course icon tones, provide the dark palette; UI components do not implement their own theme state.
+
+## Listing memoization and progressive search
+
+`workspace-store.ts` owns a disposable SQLite response cache at
+`$ACHILIAS_DATA_DIR/workspace-cache.sqlite` (`.local` by default). It uses the
+runtime's `node:sqlite` driver, prepared statements, WAL, and the existing private
+storage key. URLs and parsed page payloads are encrypted with AES-256-GCM;
+account and URL lookup keys are SHA-256 hashes. Cookies and credentials are not
+cached in this database. `private-storage.ts` owns the key shared with the
+existing encrypted session files; their on-disk format is unchanged.
+
+There is one cached parsed listing per login and URL. `page-cache.ts` coalesces
+concurrent downloads and reuses a response for **30 seconds** for navigation.
+`search-index.ts` derives searchable items and parent/child relationships from
+those same snapshots for **10 minutes**. It has no independent persistent index
+to synchronize. Recently visited parents make unopened siblings discoverable:
+opening Tutorate, then Gruppe 02, retains the Gruppe 04 entry from Tutorate.
+A fresh listing replaces the old snapshot rather than appending obsolete children.
+Cache limits are 100 listings per login, 2,000 globally, 1 MiB per listing, and 64 MiB of retained encrypted payloads.
+Expired rows are removed on subsequent writes; expiration is checked on reads.
+The database survives restarts and may be deleted to reset this disposable data.
+Keep its directory private and on a local persistent volume.
+
+Quick search combines three independent paths:
+
+1. Current page, bookmarks, recent history, and discovered items filter immediately
+   in the browser, scoped to the current account's storage key. Browser discovery
+   is bounded to 4,000 items and is not written to localStorage.
+2. On opening search, `/api/search/nearby` begins bounded container discovery
+   before a query is submitted. Parents of recent/current folders precede other
+   courses. Two workers visit at most 12 listings and descend at most two levels
+   beyond their starting folders. Fresh responses are memoized; each completed
+   listing streams as an NDJSON event. Keystrokes filter the incoming items and
+   reuse this work. Closing search stops scheduling new work; up to two already
+   started reads may finish and populate the cache. Browsing folders can record
+   normal ILIAS visits, just like existing navigation prefetch.
+3. After a typing pause, ILIAS repository search supplies broader matches and
+   pagination. It runs alongside discovery, without gating nearby results.
+   Completed first pages are memoized per login/query/scope for 30 seconds;
+   concurrent identical searches coalesce through the existing search queue.
+   An uncached global search still takes however long ILIAS needs to render it.
+
+ILIAS `ilSearchGUI::remoteSearch` deletes and replaces the account's saved search
+cache. Parallelizing those POSTs would corrupt paging, so they remain serialized.
+A canceled queued query is skipped. An already running POST is drained before
+another search begins: aborting HTTP does not guarantee PHP stopped mutating its
+search cache. Cached paginated results are reusable only while that same query
+and scope remain active upstream. Independent container GETs never use this
+mutable search controller. No full-site crawler or background job is required.
+
+Refresh and disconnect clear the current login's stored listings. In-flight
+loads cannot repopulate invalidated entries. Refresh also clears that login's
+repository result/form memoization; other users' caches remain intact. The
+SQLite cache does not remove the deployment's **single app process** requirement:
+session/search coordination and in-flight request sharing remain process-local.
+Activity contents, assessments, write forms, and download bodies are outside this
+cache and retain their existing freshness and permission checks.
+
+`tests/workspace-store.test.ts` checks persistence, encryption, expiry, and login
+isolation. Nearby-search fixtures hold one course indefinitely while another
+worker discovers a nested group; the group must publish before the slow course
+finishes. Stream tests split Unicode at every byte boundary. The live-mode
+browser fixture in `scripts/search-discovery-smoke.ts` holds repository search
+open and checks that streamed results appear anyway, survive query edits, and
+remain available when reopening search. Fixtures use synthetic sessions and do
+not send authenticated requests to a university.

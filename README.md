@@ -4,7 +4,7 @@ A calmer frontend for ILIAS, built with **Bun, Next.js App Router, React, Tailwi
 
 ## Screenshots
 
-The course screens below use the demo workspace. All course names, materials, and activities are examples.
+The course and forum screens below use the demo workspace. All course names, materials, discussions, and saved items are examples. The connection screenshot shows the headless setup before generating a sign-in code.
 
 **A calmer starting point**
 
@@ -22,6 +22,13 @@ The course screens below use the demo workspace. All course names, materials, an
 
 ![Demo forum with searchable topics, unread counts, and pinned and closed discussions](docs/screenshots/forum.png)
 
+<details>
+<summary>See the unread-only forum view</summary>
+
+![Demo forum filtered to its two unread discussions, with the HTML-based feature notice and original ILIAS button](docs/screenshots/forum-unread.png)
+
+</details>
+
 **A conversation you can follow**
 
 ![Demo thread reader with formatted posts, reply context, unread navigation, and individual post links](docs/screenshots/thread.png)
@@ -37,6 +44,34 @@ The course screens below use the demo workspace. All course names, materials, an
 <summary>See the mobile forum view</summary>
 
 <img src="docs/screenshots/mobile-forum.png" alt="Mobile demo forum with unread filtering and readable discussion rows" width="390" />
+
+</details>
+
+<details>
+<summary>See the mobile thread reader</summary>
+
+<img src="docs/screenshots/mobile-thread.png" alt="Mobile demo thread with unread navigation, formatted replies, reply context, and original-post links" width="390" />
+
+</details>
+
+<details>
+<summary>See saved folders, files, and forums</summary>
+
+![Saved demo items showing a folder, downloadable file, and forum together](docs/screenshots/saved.png)
+
+</details>
+
+<details>
+<summary>See feature support and HTML-based integration labels</summary>
+
+![Connection and feature settings distinguishing available features, HTML-based integrations, and activities that open in ILIAS](docs/screenshots/settings.png)
+
+</details>
+
+<details>
+<summary>See headless sign-in setup</summary>
+
+<img src="docs/screenshots/connection.png" alt="Connection dialog explaining laptop-assisted sign-in for a headless server and HTML-based connection verification, before any connection code is generated" width="560" />
 
 </details>
 
@@ -214,7 +249,7 @@ While `next dev` is running, use `ACHILIAS_BUILD_DIR=.next-build bun run build` 
 
 ### Refreshing screenshots
 
-With the app running, run `bun run screenshots` to refresh the images in `docs/screenshots/`. The capture uses a fresh browser context and example content. Set `ACHILIAS_SCREENSHOT_URL` to capture from another local address, such as `http://127.0.0.1:3001` for a separate production preview.
+With the app running, run `bun run screenshots` to refresh the images in `docs/screenshots/`. Each capture uses a fresh browser context and example content. The script also captures unread filtering, mobile thread reading, seeded demo bookmarks, feature support, and the headless sign-in dialog without creating a connection code. Set `ACHILIAS_SCREENSHOT_URL` to capture from another local address, such as `http://127.0.0.1:3001` for a separate production preview.
 
 ### Integration status
 

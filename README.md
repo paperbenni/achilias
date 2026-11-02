@@ -202,6 +202,10 @@ bun run start --hostname 127.0.0.1
 
 While `next dev` is running, use `ACHILIAS_BUILD_DIR=.next-build bun run build` to preserve its `.next` directory. Start that build with the same variable if you want to run it.
 
+### Visual feedback during development
+
+[Agentation](https://www.agentation.com/install) is available in the bottom-right corner on desktop when running `bun run dev`. Activate it, click an element, add a note, then copy the feedback and paste it into your coding agent. This uses the simple local setup with no MCP server or endpoint; the toolbar is excluded from production.
+
 ### Refreshing screenshots
 
 With the app running, run `bun run screenshots` to refresh the images in `docs/screenshots/`. The capture uses a fresh browser context and example content. Set `ACHILIAS_SCREENSHOT_URL` to capture from another local address, such as `http://127.0.0.1:3001` for a separate production preview.

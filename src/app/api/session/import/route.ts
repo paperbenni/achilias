@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     );
   }
   try {
-    limitSignIn(request, "claim");
+    await limitSignIn(request, "claim");
     const { token } = (await readSmallJson(request)) as { token?: unknown };
     const id = await claimSession(token);
     await setSessionCookie(id);

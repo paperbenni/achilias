@@ -1,5 +1,4 @@
 import { expect, test } from "bun:test";
-import { randomUUID } from "node:crypto";
 import {
   createPublicLookup,
   isPublicAddress,
@@ -10,7 +9,7 @@ import {
 import { readUpstreamText } from "../src/lib/ilias/client";
 import {
   readSmallJson,
-  takeRequestLimit,
+  createSignInLimiter,
   withVerificationLimit,
 } from "../src/lib/ilias/request-limits";
 import { runWithIsolatedSessions } from "./helpers/isolated-sessions";
@@ -110,12 +109,42 @@ test("large chunked HTML and oversized connection payloads are rejected", async 
     ),
   ).rejects.toThrow("too large");
 });
-test("sign-in limits expire and parallel verification has a bounded capacity", async () => {
-  const key = randomUUID();
-  takeRequestLimit(key, 2, 100, 1000);
-  takeRequestLimit(key, 2, 100, 1001);
-  expect(() => takeRequestLimit(key, 2, 100, 1002)).toThrow("Too many");
-  expect(() => takeRequestLimit(key, 2, 100, 1100)).not.toThrow();
+test("sign-in limits isolate trusted clients and do not trust spoofed forwarding headers", async () => {
+  const previous = process.env.ACHILIAS_TRUST_PROXY;
+  try {
+    const limiter = createSignInLimiter();
+    process.env.ACHILIAS_TRUST_PROXY = "true";
+    const request = (ip: string) =>
+      new Request("https://app.example/", {
+        headers: { "x-forwarded-for": ip },
+      });
+    await Promise.all(
+      Array.from({ length: 12 }, () =>
+        limiter(request("203.0.113.1"), "start"),
+      ),
+    );
+    await expect(limiter(request("203.0.113.1"), "start")).rejects.toThrow(
+      "Too many",
+    );
+    await expect(
+      limiter(request("203.0.113.2"), "start"),
+    ).resolves.toBeUndefined();
+    delete process.env.ACHILIAS_TRUST_PROXY;
+    const anonymous = createSignInLimiter();
+    await Promise.all(
+      Array.from({ length: 12 }, (_, index) =>
+        anonymous(request(`203.0.113.${index}`), "start"),
+      ),
+    );
+    await expect(anonymous(request("203.0.113.100"), "start")).rejects.toThrow(
+      "Too many",
+    );
+  } finally {
+    if (previous === undefined) delete process.env.ACHILIAS_TRUST_PROXY;
+    else process.env.ACHILIAS_TRUST_PROXY = previous;
+  }
+});
+test("parallel verification has a bounded capacity", async () => {
   let release!: () => void;
   const pending = new Promise<void>((resolve) => {
     release = resolve;

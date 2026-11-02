@@ -1,5 +1,10 @@
 import type { Workspace } from "./types";
-export type AssessmentStatus = "notgraded" | "passed" | "failed";
+import type { AssessmentStatus } from "./exercise-validation";
+export type {
+  AssessmentStatus,
+  AssessmentInput,
+  UnitInput,
+} from "./exercise-validation";
 export type ExerciseUnit = {
   id: string;
   title: string;
@@ -56,22 +61,6 @@ export type ExerciseState = {
   recognized: boolean;
   hasMore: boolean;
   sourceUrl: string;
-};
-export type AssessmentInput = {
-  status: AssessmentStatus;
-  mark?: string;
-  notice?: string;
-  version: string;
-};
-export type UnitInput = {
-  title: string;
-  instruction?: string;
-  start: string;
-  deadlineMode: "-1" | "0";
-  deadline: string;
-  lateDeadline: string;
-  mandatory: boolean;
-  version: string;
 };
 export function exerciseHref(
   exerciseId: string,

@@ -461,3 +461,19 @@ test("tutor actions reject stale account connections and unauthenticated writes 
     await import("./helpers/isolated-sessions");
   await runWithIsolatedSessions("tests/helpers/exercise-account.ts");
 });
+
+test("form controls follow browser fieldset, select and external-owner semantics without running scripts", () => {
+  const $ = load(
+    `<form id="target"><fieldset disabled><legend><input name="legend" value="keep"></legend><input name="locked" value="drop"></fieldset><input name="other" form="other" value="drop"><select name="choice"><option disabled selected value="drop">Disabled</option></select><select name="multi[]" multiple><optgroup disabled><option selected value="drop">Drop</option></optgroup><option selected value="kept">Label differs</option></select><input type="checkbox" checked name="flag"><input type="file" name="file"><script>globalThis.formScriptRan = true;</script></form><form id="other"></form><input form="target" name="outside" value="keep">`,
+  );
+  expect(formFields($, $("#target"))).toEqual([
+    ["legend", "keep"],
+    ["multi[]", "kept"],
+    ["flag", "on"],
+    ["outside", "keep"],
+  ]);
+  expect(
+    (globalThis as typeof globalThis & { formScriptRan?: boolean })
+      .formScriptRan,
+  ).toBeUndefined();
+});

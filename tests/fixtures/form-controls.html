@@ -1,0 +1,29 @@
+<form id="target">
+  <input type="hidden" name="token" value="fresh-token">
+  <fieldset disabled>
+    <legend><input name="legend" value="keep"></legend>
+    <input name="locked" value="drop">
+    <fieldset><legend><input name="nested" value="drop"></legend></fieldset>
+  </fieldset>
+  <input name="other" form="other" value="drop">
+  <input name="empty" value="">
+  <input type="checkbox" name="unchecked">
+  <input type="checkbox" checked name="flag">
+  <select name="choice"><option disabled selected value="drop">Disabled</option></select>
+  <select name="default"><option disabled value="drop">Disabled</option><option value="default-value">Visible label differs</option></select>
+  <select name="last"><option selected value="first">First</option><option selected value="last">Last</option></select>
+  <select name="listbox" size="3"><option value="unselected">Unselected</option></select>
+  <select name="multi[]" multiple>
+    <optgroup disabled><option selected value="drop">Drop</option></optgroup>
+    <option selected value="kept">Label differs</option>
+    <option selected>  Whitespace   normalized  </option>
+  </select>
+  <textarea name="text">Keep &amp; preserve
+New line</textarea>
+  <input type="file" name="file">
+  <button name="cmd[delete]">Delete</button>
+  <datalist><input name="suggestion" value="drop"></datalist>
+</form>
+<form id="other"></form>
+<input form="target" name="outside" value="keep">
+<input name="unowned" value="drop">

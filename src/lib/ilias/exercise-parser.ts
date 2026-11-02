@@ -1,5 +1,8 @@
 import { createHash } from "node:crypto";
-import { load, type CheerioAPI } from "cheerio";
+import { load } from "cheerio";
+import { formFields } from "./html-forms";
+export { formFields } from "./html-forms";
+import { scriptStringProperties } from "./script-config";
 import { upstreamUrl } from "./config";
 import { validObjectId } from "./identifiers";
 import { sanitizeIliasHtml } from "./html";
@@ -243,37 +246,6 @@ export function formScopeMatches(action: string, fields: [string, string][]) {
   }
   return true;
 }
-/** Browser successful controls: preserve hidden tokens and unrelated settings, never unchecked/disabled fields. */
-export function formFields($: CheerioAPI, form: ReturnType<CheerioAPI>) {
-  const fields: [string, string][] = [];
-  form.find("input[name], select[name], textarea[name]").each((_, node) => {
-    const control = $(node);
-    if (control.is(":disabled")) return;
-    const name = control.attr("name")!;
-    const type = (control.attr("type") || "").toLowerCase();
-    if (["submit", "button", "image", "file", "reset"].includes(type)) return;
-    if (["checkbox", "radio"].includes(type) && !control.is(":checked")) return;
-    if (control.closest("fieldset[disabled]").length) return;
-    if (control.is("select")) {
-      let options = control.find("option[selected]");
-      if (!options.length && !control.is("[multiple]"))
-        options = control.find("option").first();
-      options.each((_, option) => {
-        if (
-          !$(option).is(":disabled") &&
-          !$(option).closest("optgroup[disabled]").length
-        )
-          fields.push([name, $(option).attr("value") ?? $(option).text()]);
-      });
-      return;
-    }
-    const value = ["checkbox", "radio"].includes(type)
-      ? (control.attr("value") ?? "on")
-      : (control.val() ?? "");
-    fields.push([name, String(value)]);
-  });
-  return fields;
-}
 export function parseGrading(
   html: string,
   source: string,
@@ -284,6 +256,7 @@ export function parseGrading(
   const table = $('table[id*="exc_mem"]').first();
   const form = table.closest("form");
   const action = exerciseLink(form.attr("action") || "", source);
+  const fields = form.length ? formFields($, form) : [];
   const command = form
     .find('button[name="cmd[saveStatusAll]"], input[name="cmd[saveStatusAll]"]')
     .filter(
@@ -295,7 +268,7 @@ export function parseGrading(
   const allowed =
     action &&
     command.length > 0 &&
-    formScopeMatches(action, formFields($, form)) &&
+    formScopeMatches(action, fields) &&
     exerciseCommand(
       action,
       ["ilexercisemanagementgui", "ilparticipantsperassignmenttablegui"],
@@ -316,19 +289,12 @@ export function parseGrading(
   const modalFeedbackUrls = $("script")
     .filter((_, script) => !$(script).closest("table, .ilc_Paragraph").length)
     .toArray()
-    .flatMap((script) => {
-      const urls: string[] = [];
-      for (const match of $(script)
-        .text()
-        .matchAll(/"ajaxRenderUrl"\s*:\s*("(?:\\.|[^"\\])*")/g)) {
-        try {
-          const url = exerciseLink(JSON.parse(match[1]), source);
-          if (url) urls.push(url);
-        } catch {
-          /* Unknown initialization format needs ILIAS. */
-        }
-      }
-      return urls;
+    .flatMap((script) =>
+      scriptStringProperties($(script).text(), "ajaxRenderUrl"),
+    )
+    .flatMap((href) => {
+      const url = exerciseLink(href, source);
+      return url ? [url] : [];
     });
   const submissions: Submission[] = [];
   table.find("tbody tr").each((_, row) => {
@@ -457,7 +423,7 @@ export function parseGrading(
     form: allowed
       ? {
           action: action!,
-          fields: formFields($, form),
+          fields,
           command: command.length
             ? (["cmd[saveStatusAll]", command.attr("value") || "1"] as [
                 string,
@@ -483,6 +449,7 @@ export function parseUnitForm(
     )
     .first();
   const action = exerciseLink(form.attr("action") || "", source);
+  const fields = form.length ? formFields($, form) : [];
   const commandName = creating ? "saveAssignment" : "updateAssignment";
   const submit = form.find(`[name="cmd[${commandName}]"]`).first();
   if (
@@ -494,12 +461,11 @@ export function parseUnitForm(
       exerciseId,
       creating ? undefined : expectedUnitId,
     ) ||
-    !formScopeMatches(action, formFields($, form)) ||
+    !formScopeMatches(action, fields) ||
     submit.is(":disabled") ||
     !submit.length
   )
     return null;
-  const fields = formFields($, form);
   const values = new URLSearchParams(fields);
   const deadlineMode = values.get("deadline_mode") || "unsupported";
   const instruction = String(form.find('[name="instruction"]').val() || "");

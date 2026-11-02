@@ -12,8 +12,8 @@ import {
 import { requireSameOrigin } from "@/lib/ilias/session";
 export const runtime = "nodejs";
 const headers = { "Cache-Control": "private, no-store" };
-function codeFrom(request: Request) {
-  limitSignIn(request, "transfer");
+async function codeFrom(request: Request) {
+  await limitSignIn(request, "transfer");
   // CLI transfers use a bearer code, never a browser's session cookie.
   if (request.headers.has("origin")) {
     try {
@@ -46,7 +46,7 @@ function failure(error: unknown) {
 }
 export async function GET(request: Request) {
   try {
-    const session = await remoteSession(codeFrom(request));
+    const session = await remoteSession(await codeFrom(request));
     return Response.json(
       {
         instance: session.instance,
@@ -60,7 +60,7 @@ export async function GET(request: Request) {
 }
 export async function POST(request: Request) {
   try {
-    const code = codeFrom(request);
+    const code = await codeFrom(request);
     await remoteSession(code);
     const data = await readRemotePayload(request);
     await withVerificationLimit(() => completeRemoteLogin(code, data));

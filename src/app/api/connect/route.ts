@@ -33,7 +33,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     requireSameOrigin(request);
-    limitSignIn(request, "start");
+    await limitSignIn(request, "start");
     const { instance, mode: requestedMode } = (await readSmallJson(
       request,
     )) as { instance?: unknown; mode?: string };

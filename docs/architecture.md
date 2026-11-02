@@ -74,3 +74,13 @@ Exercise adapter reference (ILIAS 10, commit `d8dd98bc6cd09446465b2999199594f574
 `upstream-transport.ts` owns the HTTPS transport and DNS-to-socket public-address validation; `client.ts` owns scoped redirects, cookie rotation, bounded text reads and ambiguous-write handling. Tests replace the explicit transport seam instead of the process-wide fetch function. User instance URLs must never be fetched through a different transport. `request-limits.ts` bounds sign-in endpoints and verification concurrency; it trusts forwarded addresses only when explicitly configured.
 
 `write-policy.ts` is shared by server mutation guards and UI capability state. `requireWorkspaceConnection` binds actions to the displayed connection to reject stale tabs after an account switch. UI-only disabling is insufficient. Sessions, locks and rate limits currently support concurrent users in one process; see [deployment](deployment.md) before hosting or considering replicas.
+
+## Dependencies and adaptation boundaries
+
+HTML syntax is parsed by **Cheerio/parse5**, and rich content is sanitized by **sanitize-html**. Selectors, localized labels and ILIAS controller scoping are application adaptation code; a general HTML library cannot supply those mappings. JavaScript modal configuration uses **Acorn + acorn-walk** to read literal properties without evaluating scripts or matching comments/quoted examples.
+
+Exercise action schemas and their TypeScript input types share **Zod** definitions. ISO calendar validation belongs to Zod; wall-clock timezone policy, deadline ordering and field limits belong to the app. **rate-limiter-flexible** owns the in-process sign-in counters and expiry; the app chooses limits and which proxy headers to trust. These memory limits still require one process.
+
+`html-forms.ts` retains a small static-form compatibility adapter. Cheerio’s built-in serializer incorrectly reads multi-select labels and disabled fieldsets; jsdom’s FormData currently includes disabled options. Neither reduced the compatibility burden in testing. `bun run test:forms` compares the retained adapter with Chromium, covering the supported form controls. Uploads, script-generated controls and unsupported ILIAS workflows remain in the original UI. Do not replace this adapter without running those browser comparisons.
+
+Cookies, HTTPS and IP classification already use **tough-cookie**, **Undici** and **ipaddr.js**. Session encryption uses Node’s authenticated **AES-GCM** implementation; there is no handwritten cipher. The file envelope, account binding and single-use pairing are application policy, so adding a general authentication framework would not remove the ILIAS session-transfer integration.

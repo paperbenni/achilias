@@ -1,55 +1,56 @@
+import { RateLimiterMemory, RateLimiterRes } from "rate-limiter-flexible";
 import { createHash } from "node:crypto";
 import { isIP } from "node:net";
 
 export class RequestLimitError extends Error {
   status = 429;
 }
-type Bucket = { count: number; until: number };
+type Operation = "start" | "transfer" | "claim";
+/** The global limit is consumed first, bounding the number of client keys as well. */
+export function createSignInLimiter() {
+  const limits = Object.fromEntries(
+    (["start", "transfer", "claim"] as const).map((operation) => [
+      operation,
+      {
+        global: new RateLimiterMemory({
+          points: operation === "start" ? 200 : 1200,
+          duration: 600,
+        }),
+        client: new RateLimiterMemory({
+          points: operation === "start" ? 12 : 60,
+          duration: 600,
+        }),
+      },
+    ]),
+  ) as Record<
+    Operation,
+    { global: RateLimiterMemory; client: RateLimiterMemory }
+  >;
+  return async (request: Request, operation: Operation) => {
+    // Trust forwarding headers only behind a proxy that overwrites them.
+    const remote =
+      process.env.ACHILIAS_TRUST_PROXY === "true"
+        ? (request.headers.get("x-forwarded-for") || "").split(",")[0].trim()
+        : "";
+    const ip = isIP(remote) ? remote : "unknown";
+    const client = createHash("sha256").update(ip).digest("hex").slice(0, 24);
+    try {
+      await limits[operation].global.consume("all");
+      await limits[operation].client.consume(client);
+    } catch (error) {
+      if (error instanceof RateLimiterRes)
+        throw new RequestLimitError(
+          "Too many sign-in attempts. Try again later.",
+        );
+      throw error;
+    }
+  };
+}
 const state = globalThis as typeof globalThis & {
-  achiliasRequestLimits?: Map<string, Bucket>;
+  achiliasSignInLimiter?: ReturnType<typeof createSignInLimiter>;
 };
-const buckets = (state.achiliasRequestLimits ||= new Map<string, Bucket>());
-export function takeRequestLimit(
-  key: string,
-  limit: number,
-  windowMs: number,
-  now = Date.now(),
-) {
-  // Expire unrelated buckets too, so forged client addresses cannot grow memory forever.
-  for (const [key, bucket] of buckets)
-    if (bucket.until <= now) buckets.delete(key);
-  let bucket = buckets.get(key);
-  if (!bucket) {
-    if (buckets.size >= 4096)
-      throw new RequestLimitError(
-        "Too many sign-in attempts. Try again later.",
-      );
-    bucket = { count: 0, until: now + windowMs };
-    buckets.set(key, bucket);
-  }
-  if (++bucket.count > limit)
-    throw new RequestLimitError("Too many sign-in attempts. Try again later.");
-}
-/** Trust forwarding headers only behind a proxy that overwrites them. */
-export function limitSignIn(
-  request: Request,
-  operation: "start" | "transfer" | "claim",
-) {
-  const remote =
-    process.env.ACHILIAS_TRUST_PROXY === "true"
-      ? (request.headers.get("x-forwarded-for") || "").split(",")[0].trim()
-      : "";
-  const ip = isIP(remote) ? remote : "unknown";
-  const client = createHash("sha256").update(ip).digest("hex").slice(0, 24);
-  const window = 10 * 60_000;
-  const limit = operation === "start" ? 12 : 60;
-  takeRequestLimit(
-    `${operation}:all`,
-    operation === "start" ? 200 : 1200,
-    window,
-  );
-  takeRequestLimit(`${operation}:${client}`, limit, window);
-}
+export const limitSignIn = (state.achiliasSignInLimiter ||=
+  createSignInLimiter());
 /** Stop parallel cookie exports from filling all upstream connections. */
 const verificationState = globalThis as typeof globalThis & {
   achiliasVerifications?: number;

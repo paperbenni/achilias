@@ -96,9 +96,32 @@ try {
   await maya
     .getByText("Private note: Review task 3 together.", { exact: true })
     .waitFor();
+  await page.route("**/api/files/301?demo=1", (route) =>
+    route.fulfill({
+      status: 401,
+      contentType: "application/json",
+      body: JSON.stringify({
+        error: "Example session expired. Reconnect to download.",
+      }),
+    }),
+  );
+  await maya
+    .getByRole("button", { name: "Download submission", exact: true })
+    .click();
+  await page
+    .getByText("Example session expired. Reconnect to download.", {
+      exact: true,
+    })
+    .waitFor();
+  assert.equal(
+    new URL(page.url()).pathname,
+    "/exercises/401/units/501",
+    "Failed download left the review screen",
+  );
+  await page.unroute("**/api/files/301?demo=1");
   const downloadEvent = page.waitForEvent("download");
   await maya
-    .getByRole("link", { name: "Download submission", exact: true })
+    .getByRole("button", { name: "Download submission", exact: true })
     .click();
   const download = await downloadEvent;
   assert.equal(await download.failure(), null);

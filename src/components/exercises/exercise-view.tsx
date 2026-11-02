@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   ArrowRight,
   ClipboardList,
-  Download,
   MessageSquare,
   Plus,
   Search,
@@ -69,6 +68,7 @@ import {
 } from "@/lib/ilias/exercise-validation";
 import { AssessmentEditor } from "./assessment-editor";
 import { FeedbackEditor } from "./feedback-editor";
+import { SubmissionDownload } from "./submission-download";
 import { UnitEditor } from "./unit-editor";
 const statusLabels = {
   notgraded: "Not assessed",
@@ -158,7 +158,12 @@ export function ExerciseView({ state }: { state: ExerciseState }) {
     const problem = unitProblem(input);
     if (problem) throw new Error(problem);
     if (!demo) {
-      const result = await updateExerciseUnit(exerciseId, unitId, input);
+      const result = await updateExerciseUnit(
+        exerciseId,
+        unitId,
+        input,
+        workspace.storageKey || "",
+      );
       if (result.error || !result.saved)
         throw new Error(result.error || "Could not save unit.");
       if (creating)
@@ -327,7 +332,7 @@ export function ExerciseView({ state }: { state: ExerciseState }) {
         </ItemGroup>
       ) : (
         <Tabs defaultValue={state.tutor ? "submissions" : "instructions"}>
-          <TabsList className="h-auto flex-wrap">
+          <TabsList className="max-w-full">
             <TabsTrigger value="submissions">Submissions / Abgaben</TabsTrigger>
             <TabsTrigger value="instructions">Instructions</TabsTrigger>
             <TabsTrigger value="settings">Unit settings</TabsTrigger>
@@ -497,18 +502,14 @@ export function ExerciseView({ state }: { state: ExerciseState }) {
                     </ItemContent>
                     <ItemActions className="flex-wrap">
                       {row.downloadUrl && (
-                        <Button variant="outline" size="sm" asChild>
-                          <a
-                            href={
-                              demo
-                                ? "/api/files/301?demo=1"
-                                : `/api/exercises/${exerciseId}/units/${unitId}/submissions/${row.id}`
-                            }
-                          >
-                            <Download data-icon="inline-start" />
-                            Download submission
-                          </a>
-                        </Button>
+                        <SubmissionDownload
+                          href={
+                            demo
+                              ? "/api/files/301?demo=1"
+                              : `/api/exercises/${exerciseId}/units/${unitId}/submissions/${row.id}`
+                          }
+                          name={`submission-${row.id}.zip`}
+                        />
                       )}
                       {row.canAssess && (
                         <Button size="sm" onClick={() => setAssessment(row)}>
@@ -584,6 +585,7 @@ export function ExerciseView({ state }: { state: ExerciseState }) {
                 unitId,
                 assessment.id,
                 input,
+                workspace.storageKey || "",
               );
               if (result.error) throw new Error(result.error);
             }
@@ -594,6 +596,7 @@ export function ExerciseView({ state }: { state: ExerciseState }) {
         <FeedbackEditor
           key={feedback.id}
           exerciseId={exerciseId}
+          connection={workspace.storageKey || ""}
           unitId={unitId}
           submission={feedback}
           demo={demo}

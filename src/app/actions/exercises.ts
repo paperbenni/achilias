@@ -1,6 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { currentSession } from "@/lib/ilias/session";
+import { getWorkspaceContext } from "@/lib/ilias/workspace-context";
 import {
   getLearnerFeedback,
   saveLearnerFeedback,
@@ -8,10 +8,14 @@ import {
   saveExerciseUnit,
 } from "@/lib/ilias/exercise";
 import type { AssessmentInput, UnitInput } from "@/lib/ilias/exercise-types";
-async function connected() {
-  const session = await currentSession();
+async function connected(expectedConnection: string) {
+  const { session, workspace } = await getWorkspaceContext();
   if (session?.status !== "connected")
     throw new Error("Reconnect your account to use tutor actions.");
+  if (!expectedConnection || workspace.storageKey !== expectedConnection)
+    throw new Error(
+      "Your connection changed. Refresh this page before using tutor tools.",
+    );
   return session;
 }
 const errorMessage = (error: unknown) =>
@@ -23,10 +27,11 @@ export async function assessSubmission(
   unitId: string,
   memberId: string,
   input: AssessmentInput,
+  connection: string,
 ) {
   try {
     const saved = await saveAssessment(
-      await connected(),
+      await connected(connection),
       exerciseId,
       unitId,
       memberId,
@@ -42,10 +47,11 @@ export async function updateExerciseUnit(
   exerciseId: string,
   unitId: string | undefined,
   input: UnitInput,
+  connection: string,
 ) {
   try {
     const saved = await saveExerciseUnit(
-      await connected(),
+      await connected(connection),
       exerciseId,
       unitId,
       input,
@@ -60,11 +66,12 @@ export async function loadFeedback(
   exerciseId: string,
   unitId: string,
   memberId: string,
+  connection: string,
 ) {
   try {
     return {
       editor: await getLearnerFeedback(
-        await connected(),
+        await connected(connection),
         exerciseId,
         unitId,
         memberId,
@@ -80,10 +87,11 @@ export async function sendFeedback(
   memberId: string,
   value: string,
   version: string,
+  connection: string,
 ) {
   try {
     const saved = await saveLearnerFeedback(
-      await connected(),
+      await connected(connection),
       exerciseId,
       unitId,
       memberId,

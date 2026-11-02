@@ -24,6 +24,7 @@ import { OriginalLink } from "@/components/navigation/original-link";
 import type { Submission } from "@/lib/ilias/exercise-types";
 export function FeedbackEditor({
   exerciseId,
+  connection,
   unitId,
   submission,
   demo,
@@ -31,6 +32,7 @@ export function FeedbackEditor({
   onClose,
 }: {
   exerciseId: string;
+  connection: string;
   unitId: string;
   submission: Submission;
   demo: boolean;
@@ -46,7 +48,7 @@ export function FeedbackEditor({
   useEffect(() => {
     if (demo) return;
     let cancelled = false;
-    void loadFeedback(exerciseId, unitId, submission.id)
+    void loadFeedback(exerciseId, unitId, submission.id, connection)
       .then((result) => {
         if (cancelled) return;
         if (result.error || !result.editor)
@@ -65,7 +67,7 @@ export function FeedbackEditor({
     return () => {
       cancelled = true;
     };
-  }, [demo, exerciseId, unitId, submission.id]);
+  }, [demo, exerciseId, unitId, submission.id, connection]);
   return (
     <Dialog
       open
@@ -100,6 +102,7 @@ export function FeedbackEditor({
                     submission.id,
                     value,
                     editor.version,
+                    connection,
                   );
                   if (result.error) throw new Error(result.error);
                 }

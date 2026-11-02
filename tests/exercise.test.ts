@@ -440,3 +440,9 @@ test("unreadable submission tables and hidden columns produce unknown counts rat
     late: 0,
   });
 });
+
+test("tutor actions reject stale account connections and unauthenticated writes before contacting ILIAS", async () => {
+  const { runWithIsolatedSessions } =
+    await import("./helpers/isolated-sessions");
+  await runWithIsolatedSessions("tests/helpers/exercise-account.ts");
+});

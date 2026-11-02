@@ -2,6 +2,7 @@
 import { Navigation, type WorkspaceViewName } from "./navigation";
 import { SettingsView } from "./settings-view";
 import { ItemList } from "./item-list";
+import { downloadFile } from "@/lib/browser-download";
 import { useLibrary } from "@/hooks/use-library";
 import { mergeItems } from "@/lib/ilias/library";
 import { iconFor } from "./item-icon";
@@ -145,23 +146,7 @@ export function WorkspaceView({
   async function download(item: Item) {
     setDownloading(true);
     try {
-      const response = await fetch(itemHref(item, demo));
-      if (!response.ok) {
-        const result = await response.json();
-        throw new Error(result.error || "Download failed.");
-      }
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      const disposition = response.headers.get("content-disposition") || "";
-      const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
-      a.download =
-        (encoded
-          ? decodeURIComponent(encoded)
-          : disposition.match(/filename="?([^";]+)/i)?.[1]) || item.title;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 30_000);
+      await downloadFile(itemHref(item, demo), item.title);
       toast.success("Download ready");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Download failed.");

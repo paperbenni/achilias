@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 import { getWorkspaceContext } from "@/lib/ilias/workspace-context";
 import { validObjectId } from "@/lib/ilias/identifiers";
 import { markForumThreadRead } from "@/lib/ilias/forum";
+import { clearWorkspacePages } from "@/lib/ilias/page-cache";
 import { errorResponse, noStore, sameOriginFailure } from "@/lib/api";
 
 export const runtime = "nodejs";
@@ -38,6 +39,8 @@ export async function POST(
     );
   try {
     await markForumThreadRead(session, forumId, threadId);
+    // Reused dashboard pages still carry the old unread counts.
+    clearWorkspacePages(session.id);
     // Keep every cached route's unread state in sync after a read.
     revalidatePath("/", "layout");
     return Response.json({ status: "read" }, { headers: noStore });

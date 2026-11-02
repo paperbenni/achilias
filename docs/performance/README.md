@@ -30,6 +30,13 @@ The raw reports are [before](navigation-before.json) and [after](navigation-afte
 
 The 30-second reuse currently uses Next 16.4.3's documented experimental `staleTimes` setting. Keep the production navigation regression test when upgrading Next. Automatic prefetching is a production optimization; `bun run dev` does not demonstrate its final behavior.
 
+## Later changes (not re-measured)
+
+The table above predates the following changes and was not re-run after them. They are listed so the measurements are not mistaken for results of the current build.
+
+- Workspace pages are reused for 30 seconds per session on the server, keyed by session and upstream URL. Overview and My courses share one dashboard download and parse; Refresh and mark-read clear the reuse. Forum and exercise pages are excluded.
+- The exercise loader requests the editor catalog and the members page in parallel instead of one after the other, removing one upstream round trip from exercise pages.
+
 ## Reproduce
 
 Build and start a production preview on port 3001, then run:

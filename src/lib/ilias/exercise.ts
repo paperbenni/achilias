@@ -72,10 +72,19 @@ export async function fetchExercise(
     objectUrl(session.instance, "exc", exerciseId),
   );
   const controls = exerciseControls(root.html, root.url, exerciseId);
-  const catalog =
+  // The editor catalog and the members page both hang off the exercise root,
+  // so load them together instead of paying two ILIAS round trips in series.
+  const catalogRequest =
     (details || creating) && controls.editorUrl
-      ? await fetchAuthenticatedHtml(session, controls.editorUrl)
-      : root;
+      ? fetchAuthenticatedHtml(session, controls.editorUrl)
+      : Promise.resolve(root);
+  const membersRequest = controls.membersUrl
+    ? fetchAuthenticatedHtml(session, controls.membersUrl)
+    : Promise.resolve(null);
+  const [catalog, membersPage] = await Promise.all([
+    catalogRequest,
+    membersRequest,
+  ]);
   const rootUnits = parseExerciseUnits(root.html, root.url, exerciseId);
   const units = new Map(
     [
@@ -84,9 +93,7 @@ export async function fetchExercise(
     ].map((unit) => [unit.id, unit]),
   );
   const createUrl = parseCreateLink(catalog.html, catalog.url, exerciseId);
-  let members = controls.membersUrl
-    ? await fetchAuthenticatedHtml(session, controls.membersUrl)
-    : null;
+  let members = membersPage;
   if (members)
     for (const unit of parseExerciseUnits(
       members.html,

@@ -38,6 +38,8 @@ Routes orchestrate server loaders; loaders adapt ILIAS into typed data; feature 
 
 Metadata-only pages use `getWorkspaceMetadata`; they should not fetch the upstream dashboard. Production navigation briefly reuses visited pages in the browser. Live course/forum links deliberately disable speculative prefetch because an upstream GET can record visits, read events, or view preferences. Refresh and successful native mark-read actions invalidate that recent-page cache. Account changes perform a full navigation to discard prior client-router content. See [navigation measurements and policy](performance/README.md).
 
+Workspace page loads are also reused for 30 seconds inside the server process, keyed by session and upstream URL, so Overview and My courses share one dashboard download and parse and a repeat visit skips both. Entries are bounded, never shared across sessions, and cleared by Refresh and mark-read. Forum and exercise loaders bypass this reuse because their pages carry read state and per-view preferences. The exercise loader fetches the editor catalog and the members page in parallel, since both depend only on the exercise root.
+
 ## Local state
 
 Saved items and recent history are scoped to a connection's hashed storage key, with a separate demo key. Restored items are validated, duplicates are removed, and recent history is bounded. Current server metadata takes precedence over saved copies in search; a saved copy's repository path can still fill a missing `context` without overriding current metadata. Pure updates in `library.ts` operate on the latest snapshot so bookmark and history changes do not overwrite one another.

@@ -1,5 +1,6 @@
 import { objectUrl } from "./config";
 import { fetchPage } from "./client";
+import { loadWorkspacePage } from "./page-cache";
 import { demoPage } from "./demo";
 import { getWorkspaceContext } from "./workspace-context";
 import type { Workspace } from "./types";
@@ -14,13 +15,18 @@ export async function getWorkspace(
   if (type && id)
     workspace.page.sourceUrl = objectUrl(workspace.instance, type, id);
   if (session?.status !== "connected") return workspace;
+  const sourceUrl = workspace.page.sourceUrl;
   try {
-    const page = await fetchPage(session, workspace.page.sourceUrl);
+    const { page, fetchedAt } = await loadWorkspacePage(
+      session.id,
+      sourceUrl,
+      () => fetchPage(session, sourceUrl),
+    );
     return {
       ...workspace,
       userName: page.userName || workspace.userName,
       page,
-      fetchedAt: new Date().toISOString(),
+      fetchedAt: new Date(fetchedAt).toISOString(),
     };
   } catch (error) {
     return {

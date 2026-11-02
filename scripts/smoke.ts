@@ -73,7 +73,7 @@ try {
   await page.getByRole("heading", { name: "Overview", exact: true }).waitFor();
 
   await page
-    .getByRole("button", { name: "Save Linear Algebra I", exact: true })
+    .getByRole("button", { name: "Bookmark Linear Algebra I", exact: true })
     .click();
   assert.equal(
     new URL(page.url()).pathname,
@@ -93,17 +93,17 @@ try {
   await page
     .getByRole("link", { name: "Linear Algebra I", exact: true })
     .waitFor();
-  // A second tab must update the already-mounted Saved screen immediately.
+  // A second tab must update the already-mounted Bookmarks screen immediately.
   const otherTab = await context.newPage();
   await otherTab.goto(origin + "/?demo=1");
   await otherTab
-    .getByRole("button", { name: "Unsave Linear Algebra I", exact: true })
+    .getByRole("button", { name: "Remove bookmark Linear Algebra I", exact: true })
     .click();
   await page
     .getByRole("link", { name: "Linear Algebra I", exact: true })
     .waitFor({ state: "hidden" });
   await otherTab
-    .getByRole("button", { name: "Save Linear Algebra I", exact: true })
+    .getByRole("button", { name: "Bookmark Linear Algebra I", exact: true })
     .click();
   await page
     .getByRole("link", { name: "Linear Algebra I", exact: true })
@@ -169,7 +169,7 @@ try {
   await page.keyboard.press("Control+k");
   await page.getByRole("combobox").fill("gruppe");
   await page
-    .getByRole("option", { name: /Search all your courses/ })
+    .getByRole("option", { name: /Search ILIAS for/ })
     .click();
   await page
     .getByText("Introduction to Computer Science › Exercise groups")

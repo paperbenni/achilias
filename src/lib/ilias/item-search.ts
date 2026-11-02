@@ -1,9 +1,19 @@
 import { itemKey, typeNames } from "./items";
 import type { Item } from "./types";
 
-/** Split a query into lowercase terms, dropping empties. */
+/** Treat accents, punctuation, and whitespace alike in local search. */
+function normalizeSearch(value: string) {
+  return value
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
+}
+
+/** Split a query into normalized terms, dropping empties. */
 export function searchTerms(query: string) {
-  return query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  return normalizeSearch(query).split(/\s+/).filter(Boolean);
 }
 
 /**
@@ -12,22 +22,16 @@ export function searchTerms(query: string) {
  * which is what distinguishes identically named groups and folders.
  */
 export function matchesItem(item: Item, terms: string[]) {
-  const haystack = [
-    item.title,
-    item.description,
-    item.meta,
-    item.context,
-    item.id,
-    typeNames[item.type],
-  ]
-    .join(" ")
-    .toLowerCase();
+  const haystack = normalizeSearch(
+    [item.title, item.description, item.meta, item.context, item.id, typeNames[item.type]]
+      .join(" "),
+  );
   return terms.every((term) => haystack.includes(term));
 }
 
 /**
- * Rank repository results so matches inside courses the user saved or recently
- * visited come first. ILIAS ranks globally, so a familiar course's material can
+ * Rank repository results so matches inside enrolled, saved, or recently
+ * visited courses come first. ILIAS ranks globally, so a familiar course's material can
  * otherwise sit below objects the user has never opened. Results outside those
  * courses keep their upstream order.
  */
@@ -49,18 +53,21 @@ export function rankByFamiliarity(items: Item[], familiar: Item[]): Item[] {
   return [...items].sort((a, b) => tier(a) - tier(b));
 }
 
-/** Exact titles first, then prefixes, then substrings; ties keep their order. */
+/** Title matches before metadata matches; alphabetical within each tier. */
 export function rankByTitle(items: Item[], query: string): Item[] {
-  const normalized = query.trim().toLowerCase();
+  const normalized = normalizeSearch(query);
+  const terms = searchTerms(query);
   const rank = (item: Item) => {
-    const title = item.title.toLowerCase();
+    const title = normalizeSearch(item.title);
     return title === normalized
       ? 0
       : title.startsWith(normalized)
         ? 1
         : title.includes(normalized)
           ? 2
-          : 3;
+          : terms.every((term) => title.includes(term))
+            ? 3
+            : 4;
   };
   return [...items].sort(
     (a, b) => rank(a) - rank(b) || a.title.localeCompare(b.title),

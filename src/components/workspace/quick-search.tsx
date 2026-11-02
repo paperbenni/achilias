@@ -28,6 +28,7 @@ import { mergeItems } from "@/lib/ilias/library";
 import {
   matchesItem,
   rankByFamiliarity,
+  rankByTitle,
   searchTerms,
 } from "@/lib/ilias/item-search";
 import { itemKey, typeNames } from "@/lib/ilias/items";
@@ -102,6 +103,16 @@ export function QuickSearch({
 }) {
   const router = useRouter();
   const demo = data.mode === "demo";
+  const scope = data.storageKey || data.mode;
+  const [catalog, setCatalog] = useState<{
+    scope: string;
+    items: Item[];
+    status: "ready" | "error";
+    hasMore: boolean;
+    error?: string;
+  } | null>(null);
+  const [catalogRetry, setCatalogRetry] = useState(0);
+  const [showAllLocal, setShowAllLocal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [deep, setDeep] = useState<DeepSearch | null>(null);
   const [deepLoadingQuery, setDeepLoadingQuery] = useState<string | null>(null);
@@ -120,6 +131,7 @@ export function QuickSearch({
     searchAbort.current?.abort();
     searchAbort.current = null;
     setSearchQuery("");
+    setShowAllLocal(false);
     setDeep(null);
     setDeepLoadingQuery(null);
     setDeepError(null);
@@ -132,6 +144,50 @@ export function QuickSearch({
     if (open && !wasOpen.current) resetSearchState();
     wasOpen.current = open;
   }, [open]);
+  // Fetch once per opening, never per keystroke. Closing or changing accounts
+  // cancels the request; account-scoped state cannot leak into another session.
+  useEffect(() => {
+    if (!open || data.mode === "disconnected") return;
+    const controller = new AbortController();
+    void (async () => {
+      try {
+        const response = await fetch(
+          `/api/search/items${demo ? "?demo=1" : ""}`,
+          { cache: "no-store", signal: controller.signal },
+        );
+        const body = (await response.json()) as {
+          items?: Item[];
+          hasMore?: boolean;
+          error?: string;
+        };
+        if (!response.ok)
+          throw new Error(body.error || "Could not load your courses.");
+        if (!controller.signal.aborted)
+          setCatalog({
+            scope,
+            items: Array.isArray(body.items) ? body.items : [],
+            status: "ready",
+            hasMore: Boolean(body.hasMore),
+          });
+      } catch (error) {
+        if (!controller.signal.aborted)
+          setCatalog({
+            scope,
+            items: [],
+            status: "error",
+            hasMore: false,
+            error: error instanceof Error ? error.message : "Could not load your courses.",
+          });
+      }
+    })();
+    return () => controller.abort();
+  }, [open, scope, demo, data.mode, catalogRetry]);
+  const accountCatalog = catalog?.scope === scope ? catalog : null;
+  const catalogItems = useMemo(
+    () => accountCatalog?.items || [],
+    [accountCatalog],
+  );
+  const catalogLoading = data.mode !== "disconnected" && !accountCatalog;
   async function runDeepSearch() {
     const term = searchQuery.trim();
     if (term.length < 2) return;
@@ -182,11 +238,17 @@ export function QuickSearch({
   const trimmedQuery = searchQuery.trim();
   const localSearchResults = useMemo(() => {
     const terms = searchTerms(trimmedQuery);
-    const matches = terms.length
-      ? allItems.filter((item) => matchesItem(item, terms))
-      : mergeItems(recent, pageItems);
-    return matches.slice(0, 16);
-  }, [allItems, recent, pageItems, trimmedQuery]);
+    const candidates = mergeItems(pageItems, catalogItems, allItems);
+    return terms.length
+      ? rankByTitle(
+          candidates.filter((item) => matchesItem(item, terms)),
+          trimmedQuery,
+        )
+      : mergeItems(recent, catalogItems, pageItems, saved);
+  }, [allItems, recent, pageItems, saved, catalogItems, trimmedQuery]);
+  const visibleLocalResults = showAllLocal
+    ? localSearchResults
+    : localSearchResults.slice(0, 16);
   const deepForQuery = deep?.query === trimmedQuery ? deep : null;
   // ILIAS pages search results through its own result view, so reaching the
   // bottom of the list asks for the next page instead of sending the user away.
@@ -247,17 +309,17 @@ export function QuickSearch({
     if (list.scrollTop + list.clientHeight >= list.scrollHeight - 120)
       void loadMore();
   }
-  const localKeys = new Set(localSearchResults.map(itemKey));
+  const localKeys = new Set(visibleLocalResults.map(itemKey));
   const deepContext = new Map<string, string>();
   for (const item of deepForQuery?.results || [])
     if (item.context) deepContext.set(itemKey(item), item.context);
-  const localResults = localSearchResults.map((item) => {
+  const localResults = visibleLocalResults.map((item) => {
     const context = item.context || deepContext.get(itemKey(item));
     return context && !item.context ? { ...item, context } : item;
   });
   const deepResults = rankByFamiliarity(
     deepForQuery?.results.filter((item) => !localKeys.has(itemKey(item))) || [],
-    mergeItems(saved, recent),
+    mergeItems(saved, recent, catalogItems),
   );
   const deepLoading = deepLoadingQuery === trimmedQuery;
   const currentDeepError =
@@ -275,14 +337,22 @@ export function QuickSearch({
       open={open}
       onOpenChange={onOpenChange}
       title="Find a course or material"
-      description="Search this page, bookmarks, recent history, and all your courses in ILIAS."
+      description="Search your courses, this page, bookmarks, and recent history, or search the ILIAS repository."
       className="top-1/2 h-[min(88svh,52rem)] max-h-[calc(100svh-2rem)] w-[calc(100%-2rem)] max-w-[calc(100%-2rem)] -translate-y-1/2 gap-0 overflow-hidden p-0 sm:max-w-4xl"
     >
       <Command shouldFilter={false} className="h-auto min-h-0 flex-1">
         <CommandInput
           placeholder="Search courses, groups, folders, and materials…"
           value={searchQuery}
-          onValueChange={setSearchQuery}
+          onValueChange={(value) => {
+            setSearchQuery(value);
+            setShowAllLocal(false);
+            searchRequest.current++;
+            searchAbort.current?.abort();
+            setDeepLoadingQuery(null);
+            setDeepMoreLoading(false);
+            loadingMore.current = false;
+          }}
         />
         <CommandList
           className="min-h-0 flex-1 max-h-none"
@@ -309,8 +379,8 @@ export function QuickSearch({
             <CommandGroup
               heading={
                 trimmedQuery
-                  ? "On this page, bookmarks & recent"
-                  : "Recent & on this page"
+                  ? "Your courses, this page & library"
+                  : "Recent, your courses & this page"
               }
             >
               {localResults.map((item) => (
@@ -320,11 +390,51 @@ export function QuickSearch({
                   onSelect={onOpenItem}
                 />
               ))}
+              {!showAllLocal && localSearchResults.length > 16 && (
+                <CommandItem
+                  value="show-all-local"
+                  onSelect={() => setShowAllLocal(true)}
+                >
+                  <Search />
+                  Show all {localSearchResults.length} matches
+                </CommandItem>
+              )}
             </CommandGroup>
           )}
-          {trimmedQuery && !localResults.length && (
+          {catalogLoading && (
+            <div
+              role="status"
+              className="flex items-center gap-2 px-3 py-3 text-sm text-muted-foreground"
+            >
+              <Loader2 className="size-4 animate-spin" /> Loading your courses…
+            </div>
+          )}
+          {accountCatalog?.status === "error" && (
+            <CommandGroup heading="Course list unavailable">
+              <div role="status" className="px-3 py-2 text-sm text-muted-foreground">
+                {accountCatalog.error}
+              </div>
+              <CommandItem
+                value="retry-courses"
+                onSelect={() => {
+                  setCatalog(null);
+                  setCatalogRetry((value) => value + 1);
+                }}
+              >
+                <Search /> Retry loading your courses
+              </CommandItem>
+            </CommandGroup>
+          )}
+          {accountCatalog?.hasMore && (
+            <div className="px-3 py-2 text-xs text-muted-foreground">
+              ILIAS shows only part of your course list. Search the ILIAS repository for more matches.
+            </div>
+          )}
+          {trimmedQuery && !localResults.length && !catalogLoading && !deepResults.length && (
             <div className="px-3 py-6 text-center text-sm text-muted-foreground">
-              No match in this page, bookmarks, or recent history.
+              {accountCatalog?.status === "ready"
+                ? "No matches in your course list, this page, bookmarks, or recent history."
+                : "No matches on this page, in bookmarks, or in recent history."}
             </div>
           )}
           {trimmedQuery &&
@@ -363,7 +473,7 @@ export function QuickSearch({
                 )}
               </CommandGroup>
             ) : (
-              <CommandGroup heading="All your courses">
+              <CommandGroup heading="Search the ILIAS repository">
                 {data.mode === "disconnected" ? (
                   <CommandItem
                     value="connect-to-search"
@@ -373,16 +483,16 @@ export function QuickSearch({
                     }}
                   >
                     <ShieldCheck />
-                    Connect your account to search all your courses
+                    Connect your account to search ILIAS
                   </CommandItem>
                 ) : trimmedQuery.length < 2 ? (
                   <div className="px-3 py-4 text-sm text-muted-foreground">
-                    Keep typing to search all your courses in ILIAS.
+                    Type at least 2 characters to search the ILIAS repository.
                   </div>
                 ) : deepLoading ? (
                   <div className="flex items-center gap-2 px-3 py-4 text-sm text-muted-foreground">
                     <Loader2 className="animate-spin" />
-                    Searching all your courses…
+                    Searching ILIAS…
                   </div>
                 ) : currentDeepError ? (
                   <>
@@ -414,7 +524,7 @@ export function QuickSearch({
                 ) : (
                   <CommandItem value="search-all" onSelect={runDeepSearch}>
                     <Search />
-                    Search all your courses for “{trimmedQuery}”
+                    Search ILIAS for “{trimmedQuery}”
                     <span className="ml-auto text-xs text-muted-foreground">
                       ILIAS
                     </span>
@@ -428,7 +538,7 @@ export function QuickSearch({
         <span>
           {data.mode === "disconnected"
             ? "Local search works now. Connect to search the whole repository."
-            : "Local results are instant. Deeper results come from ILIAS search."}
+            : "Your course list is included automatically. Search ILIAS for more materials."}
         </span>
         {deepForQuery && (
           <a

@@ -69,6 +69,10 @@ export function dashboardUrl(instance: string) {
   return upstreamUrl(instance, "ilias.php?baseClass=ilDashboardGUI").href;
 }
 
+export function membershipsUrl(instance: string) {
+  return upstreamUrl(instance, "ilias.php?baseClass=ilMembershipOverviewGUI").href;
+}
+
 export function loginUrl(instance: string) {
   return upstreamUrl(instance, "login.php?cmd=force_login").href;
 }

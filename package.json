@@ -19,7 +19,8 @@
     "test:navigation": "bun scripts/navigation-smoke.ts",
     "test:exercises": "bun scripts/exercise-smoke.ts",
     "test:multi-user": "bun scripts/multi-user-smoke.ts",
-    "test:forms": "bun scripts/form-serialization-smoke.ts"
+    "test:forms": "bun scripts/form-serialization-smoke.ts",
+    "test:search": "bun scripts/search-smoke.ts"
   },
   "dependencies": {
     "acorn": "^8.19.0",

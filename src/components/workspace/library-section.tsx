@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowRight, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   InputGroup,
   InputGroupAddon,
@@ -70,14 +69,6 @@ export function LibrarySection({
           </Badge>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          {view === "home" && (
-            <Button variant="ghost" size="sm" asChild>
-              <Link prefetch={demo} href={demoHref("/courses", demo)}>
-                All courses
-                <ArrowRight data-icon="inline-end" />
-              </Link>
-            </Button>
-          )}
           {view === "home" && <RefreshButton />}
           <div className="w-44 sm:w-56">
             <InputGroup>

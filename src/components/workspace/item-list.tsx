@@ -126,9 +126,11 @@ export function ItemList({
                   </TooltipContent>
                 </Tooltip>
               </CardAction>
-              <CardDescription>
-                {typeNames[item.type] || "ILIAS object"}
-              </CardDescription>
+              {item.type !== "crs" && (
+                <CardDescription>
+                  {typeNames[item.type] || "ILIAS object"}
+                </CardDescription>
+              )}
               <CardTitle className="col-span-2 min-w-0">
                 <ItemAction
                   textLink

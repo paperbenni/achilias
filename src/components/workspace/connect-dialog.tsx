@@ -194,6 +194,7 @@ export function ConnectDialog({
   }
   const busy = status === "starting" || status === "pending";
   const formBusy = busy || passwordBusy || cookieBusy;
+  const tabDisabled = (value: ConnectMethod) => formBusy && method !== value;
   const command = `bun run connect --server '${origin}'`;
   let originalInstance = instance;
   try {
@@ -233,16 +234,19 @@ export function ConnectDialog({
         >
           <TabsList className="w-full">
             {passwordAvailable && (
-              <TabsTrigger value="password" disabled={formBusy}>
+              <TabsTrigger
+                value="password"
+                disabled={tabDisabled("password")}
+              >
                 <KeyRound />
                 Password
               </TabsTrigger>
             )}
-            <TabsTrigger value="helper" disabled={formBusy}>
+            <TabsTrigger value="helper" disabled={tabDisabled("helper")}>
               <Laptop />
               Helper
             </TabsTrigger>
-            <TabsTrigger value="cookies" disabled={formBusy}>
+            <TabsTrigger value="cookies" disabled={tabDisabled("cookies")}>
               <Cookie />
               Cookies
             </TabsTrigger>

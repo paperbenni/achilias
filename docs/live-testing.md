@@ -42,4 +42,4 @@ If a request times out, verification fails, or a POST redirect would repeat the 
 
 Use loopback plus SSH, or HTTPS with `ACHILIAS_ORIGIN` set to the public HTTPS origin. HTTPS origins automatically use Secure session cookies. Session files are private to the OS account, but encryption does not protect them from an administrator who can read both the files and key. Backups need the same protection.
 
-`bun audit` was checked during this safety pass. Outstanding advisories affect `deepmerge` and `minimatch` in the shadcn CLI / lint tooling dependency trees, rather than a known application request path. Do not treat this as a clean dependency audit or a penetration test. Re-run `bun audit` before deploying; review updates rather than forcing incompatible transitive major versions.
+`bun audit` was checked during this safety pass, but do not treat that as a clean dependency audit or a penetration test. Re-run `bun audit` before deploying and review updates rather than forcing incompatible transitive major versions.

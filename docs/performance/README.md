@@ -28,7 +28,7 @@ The raw reports are [before](navigation-before.json) and [after](navigation-afte
 - Live course, folder, and exercise destinations prefetch in full once their links are visible. Fetching those pages can record visits/read events or alter forum view preferences; forum links therefore stay unprefetched.
 - Refresh and the forum UI's mark-read action invalidate cached navigation using a Server Action. Signing in or disconnecting performs a full navigation to discard the previous account's client router state.
 
-The 30-second reuse currently uses Next 16.4.3's documented experimental `staleTimes` setting. Keep the production navigation regression test when upgrading Next. Automatic prefetching is a production optimization; `bun run dev` does not demonstrate its final behavior.
+At the time of measurement, the 30-second reuse used Next 16.4.3's documented experimental `staleTimes` setting. Keep the production navigation regression test when upgrading Next. Automatic prefetching is a production optimization; `bun run dev` does not demonstrate its final behavior.
 
 ## Later changes (not re-measured)
 

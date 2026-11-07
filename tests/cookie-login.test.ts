@@ -39,6 +39,51 @@ describe("cookie sign-in", () => {
     expect(sent).toContain("PHPSESSID=ilias-session");
   });
 
+  test("accepts a bare session value as PHPSESSID and verifies it", async () => {
+    let sent = "";
+    upstreamTransport.fetch = mock(
+      async (_input: Parameters<typeof fetch>[0], init?: RequestInit) => {
+        sent = (init?.headers as Record<string, string>).Cookie || "";
+        return dashboard();
+      },
+    ) as unknown as typeof fetch;
+
+    const result = await cookieLogin(FREIBURG, "bare-session-value");
+    expect(result.userName).toBe("Alex Example");
+    expect(sent).toContain("PHPSESSID=bare-session-value");
+  });
+
+  test("treats a single opaque padded token as a session value", async () => {
+    const jar = await parseCookieInput("opaque-token==", FREIBURG);
+    expect(
+      await CookieJar.fromJSON(jar)!.getCookieString(FREIBURG),
+    ).toContain("PHPSESSID=opaque-token==");
+  });
+
+  test("keeps a full PHPSESSID pair with a padded value", async () => {
+    const jar = await parseCookieInput("PHPSESSID=opaque-token==", FREIBURG);
+    expect(
+      await CookieJar.fromJSON(jar)!.getCookieString(FREIBURG),
+    ).toContain("PHPSESSID=opaque-token==");
+  });
+
+  test("accepts a quoted bare session value", async () => {
+    const jar = await parseCookieInput('"quoted-session-value"', FREIBURG);
+    expect(
+      await CookieJar.fromJSON(jar)!.getCookieString(FREIBURG),
+    ).toContain("PHPSESSID=quoted-session-value");
+  });
+
+  test("accepts a Cookie: prefix around a bare session value", async () => {
+    const jar = await parseCookieInput(
+      "Cookie: bare-session-value",
+      FREIBURG,
+    );
+    expect(
+      await CookieJar.fromJSON(jar)!.getCookieString(FREIBURG),
+    ).toContain("PHPSESSID=bare-session-value");
+  });
+
   test("accepts a JSON cookie export and drops non-ILIAS cookies", async () => {
     const jar = await parseCookieInput(
       JSON.stringify([
@@ -67,7 +112,7 @@ describe("cookie sign-in", () => {
       CookieLoginError,
     );
     await expect(
-      parseCookieInput("not-a-cookie", FREIBURG),
+      parseCookieInput("not a cookie", FREIBURG),
     ).rejects.toBeInstanceOf(CookieLoginError);
     await expect(
       parseCookieInput(

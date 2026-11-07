@@ -45,7 +45,10 @@ export async function POST(request: Request) {
     };
     if (typeof body.instance !== "string" || typeof body.cookies !== "string")
       return Response.json(
-        { error: "Enter the instance and a Cookie header or JSON export." },
+        {
+          error:
+            "Enter the instance and a Cookie header, session value, or JSON export.",
+        },
         { status: 400, headers: noStore },
       );
     const cookies = body.cookies;

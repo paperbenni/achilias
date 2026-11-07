@@ -23,8 +23,40 @@ const attributes = new Set([
   "secure",
   "httponly",
 ]);
+const sessionCookieName = "PHPSESSID";
+const knownCookieNames = new Set(["phpsessid", "ilclientid"]);
+const cookiePair = /^[A-Za-z0-9!#$%&'*+\-.^_`|~]+=[^=;\s]+$/;
+const cookieName = /^([A-Za-z0-9!#$%&'*+\-.^_`|~]+)=/;
 
 function rawCookieValues(input: string, hostname: string) {
+  const lines = input
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^\s*cookie\s*:\s*/i, "").trim())
+    .filter(Boolean);
+  // A single opaque value is treated as the PHP session cookie. This lets
+  // users paste the value from DevTools without the cookie name.
+  if (lines.length === 1) {
+    const value = lines[0].replace(/^(['"])(.*)\1$/, "$2").trim();
+    const name = cookieName.exec(value)?.[1].toLowerCase();
+    const knownPair = name ? knownCookieNames.has(name) : false;
+    if (
+      value &&
+      !attributes.has(value.toLowerCase()) &&
+      !knownPair &&
+      !cookiePair.test(value) &&
+      !/[;\s]/.test(value)
+    )
+      return [
+        {
+          name: sessionCookieName,
+          value,
+          domain: hostname,
+          path: "/",
+          secure: true,
+          httpOnly: true,
+        },
+      ];
+  }
   const cookies: {
     name: string;
     value: string;
@@ -33,23 +65,27 @@ function rawCookieValues(input: string, hostname: string) {
     secure: boolean;
     httpOnly: boolean;
   }[] = [];
-  for (const line of input.split(/\r?\n/)) {
-    const header = line.replace(/^\s*cookie\s*:\s*/i, "").trim();
-    if (!header) continue;
+  for (const header of lines) {
     for (const part of header.split(";")) {
       const item = part.trim();
       if (!item) continue;
       const separator = item.indexOf("=");
       if (separator < 0) {
         if (attributes.has(item.toLowerCase())) continue;
-        throw new CookieLoginError("Cookie entries must use name=value.");
+        throw new CookieLoginError(
+          "Cookie entries must use name=value or a session value.",
+        );
       }
       if (separator === 0)
-        throw new CookieLoginError("Cookie entries must use name=value.");
+        throw new CookieLoginError(
+          "Cookie entries must use name=value or a session value.",
+        );
       const name = item.slice(0, separator).trim();
       const value = item.slice(separator + 1).trim();
       if (!name || !value)
-        throw new CookieLoginError("Cookie entries must use a non-empty name and value.");
+        throw new CookieLoginError(
+          "Cookie entries must use a non-empty name and value.",
+        );
       if (attributes.has(name.toLowerCase())) continue;
       cookies.push({
         name,
@@ -63,15 +99,15 @@ function rawCookieValues(input: string, hostname: string) {
   }
   if (!cookies.length)
     throw new CookieLoginError(
-      "Paste a Cookie header or a cookie JSON export.",
+      "Paste a Cookie header, a session value, or a cookie JSON export.",
     );
   return cookies;
 }
 
 /**
- * Accept either a browser `Cookie` header (also with the header name) or a
- * Playwright storageState/cookie array. Both are reduced to exact-instance
- * cookies before the server verifies the session.
+ * Accept a browser `Cookie` header (also with the header name), a bare
+ * session value, or a Playwright storageState/cookie array. All are reduced to
+ * exact-instance cookies before the server verifies the session.
  */
 export async function parseCookieInput(input: string, instance: string) {
   if (input.length > maxCookieInput)
@@ -79,7 +115,7 @@ export async function parseCookieInput(input: string, instance: string) {
   const text = input.trim();
   if (!text)
     throw new CookieLoginError(
-      "Paste a Cookie header or a cookie JSON export.",
+      "Paste a Cookie header, a session value, or a cookie JSON export.",
     );
   let data: unknown;
   if (text.startsWith("[") || text.startsWith("{")) {

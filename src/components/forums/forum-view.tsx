@@ -71,6 +71,7 @@ import {
 } from "@/components/ui/tooltip";
 import { OriginalLink } from "@/components/navigation/original-link";
 import { RefreshButton } from "@/components/navigation/refresh-button";
+import { ForumTopicPreview } from "./forum-topic-preview";
 import { useBrowserStore } from "@/hooks/use-browser-store";
 import { cn } from "@/lib/utils";
 import {
@@ -458,7 +459,14 @@ export function ForumView({ state }: { state: ForumState }) {
                                 </Badge>
                               )}
                             </ItemTitle>
-                            <ItemDescription>
+                            <ForumTopicPreview
+                              key={`${topic.id}:${topic.preview === undefined ? "unknown" : topic.preview}`}
+                              forumId={forumId}
+                              threadId={topic.id}
+                              connection={workspace.storageKey}
+                              initialPreview={topic.preview}
+                            />
+                            <ItemDescription className="text-xs">
                               {topic.author || "Author not available"}
                               {topic.lastActivity
                                 ? ` · Last post ${topic.lastActivity}`

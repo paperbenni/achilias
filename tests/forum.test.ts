@@ -6,7 +6,11 @@ import {
   parseForumThread,
   sanitizeForumBody,
 } from "../src/lib/ilias/forum-parser";
-import { forumViewUrl, fetchForum } from "../src/lib/ilias/forum";
+import {
+  forumViewUrl,
+  fetchForum,
+  getForumThreadPreview,
+} from "../src/lib/ilias/forum";
 import { FREIBURG } from "../src/lib/ilias/config";
 const url =
   FREIBURG +
@@ -47,6 +51,16 @@ test("legacy tables retain thread metadata and unread counts", () => {
     lastActivity: "Today",
   });
 });
+test("localized property names keep the author, with a first-property fallback", () => {
+  const html = (propertyName: string) =>
+    `<div class="il-item"><h3 class="il-item-title"><a href="ilias.php?ref_id=402&thr_pk=901&cmd=viewThread">Topic</a></h3><div><span class="il-item-property-name">${propertyName}</span><span class="il-item-property-value">Maya</span></div><div><span class="il-item-property-name">Beiträge</span><span class="il-item-property-value">3</span></div></div>`;
+  expect(
+    parseForumOverview(html("Angelegt von"), url, "402").topics[0].author,
+  ).toBe("Maya");
+  expect(
+    parseForumOverview(html("Créé par"), url, "402").topics[0].author,
+  ).toBe("Maya");
+});
 test("thread reader preserves reply hierarchy, author metadata, unread state and available actions", async () => {
   const thread = parseForumThread(
     await fixture("forum-thread"),
@@ -76,6 +90,11 @@ test("thread reader preserves reply hierarchy, author metadata, unread state and
   expect(thread.replyUrl).toContain("createTopLevelPost");
   expect(thread.pages).toEqual([{ page: 0 }, { page: 1 }]);
   expect(JSON.stringify(thread)).not.toContain("PRIVATE DRAFT");
+});
+test("thread posts use the user icon label when the header has no author", () => {
+  const html =
+    '<ul id="ilFrmPostList"><li><div class="ilFrmPostImage"><img class="ilUserIcon" alt="Maya" /></div><div class="ilFrmPostContentContainer"><a id="1001"></a><div class="ilFrmPostHeader"></div><div class="ilFrmPostContent">Hello</div></div></li></ul>';
+  expect(parseForumThread(html, url, "901").posts[0].author).toBe("Maya");
 });
 test("forum bodies keep useful formatting while blocking scripts, trackers, event handlers and unsafe URLs", async () => {
   const thread = parseForumThread(await fixture("forum-thread"), url, "901");
@@ -168,6 +187,34 @@ test("authenticated forum requests discover the real controller before loading a
   expect(calls).toHaveLength(3);
 });
 
+test("live previews read the opening post without adding a mark-read action", async () => {
+  const calls: string[] = [];
+  upstreamTransport.fetch = mock(async (input: Parameters<typeof fetch>[0]) => {
+    const target = String(input);
+    calls.push(target);
+    if (target.includes("goto.php"))
+      return new Response(null, { status: 302, headers: { location: url } });
+    const html = await fixture(
+      target.includes("cmd=viewThread") ? "forum-thread" : "forum",
+    );
+    return new Response(html, { headers: { "content-type": "text/html" } });
+  }) as unknown as typeof fetch;
+  const preview = await getForumThreadPreview(
+    {
+      id: "11111111-1111-1111-1111-111111111111",
+      instance: FREIBURG,
+      status: "connected",
+      createdAt: Date.now(),
+    },
+    "402",
+    "901",
+  );
+  expect(preview).toContain("Why sorted?");
+  expect(calls.some((call) => /mark_read=1/.test(call))).toBe(false);
+  const threadCall = calls.find((call) => call.includes("cmd=viewThread"));
+  expect(threadCall).toBeDefined();
+  expect(threadCall).not.toContain("viewmode=");
+});
 test("links written inside a post cannot impersonate ILIAS action controls", () => {
   const html = `<ul id="ilFrmPostList"><li><div class="ilFrmPostContentContainer"><a id="1001"></a><div class="ilFrmPostContent"><a href="ilias.php?ref_id=402&thr_pk=901&cmd=viewThread&mark_read=1">Mark read</a><a href="ilias.php?ref_id=402&thr_pk=901&cmd=createTopLevelPost">Reply</a><a href="ilias.php?ref_id=402&thr_pk=901&pos_pk=1001&cmd=viewThread&action=showreply">Reply to post</a></div></div></li></ul>`;
   const thread = parseForumThread(html, url + "&thr_pk=901", "901");

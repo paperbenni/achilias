@@ -108,7 +108,13 @@ export function parseForumOverview(
     });
     const property = (pattern: RegExp) =>
       Object.entries(properties).find(([k]) => pattern.test(k))?.[1] || "";
-    let author = property(/created by|erstellt von|autor|author/);
+    // ILIAS translates property names. Older German uses "Erstellt von",
+    // current German uses "Angelegt von"; the author is always the first
+    // property, which also covers themes and languages we do not list.
+    let author = property(
+      /created by|erstellt von|angelegt von|autor|author/,
+    );
+    author ||= Object.values(properties)[0] || "";
     let stats = property(/^(posts|postings|articles|beitr[aä]ge)$/);
     let lastActivity = property(
       /last post|letzte[rn]? beitrag|letzter eintrag/,
@@ -184,10 +190,17 @@ export function parseForumThread(
     ).text();
     const parts = clean(firstLine).split(/\s*\|\s*/);
     const date = parts.length > 1 ? parts.at(-1)! : "";
-    const author =
+    let author =
       parts.length > 1
         ? parts.slice(0, -1).filter(Boolean).join(" · ")
-        : parts[0] || "Author not available";
+        : parts[0] || "";
+    // Some themes or older templates omit the header text but still render
+    // the user icon with the author's name as its alternative text.
+    if (!author)
+      author = clean(
+        row.find(".ilFrmPostImage img.ilUserIcon").attr("alt") || "",
+      );
+    author ||= "Author not available";
     const depth = Number(
       (row.attr("class") || "").match(/ilFrmPost-level-(\d+)/)?.[1] || 0,
     );

@@ -10,6 +10,8 @@ export type ForumTopic = {
   pinned: boolean;
   closed: boolean;
   sourceUrl: string;
+  /** Discussion text preview. An empty string means "known to be empty". */
+  preview?: string;
 };
 export type ForumOverview = {
   id: string;

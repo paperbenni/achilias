@@ -24,6 +24,8 @@ export function demoForum(): ForumOverview {
         pinned: true,
         closed: false,
         sourceUrl: base,
+        preview:
+          "Welcome! This is our space for questions about lectures, exercises, and everything in between. Use a clear title so others can find your question.",
       },
       {
         id: "902",
@@ -35,6 +37,8 @@ export function demoForum(): ForumOverview {
         pinned: false,
         closed: false,
         sourceUrl: base,
+        preview:
+          "I understand that binary search discards half the array at each step, but I am not sure why the array has to be sorted.",
       },
       {
         id: "903",
@@ -46,6 +50,8 @@ export function demoForum(): ForumOverview {
         pinned: false,
         closed: false,
         sourceUrl: base,
+        preview:
+          "Would anyone like to work through the first sheet together? I am free on Wednesday afternoon.",
       },
       {
         id: "904",
@@ -57,6 +63,8 @@ export function demoForum(): ForumOverview {
         pinned: false,
         closed: false,
         sourceUrl: base,
+        preview:
+          "Is it okay to write pseudocode in a Python-like style, or should we follow the notation from the slides exactly?",
       },
       {
         id: "905",
@@ -68,6 +76,8 @@ export function demoForum(): ForumOverview {
         pinned: false,
         closed: true,
         sourceUrl: base,
+        preview:
+          "The first lecture will take place in the larger room listed on the course page. Please check the timetable before you travel.",
       },
     ],
   };

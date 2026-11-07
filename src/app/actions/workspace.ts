@@ -3,6 +3,7 @@ import { currentSession } from "@/lib/ilias/session";
 import { clearSearchFormCache } from "@/lib/ilias/search";
 import { revalidatePath } from "next/cache";
 import { clearWorkspacePages } from "@/lib/ilias/page-cache";
+import { clearForumPreviews } from "@/lib/ilias/forum";
 
 export async function refreshWorkspace() {
   // End upstream page reuse before the router refetches, then invalidate the
@@ -11,6 +12,7 @@ export async function refreshWorkspace() {
   if (session) {
     await clearWorkspacePages(session.id);
     clearSearchFormCache(session.id);
+    clearForumPreviews(session.id);
   }
   revalidatePath("/", "layout");
 }

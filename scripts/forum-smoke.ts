@@ -25,6 +25,12 @@ try {
   await page
     .getByRole("heading", { name: "Questions & discussion", exact: true })
     .waitFor();
+  assert.match(
+    await page
+      .getByRole("link", { name: /Why does binary search need a sorted array\?/ })
+      .innerText(),
+    /I understand that binary search discards half the array/,
+  );
   assert.equal(new URL(page.url()).pathname, "/forums/402");
   assert.equal(
     await page
@@ -65,7 +71,7 @@ try {
   await page.getByRole("option", { name: "Title A–Z", exact: true }).click();
   await page
     .getByRole("link", {
-      name: /Why does binary search need a sorted array\? Maya/,
+      name: /Why does binary search need a sorted array\?/,
     })
     .click();
   await page
@@ -166,7 +172,7 @@ try {
   );
   await page
     .getByRole("link", {
-      name: /Why does binary search need a sorted array\? Maya/,
+      name: /Why does binary search need a sorted array\?/,
     })
     .click();
   await page
@@ -198,11 +204,27 @@ try {
     401,
   );
   assert.equal((await page.request.get(endpoint)).status(), 405);
+  const previewEndpoint = `${origin}/api/forums/402/threads/902/preview`;
+  assert.equal(
+    (
+      await page.request.post(previewEndpoint, {
+        headers: { Origin: "https://other.example" },
+      })
+    ).status(),
+    403,
+  );
+  assert.equal(
+    (
+      await page.request.post(previewEndpoint, { headers: { Origin: origin } })
+    ).status(),
+    401,
+  );
+  assert.equal((await page.request.get(previewEndpoint)).status(), 405);
   await page.goto(`${origin}/forums/402?demo=1&page=invalid`);
   await page.getByText("Page not found", { exact: true }).waitFor();
   assert.deepEqual(errors, []);
   console.log(
-    "Passed: saved forum navigation, thread filters/sorting, empty search, formatted posts, unread jumps, reply context, copy link, post search, demo read-state persistence, chronological order, closed-thread actions, mobile layouts, read-action authorization and invalid routes.",
+    "Passed: saved forum navigation, topic previews, thread filters/sorting, empty search, formatted posts, unread jumps, reply context, copy link, post search, demo read-state persistence, chronological order, closed-thread actions, mobile layouts, read/preview action authorization and invalid routes.",
   );
 } finally {
   await browser.close();

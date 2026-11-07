@@ -27,6 +27,9 @@ try {
   await page.evaluate(() => {
     (window as typeof window & { documentMarker?: boolean }).documentMarker =
       true;
+    (
+      window as typeof window & { sidebarMarker?: Element | null }
+    ).sidebarMarker = document.querySelector('[data-slot="sidebar"]');
   });
   const requests: string[] = [];
   page.on("request", (request) => {
@@ -60,6 +63,16 @@ try {
     ),
     true,
     "Ordinary navigation reloaded the document",
+  );
+  assert.equal(
+    await page.evaluate(
+      () =>
+        (
+          window as typeof window & { sidebarMarker?: Element | null }
+        ).sidebarMarker === document.querySelector('[data-slot="sidebar"]'),
+    ),
+    true,
+    "Sidebar remounted during navigation",
   );
   const refreshed = page.waitForResponse(
     (response) =>

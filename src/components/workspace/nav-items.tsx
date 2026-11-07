@@ -68,3 +68,17 @@ export function crumbFor(view: WorkspaceViewName, pageTitle: string) {
   if (view === "settings") return settingsEntry.crumb;
   return workspaceNav.find((entry) => entry.view === view)?.crumb || pageTitle;
 }
+
+/** The sidebar lives above the page, so it derives its active view from the URL. */
+export function viewForPathname(pathname: string): WorkspaceViewName {
+  if (pathname === "/") return "home";
+  if (pathname === "/courses" || pathname.startsWith("/courses/"))
+    return "courses";
+  if (pathname === "/saved" || pathname.startsWith("/saved/")) return "saved";
+  if (pathname === "/settings" || pathname.startsWith("/settings/"))
+    return "settings";
+  if (pathname.startsWith("/browse/")) return "browse";
+  if (pathname.startsWith("/forums/")) return "forum";
+  if (pathname.startsWith("/exercises/")) return "exercise";
+  return "home";
+}

@@ -25,7 +25,7 @@ Routes orchestrate server loaders; loaders adapt ILIAS into typed data; feature 
 | Saved/recent item validation, merging, and updates                                   | `src/lib/ilias/library.ts`                                               |
 | Browser storage snapshots and subscriptions                                          | `src/lib/browser-store.ts`, `src/hooks/use-browser-store.ts`             |
 | Bookmark/history actions and feedback                                                | `src/hooks/use-library.ts`                                               |
-| Workspace composition and local interaction state                                    | `src/components/workspace/workspace-view.tsx`                            |
+| Workspace shell, sidebar persistence, and local interaction state                   | `src/app/(workspace)/layout.tsx`, `workspace-shell.tsx`, `workspace-view.tsx` |
 | Sidebar/account menu, resource lists, and settings                                   | `navigation.tsx`, `item-list.tsx`, `settings-view.tsx` in that directory |
 | Shared resource opening, upstream handoffs, and refresh                              | `src/components/navigation`                                              |
 | Forum list/thread presentation                                                       | `src/components/forums`                                                  |
@@ -40,6 +40,8 @@ Routes orchestrate server loaders; loaders adapt ILIAS into typed data; feature 
 5. Add the route and expose limitations in the interface and Settings feature list. Keep account-wide features that have no course object explicit there too.
 
 Metadata-only pages use `getWorkspaceMetadata`; they should not fetch the upstream dashboard. Production navigation briefly reuses visited pages in the browser. Visible course, folder, and exercise links prefetch their full route, so a click usually reuses an already-loaded ILIAS page; forum links still avoid speculative GETs because those can record read state. Fetching live pages can also record visits in ILIAS. Refresh and successful native mark-read actions invalidate that recent-page cache. Account changes perform a full navigation to discard prior client-router content. See [navigation measurements and policy](performance/README.md).
+
+Workspace routes live in the `(workspace)` route group. Its layout owns the sidebar and account dialogs, so route navigation does not remount unchanged chrome. `loading.tsx` sits inside that layout and only replaces the page area. The layout resolves both live and demo metadata; the client shell selects one from the URL because layouts cannot read `searchParams`.
 
 Workspace page loads are also reused for 30 seconds inside the server process, keyed by session and upstream URL, so Overview and My courses share one dashboard download and parse and a repeat visit skips both. Entries are bounded, never shared across sessions, and cleared by Refresh and mark-read. Forum and exercise loaders bypass this reuse because their pages carry read state and per-view preferences. The exercise loader fetches the editor catalog and the members page in parallel, since both depend only on the exercise root.
 

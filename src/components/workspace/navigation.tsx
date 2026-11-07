@@ -2,7 +2,7 @@
 import { AppearanceMenu } from "@/components/navigation/appearance-menu";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   ArrowUpRight,
   ChevronDown,
@@ -44,7 +44,12 @@ import {
 import { Separator } from "@/components/ui/separator";
 
 import type { Workspace } from "@/lib/ilias/types";
-import { demoHref, workspaceNav, type WorkspaceViewName } from "./nav-items";
+import {
+  demoHref,
+  viewForPathname,
+  workspaceNav,
+  type WorkspaceViewName,
+} from "./nav-items";
 
 export type { WorkspaceViewName };
 function Brand({ demo = false }: { demo?: boolean }) {
@@ -79,16 +84,16 @@ function Brand({ demo = false }: { demo?: boolean }) {
 }
 export function Navigation({
   data,
-  view,
   openSearch,
   connect,
 }: {
   data: Workspace;
-  view: WorkspaceViewName;
   openSearch: () => void;
   connect: () => void;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const view = viewForPathname(pathname);
   const { setOpenMobile } = useSidebar();
   const demo = data.mode === "demo";
   return (

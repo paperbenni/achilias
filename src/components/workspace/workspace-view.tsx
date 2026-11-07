@@ -1,5 +1,6 @@
 "use client";
-import { Navigation, type WorkspaceViewName } from "./navigation";
+import type { WorkspaceViewName } from "./navigation";
+import { useWorkspaceShell } from "./workspace-shell";
 import { SettingsView } from "./settings-view";
 import { ItemList } from "./item-list";
 import { QuickSearch } from "./quick-search";
@@ -10,7 +11,6 @@ import { BrowseTabs } from "./browse-tabs";
 import { LibrarySection } from "./library-section";
 import { EmptyState } from "./empty-state";
 import { LoadErrorAlert } from "./error-alert";
-import { ConnectDialog } from "./connect-dialog";
 import { crumbFor, demoHref } from "./nav-items";
 import type { ItemListProps } from "./item-list";
 import { useLibrary } from "@/hooks/use-library";
@@ -55,7 +55,6 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   SidebarInset,
-  SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { ItemAction } from "@/components/navigation/item-action";
@@ -73,8 +72,7 @@ export function WorkspaceView({
   view?: WorkspaceViewName;
 }) {
   const router = useRouter();
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [connectOpen, setConnectOpen] = useState(false);
+  const { searchOpen, setSearchOpen, setConnectOpen } = useWorkspaceShell();
   const [query, setQuery] = useState("");
   const [layout, setLayout] = useState("grid");
   const {
@@ -95,7 +93,7 @@ export function WorkspaceView({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [setSearchOpen]);
   function contextualItem(item: Item) {
     const onPage = data.page.items.some(
       (pageItem) => itemKey(pageItem) === itemKey(item),
@@ -178,19 +176,13 @@ export function WorkspaceView({
     />
   );
   return (
-    <SidebarProvider>
+    <>
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-background focus:p-3"
       >
         Skip to content
       </a>
-      <Navigation
-        data={data}
-        view={view}
-        openSearch={() => setSearchOpen(true)}
-        connect={() => setConnectOpen(true)}
-      />
       <SidebarInset>
         <header className="flex h-20 shrink-0 items-center justify-between gap-4 border-b px-5 lg:px-10">
           <div className="flex min-w-0 items-center gap-3">
@@ -571,12 +563,6 @@ export function WorkspaceView({
         saved={local.saved}
         pageItems={pageItems}
       />
-      <ConnectDialog
-        open={connectOpen}
-        onOpenChange={setConnectOpen}
-        instance={data.instance}
-        passwordAvailable={data.passwordLoginAvailable}
-      />
       <ItemDialog
         item={selected}
         onClose={() => setSelected(null)}
@@ -585,6 +571,6 @@ export function WorkspaceView({
         saved={local.saved}
         onToggleSave={toggleSave}
       />
-    </SidebarProvider>
+    </>
   );
 }

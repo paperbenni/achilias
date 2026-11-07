@@ -137,8 +137,7 @@ export async function setSessionCookie(id: string) {
   (await cookies()).set(SESSION_COOKIE, id, {
     httpOnly: true,
     sameSite: "strict",
-    secure:
-      process.env.ACHILIAS_SECURE_COOKIE === "true" || isHttpsOrigin(),
+    secure: isHttpsOrigin(),
     path: "/",
     maxAge,
   });

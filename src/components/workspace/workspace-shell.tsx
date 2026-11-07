@@ -73,7 +73,6 @@ export function WorkspaceShell({
           open={connectOpen}
           onOpenChange={setConnectOpen}
           instance={data.instance}
-          passwordAvailable={data.passwordLoginAvailable}
         />
       </SidebarProvider>
     </WorkspaceShellContext.Provider>

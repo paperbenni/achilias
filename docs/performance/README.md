@@ -47,7 +47,7 @@ bun run test:navigation
 bun run benchmark:navigation
 ```
 
-Use `ACHILIAS_TEST_URL` for another local address, `ACHILIAS_BENCH_LATENCY` to change simulated latency, and `ACHILIAS_BENCH_OUTPUT` to save a JSON report. Do not run a build into the output directory of a running server. Use `ACHILIAS_BUILD_DIR=.next-build` for a separate production build while the dev server uses `.next`.
+Use `ACHILIAS_TEST_URL` for another local address, `ACHILIAS_BENCH_LATENCY` to change simulated latency, and `ACHILIAS_BENCH_OUTPUT` to save a JSON report. Stop the dev server before building.
 
 The production regression test checks that a warmed destination does not request its content again on click (empty route-tree discovery probes are excluded), ordinary navigation preserves the document, Refresh completes, live metadata screens do not prefetch ILIAS-backed destinations, and disconnecting clears a previous account's warmed pages.
 

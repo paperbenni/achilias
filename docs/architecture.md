@@ -56,7 +56,7 @@ Run `bun run lint`, `bun run typecheck`, and `bun run test`. Unit tests cover st
 
 With `next dev` running, `bun run test:e2e` covers courses, cross-tab bookmarks, downloads, forums, and headless pairing. Wait for a destination's heading before asserting shared item text: the same resource can appear on both sides of a client navigation, and a link visible on the outgoing page is not proof that navigation completed.
 
-Run `bun run test:navigation` against a production server to check real prefetch behavior and account cache clearing. Use `ACHILIAS_BUILD_DIR=.next-build` for a separate build while development is running. Authenticated Freiburg compatibility still needs a real account; fixture and demo tests do not establish it.
+Run `bun run test:navigation` against a production server to check real prefetch behavior and account cache clearing. Stop `next dev` before building. Authenticated Freiburg compatibility still needs a real account; fixture and demo tests do not establish it.
 
 ## Tutor actions
 

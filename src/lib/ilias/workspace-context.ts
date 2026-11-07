@@ -2,7 +2,6 @@ import { profileName } from "./profile-name";
 import { createHash } from "node:crypto";
 import { currentSession } from "./session";
 import { dashboardUrl, FREIBURG, instanceName } from "./config";
-import { passwordLoginEnabled } from "./login-flags";
 import type { IliasPage, Workspace } from "./types";
 
 export function emptyPage(
@@ -31,7 +30,6 @@ export async function getWorkspaceContext(demo = false) {
   const connected = session?.status === "connected";
   const workspace: Workspace = {
     mode: demo ? "demo" : connected ? "live" : "disconnected",
-    passwordLoginAvailable: passwordLoginEnabled(),
     instance,
     instanceName: instanceName(instance),
     userName: demo ? "Alex" : connected ? profileName(session.userName) : "",

@@ -6,6 +6,11 @@ import {
   readBoundedText,
 } from "./bounded-read";
 
+/**
+ * rate-limiter-flexible owns the counters and expiry. This module only chooses
+ * the limits, the client key, and which proxy headers to trust.
+ */
+
 export class RequestLimitError extends Error {
   status = 429;
 }

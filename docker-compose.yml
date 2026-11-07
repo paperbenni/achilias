@@ -1,9 +1,10 @@
 # Example deployment for Achilias. See README.md#docker-compose for usage and
 # docs/deployment.md for production guidance.
 #
-# The host port defaults to 3000; override it with ACHILIAS_PORT (and set
-# ACHILIAS_ORIGIN to match). Run exactly one replica: session locks, rate
-# limits, and search coordination are in-process.
+# The host port defaults to 3000; set PORT in .env to change it (and set
+# ACHILIAS_ORIGIN to match). The container always listens on 3000. Run exactly
+# one replica: session locks, rate limits, and search coordination are
+# in-process.
 
 services:
   achilias:
@@ -11,16 +12,15 @@ services:
     restart: unless-stopped
     init: true
     ports:
-      - "127.0.0.1:${ACHILIAS_PORT:-3000}:3000"
+      - "127.0.0.1:${PORT:-3000}:3000"
     environment:
       # Public HTTPS origin of this app, not the ILIAS instance.
       ACHILIAS_ORIGIN: ${ACHILIAS_ORIGIN:-http://127.0.0.1:3000}
       # Enable only behind a proxy that overwrites X-Forwarded-For.
       ACHILIAS_TRUST_PROXY: ${ACHILIAS_TRUST_PROXY:-false}
-      # Password sign-in is on by default in the app; this example disables it.
-      # Set ACHILIAS_PASSWORD_LOGIN=true for local testing or if you intend to
-      # accept university credentials.
-      ACHILIAS_PASSWORD_LOGIN: ${ACHILIAS_PASSWORD_LOGIN:-false}
+      # Password sign-in is always available and the server receives
+      # credentials in memory. Do not expose this service publicly unless that
+      # is acceptable.
       # Optional: comma-separated canonical URLs for live write actions.
       # ACHILIAS_WRITE_TARGETS: ${ACHILIAS_WRITE_TARGETS:-}
       ACHILIAS_DATA_DIR: /data

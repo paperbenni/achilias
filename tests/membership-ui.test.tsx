@@ -21,7 +21,6 @@ const page = (overrides: Partial<IliasPage> = {}): IliasPage => ({
 
 const workspace = (overrides: Partial<IliasPage> = {}): Workspace => ({
   mode: "live",
-  passwordLoginAvailable: false,
   instance: "https://ilias.example/",
   instanceName: "Example",
   userName: "Alex",

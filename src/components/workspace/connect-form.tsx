@@ -32,12 +32,10 @@ type ConnectStatus = "idle" | "starting" | "pending";
  */
 export function ConnectForm({
   instance,
-  passwordAvailable,
   showNotice = true,
   className,
 }: {
   instance: string;
-  passwordAvailable: boolean;
   showNotice?: boolean;
   className?: string;
 }) {
@@ -45,9 +43,7 @@ export function ConnectForm({
   const [url, setUrl] = useState(instance);
   const [status, setStatus] = useState<ConnectStatus>("idle");
   const [error, setError] = useState("");
-  const [method, setMethod] = useState<ConnectMethod>(() =>
-    passwordAvailable ? "password" : "helper",
-  );
+  const [method, setMethod] = useState<ConnectMethod>("password");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [passwordBusy, setPasswordBusy] = useState(false);
@@ -225,12 +221,10 @@ export function ConnectForm({
         onValueChange={(value) => setMethod(value as ConnectMethod)}
       >
         <TabsList className="w-full">
-          {passwordAvailable && (
-            <TabsTrigger value="password" disabled={tabDisabled("password")}>
-              <KeyRound />
-              Password
-            </TabsTrigger>
-          )}
+          <TabsTrigger value="password" disabled={tabDisabled("password")}>
+            <KeyRound />
+            Password
+          </TabsTrigger>
           <TabsTrigger value="helper" disabled={tabDisabled("helper")}>
             <Laptop />
             Helper
@@ -240,55 +234,46 @@ export function ConnectForm({
             Cookies
           </TabsTrigger>
         </TabsList>
-        {passwordAvailable && (
-          <TabsContent value="password" className="mt-2">
-            <form onSubmit={passwordConnect} className="flex flex-col gap-4">
-              <FieldGroup>
-                <Field>
-                  <FieldLabel htmlFor={`${formId}-username`}>
-                    Username
-                  </FieldLabel>
-                  <Input
-                    id={`${formId}-username`}
-                    autoComplete="username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    disabled={formBusy}
-                    required
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor={`${formId}-password`}>
-                    Password
-                  </FieldLabel>
-                  <Input
-                    id={`${formId}-password`}
-                    type="password"
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={formBusy}
-                    required
-                  />
-                </Field>
-                <Button type="submit" disabled={formBusy || !url}>
-                  {passwordBusy ? (
-                    <Loader2
-                      data-icon="inline-start"
-                      className="animate-spin"
-                    />
-                  ) : (
-                    <KeyRound data-icon="inline-start" />
-                  )}
-                  {passwordBusy ? "Signing in…" : "Sign in"}
-                </Button>
-              </FieldGroup>
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                Sent once and never stored. Only use on a server you control.
-              </p>
-            </form>
-          </TabsContent>
-        )}
+        <TabsContent value="password" className="mt-2">
+          <form onSubmit={passwordConnect} className="flex flex-col gap-4">
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor={`${formId}-username`}>Username</FieldLabel>
+                <Input
+                  id={`${formId}-username`}
+                  autoComplete="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  disabled={formBusy}
+                  required
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor={`${formId}-password`}>Password</FieldLabel>
+                <Input
+                  id={`${formId}-password`}
+                  type="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={formBusy}
+                  required
+                />
+              </Field>
+              <Button type="submit" disabled={formBusy || !url}>
+                {passwordBusy ? (
+                  <Loader2 data-icon="inline-start" className="animate-spin" />
+                ) : (
+                  <KeyRound data-icon="inline-start" />
+                )}
+                {passwordBusy ? "Signing in…" : "Sign in"}
+              </Button>
+            </FieldGroup>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Sent once and never stored. Only use on a server you control.
+            </p>
+          </form>
+        </TabsContent>
         <TabsContent value="helper" className="mt-2">
           <div className="flex flex-col gap-4">
             {status === "pending" ? (

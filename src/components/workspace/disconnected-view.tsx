@@ -69,11 +69,7 @@ export function DisconnectedView({
               remember.
             </p>
             <div className="mt-8">
-              <ConnectForm
-                instance={data.instance}
-                passwordAvailable={data.passwordLoginAvailable}
-                showNotice={false}
-              />
+              <ConnectForm instance={data.instance} showNotice={false} />
             </div>
             <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
               <Button variant="link" className="h-auto p-0" asChild>
@@ -119,12 +115,10 @@ export function DisconnectedView({
             everything else in the original.
           </p>
           <ul className="mt-8 flex flex-col gap-4 text-sm">
-            {data.passwordLoginAvailable && (
-              <li className="flex items-start gap-3">
-                <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
-                <span>Your password is used once and never stored.</span>
-              </li>
-            )}
+            <li className="flex items-start gap-3">
+              <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
+              <span>Your password is used once and never stored.</span>
+            </li>
             <li className="flex items-start gap-3">
               <Bookmark className="mt-0.5 size-4 shrink-0 text-primary" />
               <span>Bookmarks and recent history stay in this browser.</span>

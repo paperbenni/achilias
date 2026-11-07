@@ -6,9 +6,9 @@ Achilias supports independent users on one server process. Each browser profile 
 
 The server never launches a browser. Users choose a method in **Sign in to ILIAS**; see the README’s [sign-in methods](../README.md#sign-in-methods) for the password form, laptop helper, and cookie import. The helper transfers only the ILIAS instance’s cookies to the browser’s pending server session. The direct cookie form accepts a `Cookie` header, a bare session value, or a Playwright/cookie JSON export; the server keeps only exact-instance cookies and verifies the dashboard before connecting.
 
-With the default HTTPS configuration, the helper requires Bun, this checkout, and a browser on the user’s computer. Password sign-in is also available by default; disable it with `ACHILIAS_PASSWORD_LOGIN=false` if the server must not receive credentials. Native university SSO cannot simply be embedded into a third-party origin. Session portability, MFA and IP-binding depend on the instance; the README documents the optional SOCKS workaround. Confirm the flow with a real test account before inviting users.
+With the default HTTPS configuration, the helper requires Bun, this checkout, and a browser on the user’s computer. Password sign-in is always available, so the server must be trusted with university credentials. Native university SSO cannot simply be embedded into a third-party origin. Session portability, MFA and IP-binding depend on the instance; the README documents the optional SOCKS workaround. Confirm the flow with a real test account before inviting users.
 
-Password sign-in is on by default. On a public HTTPS deployment set `ACHILIAS_PASSWORD_LOGIN=false` unless you intend to accept university credentials. It should never be enabled on a shared or public deployment: the operator can see credentials that may unlock more than ILIAS, and credential proxying may violate the university’s SSO terms. MFA and JavaScript-only sign-in pages are not supported. See [sign-in methods](../README.md#sign-in-methods) for the user-facing behavior.
+Password sign-in is always available. It should never be exposed on a shared or public deployment: the operator can see credentials that may unlock more than ILIAS, and credential proxying may violate the university’s SSO terms. MFA and JavaScript-only sign-in pages are not supported. See [sign-in methods](../README.md#sign-in-methods) for the user-facing behavior.
 
 ## Run behind HTTPS
 
@@ -22,7 +22,7 @@ The repository's `docker-compose.yml` pulls `ghcr.io/paperbenni/achilias:latest`
 docker compose up -d
 ```
 
-Set `ACHILIAS_ORIGIN`, `ACHILIAS_TRUST_PROXY`, and the published port in `.env`, then expose only the loopback-bound port through your reverse proxy. The image runs as an unprivileged user and includes a health check. Update with `docker compose pull && docker compose up -d`. On other architectures, build locally with `docker build -t achilias:local .` and set `ACHILIAS_IMAGE=achilias:local`.
+Set `ACHILIAS_ORIGIN`, `ACHILIAS_TRUST_PROXY`, and `PORT` (the host port) in `.env`, then expose only the loopback-bound port through your reverse proxy. The image runs as an unprivileged user and includes a health check. Update with `docker compose pull && docker compose up -d`. On other architectures, build locally with `docker build -t achilias:local .` and set `ACHILIAS_IMAGE=achilias:local`.
 
 ### From source
 

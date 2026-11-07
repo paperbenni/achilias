@@ -13,12 +13,10 @@ export function ConnectDialog({
   open,
   onOpenChange,
   instance,
-  passwordAvailable,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   instance: string;
-  passwordAvailable: boolean;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -30,10 +28,7 @@ export function ConnectDialog({
           <DialogTitle>Sign in to ILIAS</DialogTitle>
           <DialogDescription>Use your university account.</DialogDescription>
         </DialogHeader>
-        <ConnectForm
-          instance={instance}
-          passwordAvailable={passwordAvailable}
-        />
+        <ConnectForm instance={instance} />
       </DialogContent>
     </Dialog>
   );

@@ -4,7 +4,6 @@ import {
   RequestLimitError,
 } from "@/lib/ilias/request-limits";
 import { requireSameOrigin } from "@/lib/ilias/session";
-import { passwordLoginEnabled } from "@/lib/ilias/login-flags";
 import {
   passwordLogin,
   PasswordLoginError,
@@ -23,11 +22,6 @@ export async function POST(request: Request) {
   try {
     requireSameOrigin(request);
     await limitSignIn(request, "start");
-    if (!passwordLoginEnabled())
-      return Response.json(
-        { error: "Password sign-in is disabled on this server." },
-        { status: 403, headers: noStore },
-      );
     const body = (await readSmallJson(request)) as {
       instance?: unknown;
       username?: unknown;

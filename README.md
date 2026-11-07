@@ -19,7 +19,7 @@ docker compose pull
 docker compose up -d
 ```
 
-Sessions and the encryption key persist in the `achilias-data` volume. Compose reads variables from a `.env` file next to `docker-compose.yml`; `.env.example` lists the available options. The example Compose file binds to `127.0.0.1` and disables password sign-in by default; use the helper or cookie import, or set `ACHILIAS_PASSWORD_LOGIN=true` for local testing. Put HTTPS and a reverse proxy in front for anything public, and run exactly one replica. See [Configuration](#configuration) and the [deployment guide](docs/deployment.md).
+Sessions and the encryption key persist in the `achilias-data` volume. Compose reads variables from a `.env` file next to `docker-compose.yml`; `.env.example` lists the available options. The example Compose file binds to `127.0.0.1`; password sign-in is always available, so do not expose it publicly unless the server may receive university credentials. Put HTTPS and a reverse proxy in front for anything public, and run exactly one replica. See [Configuration](#configuration) and the [deployment guide](docs/deployment.md).
 
 On a non-amd64 machine, build the image locally and point Compose at it:
 
@@ -170,11 +170,11 @@ The sign-in form offers three tabs:
 
 | Method | Default | What it needs | Notes |
 | --- | --- | --- | --- |
-| **Password** | On by default; set `ACHILIAS_PASSWORD_LOGIN=false` to hide it | Your university username and password | Achilias submits the real myLogin form over HTTPS, uses the password once, and keeps only ILIAS cookies. The password is never stored. Only use this on a server you control; accounts with MFA must use the helper. |
-| **Helper** | Always available; default when password sign-in is disabled | Bun, an Achilias checkout, and Chromium on your laptop | Opens the real university sign-in in a browser on your laptop and transfers only the resulting ILIAS cookies. The server needs no display or browser. |
+| **Password** | Always available | Your university username and password | Achilias submits the real myLogin form over HTTPS, uses the password once, and keeps only ILIAS cookies. The password is never stored. Only use this on a server you control; accounts with MFA must use the helper. |
+| **Helper** | Always available | Bun, an Achilias checkout, and Chromium on your laptop | Opens the real university sign-in in a browser on your laptop and transfers only the resulting ILIAS cookies. The server needs no display or browser. |
 | **Cookies** | Always available | An existing ILIAS session | Paste the `Cookie` header, just the session value, or a Playwright storageState/cookie JSON export. Achilias keeps only cookies for the exact ILIAS host and verifies the dashboard before connecting. |
 
-Password sign-in accepts any public HTTPS ILIAS instance the user selects. Do **not** use it on a shared or public deployment: the server sees your university password, which may unlock more than ILIAS, and myLogin/SSO terms may prohibit credential proxying. Set `ACHILIAS_PASSWORD_LOGIN=false` to disable it.
+Password sign-in accepts any public HTTPS ILIAS instance the user selects. It cannot be disabled. Do **not** deploy on a shared or public server: the server sees your university password, which may unlock more than ILIAS, and myLogin/SSO terms may prohibit credential proxying.
 
 Cookies are bearer credentials: remove any export file after use and log out when finished. A server that cannot reach the same ILIAS network as your browser may reject the session.
 
@@ -248,7 +248,6 @@ On the server, run the container from the [quick start](#quick-start) or install
 
 ```dotenv
 ACHILIAS_ORIGIN=https://your-achilias.example
-ACHILIAS_SECURE_COOKIE=true
 ```
 
 Bind the server to loopback behind your reverse proxy and keep the private data directory persistent.
@@ -272,7 +271,7 @@ You can keep the app private and avoid setting up public HTTPS by forwarding it 
 ssh -N -L 3000:127.0.0.1:3000 -D 1080 user@your-server
 ```
 
-Open **http://127.0.0.1:3000** in your normal browser. Leave `ACHILIAS_SECURE_COOKIE` unset for loopback HTTP and set `ACHILIAS_ORIGIN=http://127.0.0.1:3000` if you configure an origin explicitly. The external connection is protected by SSH.
+Open **http://127.0.0.1:3000** in your normal browser. Set `ACHILIAS_ORIGIN=http://127.0.0.1:3000` if you configure an origin explicitly. The external connection is protected by SSH.
 
 If ILIAS rejects a transferred session because login and server requests originate from different IPs, use the same SSH tunnel as a SOCKS proxy for the helper’s university browser:
 
@@ -314,9 +313,6 @@ Copy `.env.example` to `.env.local` when running from source; Bun loads `.env.lo
 | `ACHILIAS_TRUST_PROXY`        | Set `true` only behind a proxy that overwrites `X-Forwarded-For` and prevents direct app access. Enables per-client sign-in limits.                                                                                          |
 | `ACHILIAS_DATA_DIR`           | Directory for encrypted sessions and the encryption key. Default: `.local/` in the checkout.                                                                                                                                 |
 | `ACHILIAS_ORIGIN`             | Exact browser-visible **Achilias app** origin for mutation origin checks, especially behind a reverse proxy. This is not the ILIAS instance; users choose that in the dialog. Defaults to the local browser-visible host.      |
-| `ACHILIAS_SECURE_COOKIE`      | Automatically enabled for an HTTPS `ACHILIAS_ORIGIN`; set `true` to force it. Leave unset for local HTTP.                                                                                                                    |
-| `ACHILIAS_PASSWORD_LOGIN`     | Set `false` to hide the university password form. On by default; only use on a single-user server you control. See [Sign-in methods](#sign-in-methods).                                                                       |
-| `ACHILIAS_BUILD_DIR`          | Optional separate build output directory, useful while `next dev` is running.                                                                                                                                                |
 
 Restart the server after configuration changes. Users choose the ILIAS instance in the sign-in form; its specific theme/authentication may differ.
 
@@ -354,7 +350,7 @@ bun run test:search-prefetch
 
 `bun run test` runs the unit and fixture suite. `bun run test:e2e` covers the demo flows in Chromium. Focused browser scripts for forums, headless pairing, exercises, forms, search, PDF/theme, cards, and multi-user isolation are listed in `package.json`. Production-only navigation and search-prefetch checks run against a preview on port 3001. Set `ACHILIAS_TEST_URL` to test another local port. The browser checks use demo data or a deliberately credential-free session; they do not sign in to a real account.
 
-While `next dev` is running, use `ACHILIAS_BUILD_DIR=.next-build bun run build` to preserve its `.next` directory. Start that build with the same variable if you want to run it.
+Stop `next dev` before running `bun run build`; both use the `.next` directory.
 
 ### Visual feedback during development
 

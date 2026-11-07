@@ -1,7 +1,6 @@
 # Never bake host dependencies or local state into the image.
 node_modules
 .next
-.next-build
 .local
 
 # Secrets and per-machine configuration come from the runtime environment.

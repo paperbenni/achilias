@@ -42,7 +42,6 @@ next-env.d.ts
 
 # Encrypted personal ILIAS sessions and encryption key
 .local/
-.next-build/
 playwright-report/
 test-results/
 

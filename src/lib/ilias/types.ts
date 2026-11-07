@@ -40,7 +40,6 @@ export type IliasPage = {
 export type Workspace = {
   storageKey?: string;
   mode: "disconnected" | "demo" | "live";
-  passwordLoginAvailable: boolean;
   instance: string;
   instanceName: string;
   userName: string;

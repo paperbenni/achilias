@@ -2,41 +2,23 @@ import {
   limitSignIn,
   readSmallJson,
   RequestLimitError,
-  withVerificationLimit,
 } from "@/lib/ilias/request-limits";
-import { publicHostname } from "@/lib/ilias/upstream-transport";
-import { allowedInstances, assertInstance } from "@/lib/ilias/config";
-import {
-  createSession,
-  currentSession,
-  deleteSession,
-  requireSameOrigin,
-  saveSession,
-} from "@/lib/ilias/session";
+import { allowedInstances } from "@/lib/ilias/config";
+import { requireSameOrigin } from "@/lib/ilias/session";
 import { passwordLoginEnabled } from "@/lib/ilias/login-flags";
 import {
   passwordLogin,
   PasswordLoginError,
 } from "@/lib/ilias/password-login";
 import { noStore } from "@/lib/api";
+import {
+  assertPublicInstance,
+  ConnectRequestError,
+  connectFailure,
+  connectWithVerifiedJar,
+} from "../helpers";
 
 export const runtime = "nodejs";
-
-function failure(error: unknown) {
-  const known =
-    error instanceof PasswordLoginError || error instanceof RequestLimitError;
-  return Response.json(
-    {
-      error: known
-        ? error.message
-        : "Could not sign in with the university account.",
-    },
-    {
-      status: known ? error.status : 400,
-      headers: noStore,
-    },
-  );
-}
 
 export async function POST(request: Request) {
   try {
@@ -73,7 +55,7 @@ export async function POST(request: Request) {
         { status: 400, headers: noStore },
       );
     const password = body.password;
-    const target = assertInstance(body.instance);
+    const target = assertPublicInstance(body.instance);
     // Do not turn this endpoint into an open credential proxy.
     if (!allowedInstances().includes(target))
       return Response.json(
@@ -83,32 +65,18 @@ export async function POST(request: Request) {
         },
         { status: 403, headers: noStore },
       );
-    if (!publicHostname(new URL(target).hostname))
-      return Response.json(
-        {
-          error:
-            "Enter a public Internet HTTPS ILIAS hostname. Private networks and IP addresses are not supported.",
-        },
-        { status: 400, headers: noStore },
-      );
 
-    const previous = await currentSession();
-    if (previous) await deleteSession(previous.id);
-    const session = await createSession(target);
-    try {
-      const result = await withVerificationLimit(() =>
-        passwordLogin(target, username, password),
-      );
-      session.jar = result.jar;
-      session.userName = result.userName;
-      session.status = "connected";
-      await saveSession(session);
-      return Response.json({ status: "connected" }, { headers: noStore });
-    } catch (error) {
-      await deleteSession(session.id);
-      throw error;
-    }
+    return connectWithVerifiedJar(target, () =>
+      passwordLogin(target, username, password),
+    );
   } catch (error) {
-    return failure(error);
+    return connectFailure(
+      error,
+      (e): e is Error & { status: number } =>
+        e instanceof PasswordLoginError ||
+        e instanceof RequestLimitError ||
+        e instanceof ConnectRequestError,
+      "Could not sign in with the university account.",
+    );
   }
 }

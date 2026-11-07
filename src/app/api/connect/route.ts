@@ -3,27 +3,25 @@ import {
   readSmallJson,
   RequestLimitError,
 } from "@/lib/ilias/request-limits";
-import { publicHostname } from "@/lib/ilias/upstream-transport";
-import { assertInstance } from "@/lib/ilias/config";
 import {
   createSession,
   currentSession,
   deleteSession,
   requireSameOrigin,
 } from "@/lib/ilias/session";
-import { prepareRemoteLogin } from "@/lib/ilias/remote-login";
-import { passwordLoginEnabled } from "@/lib/ilias/login-flags";
+import {
+  prepareRemoteLogin,
+  RemoteLoginError,
+} from "@/lib/ilias/remote-login";
 import { noStore } from "@/lib/api";
+import {
+  assertPublicInstance,
+  ConnectRequestError,
+  connectFailure,
+} from "./helpers";
+
 export const runtime = "nodejs";
-export async function GET() {
-  return Response.json(
-    {
-      mode: "remote",
-      passwordLoginAvailable: passwordLoginEnabled(),
-    },
-    { headers: noStore },
-  );
-}
+
 export async function POST(request: Request) {
   try {
     requireSameOrigin(request);
@@ -36,15 +34,7 @@ export async function POST(request: Request) {
         { error: "Enter an ILIAS instance URL." },
         { status: 400, headers: noStore },
       );
-    const target = assertInstance(instance);
-    if (!publicHostname(new URL(target).hostname))
-      return Response.json(
-        {
-          error:
-            "Enter a public Internet HTTPS ILIAS hostname. Private networks and IP addresses are not supported.",
-        },
-        { status: 400, headers: noStore },
-      );
+    const target = assertPublicInstance(instance);
     const previous = await currentSession();
     if (
       previous?.status === "pending" &&
@@ -53,7 +43,7 @@ export async function POST(request: Request) {
     ) {
       const remote = await prepareRemoteLogin(previous);
       return Response.json(
-        { status: "pending", mode: "remote", ...remote },
+        { status: "pending", ...remote },
         { headers: noStore },
       );
     }
@@ -61,19 +51,17 @@ export async function POST(request: Request) {
     const session = await createSession(target);
     const remote = await prepareRemoteLogin(session);
     return Response.json(
-      { status: "pending", mode: "remote", ...remote },
+      { status: "pending", ...remote },
       { headers: noStore },
     );
-  } catch (e) {
-    return Response.json(
-      { error: e instanceof Error ? e.message : "Could not connect." },
-      {
-        status: e instanceof RequestLimitError ? 429 : 400,
-        headers: {
-          ...noStore,
-          ...(e instanceof RequestLimitError ? { "Retry-After": "600" } : {}),
-        },
-      },
+  } catch (error) {
+    return connectFailure(
+      error,
+      (e): e is Error & { status: number } =>
+        e instanceof RemoteLoginError ||
+        e instanceof RequestLimitError ||
+        e instanceof ConnectRequestError,
+      "Could not connect.",
     );
   }
 }

@@ -85,7 +85,7 @@ try {
   // User-selected instances work, and a private host is rejected before sign-in.
   const start = await contexts[0].request.post(origin + "/api/connect", {
     headers: { Origin: origin },
-    data: { instance: instances[1], mode: "remote" },
+    data: { instance: instances[1] },
   });
   assert.equal(start.status(), 200);
   const pending = await start.json();
@@ -96,7 +96,7 @@ try {
   assert.equal((await metadata.json()).instance, instances[1]);
   const privateHost = await contexts[0].request.post(origin + "/api/connect", {
     headers: { Origin: origin },
-    data: { instance: "https://127.0.0.1/", mode: "remote" },
+    data: { instance: "https://127.0.0.1/" },
   });
   assert.equal(privateHost.status(), 400);
   // A bad connection attempt must not disconnect the other user.

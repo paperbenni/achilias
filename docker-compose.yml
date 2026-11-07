@@ -1,0 +1,46 @@
+# Example Docker Compose deployment for Achilias.
+#
+#   cp .env.example .env        # optional; set ACHILIAS_ORIGIN for production
+#   docker compose up -d --build
+#
+# The host port defaults to 3000; override it with ACHILIAS_PORT (and set
+# ACHILIAS_ORIGIN to match). Terminate TLS in a reverse proxy in front of the
+# published port and keep the app port off the public interface. Run exactly
+# one replica: session locks, rate limits, and search coordination are
+# in-process.
+
+services:
+  achilias:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: achilias:local
+    restart: unless-stopped
+    init: true
+    ports:
+      - "127.0.0.1:${ACHILIAS_PORT:-3000}:3000"
+    environment:
+      # Public HTTPS origin of this app, not the ILIAS instance.
+      ACHILIAS_ORIGIN: ${ACHILIAS_ORIGIN:-http://127.0.0.1:3000}
+      # Enable only behind a proxy that overwrites X-Forwarded-For.
+      ACHILIAS_TRUST_PROXY: ${ACHILIAS_TRUST_PROXY:-false}
+      # Password sign-in is on by default in the app; this example disables it.
+      # Set ACHILIAS_PASSWORD_LOGIN=true for local testing or if you intend to
+      # accept university credentials.
+      ACHILIAS_PASSWORD_LOGIN: ${ACHILIAS_PASSWORD_LOGIN:-false}
+      # Optional: comma-separated canonical URLs for live write actions.
+      # ACHILIAS_WRITE_TARGETS: ${ACHILIAS_WRITE_TARGETS:-}
+      ACHILIAS_DATA_DIR: /data
+    volumes:
+      - achilias-data:/data
+    security_opt:
+      - no-new-privileges:true
+    # The image's HEALTHCHECK is inherited; `docker compose ps` shows it.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  achilias-data:

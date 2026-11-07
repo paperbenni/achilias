@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   distDir: process.env.ACHILIAS_BUILD_DIR || ".next",
+  output: process.env.ACHILIAS_STANDALONE === "true" ? "standalone" : undefined,
   // Reuse visited pages briefly in this browser. No shared server data cache.
   experimental: { staleTimes: { dynamic: 30, static: 30 } },
   turbopack: {

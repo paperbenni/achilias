@@ -1,0 +1,22 @@
+# Never bake host dependencies or local state into the image.
+node_modules
+.next
+.next-build
+.local
+
+# Secrets and per-machine configuration come from the runtime environment.
+.env
+.env.*
+.git
+.gitignore
+
+# Not needed to build or run the server.
+docs
+tests
+scripts
+*.md
+tsconfig.tsbuildinfo
+
+Dockerfile*
+docker-compose*
+.dockerignore

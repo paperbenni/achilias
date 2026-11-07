@@ -17,6 +17,7 @@ export default async function Browse({
     <WorkspaceView
       data={await getWorkspace(demo === "1", type, id)}
       view="browse"
+      objectType={type}
     />
   );
 }

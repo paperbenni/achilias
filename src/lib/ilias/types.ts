@@ -21,6 +21,12 @@ export type IliasPage = {
   authenticated: boolean;
   userName: string;
   hasMore: boolean;
+  /** ILIAS' join action when the page offers one; it means the user is not assigned. */
+  joinUrl?: string;
+  /** ILIAS' leave action when the page offers one; it means the user is a member. */
+  leaveUrl?: string;
+  /** Confirmed course/group membership for browse pages, when it can be established. */
+  membership?: "member" | "guest";
 };
 export type Workspace = {
   storageKey?: string;
@@ -31,5 +37,7 @@ export type Workspace = {
   userName: string;
   page: IliasPage;
   error?: string;
+  /** The requested object was not the page ILIAS returned (for example, a redirect to the dashboard). */
+  unavailable?: boolean;
   fetchedAt?: string;
 };

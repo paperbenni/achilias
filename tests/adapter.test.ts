@@ -143,6 +143,46 @@ describe("ILIAS 10 template adapter", () => {
       '<div class="ilContainerListItemOuter" id="lg_div_12"><div class="ilContainerListItem"><h3><a class="il_ContainerItemTitle" href="goto.php?target=crs_12">Course</a></h3></div></div>';
     expect(parsePage(html, FREIBURG).items).toHaveLength(1);
   });
+  test("recognizes membership actions by URL instead of localized tab labels", () => {
+    const base = FREIBURG + "ilias.php?ref_id=12";
+    const join = parsePage(
+      `<a href="logout.php">Logout</a><h1>Algorithms</h1>
+      <ul id="ilTab">
+        <li><a href="ilias.php?ref_id=12&cmd=view">Inhalt</a></li>
+        <li><a href="ilias.php?ref_id=12&baseClass=ilCourseRegistrationGUI&cmd=show">Beitreten</a></li>
+      </ul>`,
+      base,
+    );
+    expect(join.joinUrl).toBe(
+      FREIBURG +
+        "ilias.php?ref_id=12&baseClass=ilCourseRegistrationGUI&cmd=show",
+    );
+    expect(join.leaveUrl).toBeUndefined();
+
+    const leave = parsePage(
+      `<a href="logout.php">Logout</a><h1>Algorithms</h1>
+      <ul id="ilTab">
+        <li><a href="ilias.php?ref_id=12&cmd=unsubscribe">Austreten</a></li>
+      </ul>`,
+      base,
+    );
+    expect(leave.leaveUrl).toBe(
+      FREIBURG + "ilias.php?ref_id=12&cmd=unsubscribe",
+    );
+    expect(leave.joinUrl).toBeUndefined();
+
+    const group = parsePage(
+      `<a href="logout.php">Logout</a><h1>Study group</h1>
+      <ul id="ilTab">
+        <li><a href="ilias.php?ref_id=13&baseClass=ilGroupRegistrationGUI&cmd=show">Beitreten</a></li>
+      </ul>`,
+      FREIBURG + "ilias.php?ref_id=13",
+    );
+    expect(group.joinUrl).toBe(
+      FREIBURG +
+        "ilias.php?ref_id=13&baseClass=ilGroupRegistrationGUI&cmd=show",
+    );
+  });
 });
 describe("instance and credential boundaries", () => {
   test("normalizes installation paths and rejects unsupported URLs", () => {

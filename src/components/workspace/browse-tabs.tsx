@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/input-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OriginalLink } from "@/components/navigation/original-link";
+import { GuestMembershipAlert } from "./guest-membership-alert";
 import { ItemList, type ItemListProps } from "./item-list";
 import { LayoutToggle } from "./layout-toggle";
 import type { Item, Workspace } from "@/lib/ilias/types";
@@ -34,6 +35,7 @@ export function BrowseTabs({
   layout,
   onLayoutChange,
   empty,
+  objectType,
 }: {
   data: Workspace;
   demo: boolean;
@@ -46,9 +48,16 @@ export function BrowseTabs({
   query: string;
   source: string;
   total: number;
+  objectType?: string;
 }) {
+  const spaceLabel = objectType === "grp" ? "group" : "course";
   return (
     <Tabs defaultValue="materials">
+      <GuestMembershipAlert
+        page={data.page}
+        sourceUrl={source}
+        objectType={objectType}
+      />
       <TabsList>
         <TabsTrigger value="materials">
           Materials <Badge variant="secondary">{total}</Badge>
@@ -133,10 +142,18 @@ export function BrowseTabs({
           <ItemList {...itemProps} items={items} grid />
         ) : (
           empty(
-            query ? "No matching materials" : "No materials found",
+            query
+              ? "No matching materials"
+              : data.page.membership === "guest"
+                ? "No materials available to guests"
+                : "No materials found",
             query
               ? "Try a different word or clear the filter."
-              : "This space may be empty, restricted, or use a layout Achilias cannot read yet. Check the original ILIAS page.",
+              : data.page.membership === "guest"
+                ? data.page.joinUrl
+                  ? `Join this ${spaceLabel} in ILIAS to see its materials and activities.`
+                  : `You’re viewing this ${spaceLabel} as a guest. Open it in ILIAS for course information and access details.`
+                : "This space may be empty, restricted, or use a layout Achilias cannot read yet. Check the original ILIAS page.",
           )
         )}
       </TabsContent>

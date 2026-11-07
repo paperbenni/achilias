@@ -65,10 +65,12 @@ import type { Item, Workspace } from "@/lib/ilias/types";
 export function WorkspaceView({
   data,
   view = "home",
+  objectType,
   children,
 }: {
   children?: React.ReactNode;
   data: Workspace;
+  objectType?: string;
   view?: WorkspaceViewName;
 }) {
   const router = useRouter();
@@ -352,9 +354,17 @@ export function WorkspaceView({
               {data.error ? (
                 <>
                   <LoadErrorAlert
-                    title="Couldn’t load this learning space"
+                    title={
+                      data.unavailable
+                        ? "This learning space isn’t available to you"
+                        : "Couldn’t load this learning space"
+                    }
                     error={data.error}
-                    onConnect={() => setConnectOpen(true)}
+                    onConnect={
+                      data.unavailable
+                        ? undefined
+                        : () => setConnectOpen(true)
+                    }
                     sourceUrl={source}
                   />
                   {view === "browse" && (
@@ -430,6 +440,7 @@ export function WorkspaceView({
                       layout={layout}
                       onLayoutChange={setLayout}
                       empty={renderEmpty}
+                      objectType={objectType}
                     />
                   )}
                   {view !== "browse" && (

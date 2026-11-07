@@ -38,6 +38,31 @@ export function readPageTitle($: CheerioAPI): string {
   );
 }
 
+/** Read the controller and command from an ILIAS tab link without trusting its label. */
+function commandTarget(value: string) {
+  try {
+    const url = new URL(value);
+    return {
+      baseClass: (url.searchParams.get("baseClass") || "").toLowerCase(),
+      cmd: (url.searchParams.get("cmd") || "").toLowerCase(),
+    };
+  } catch {
+    return { baseClass: "", cmd: "" };
+  }
+}
+function isJoinAction(value: string) {
+  const { baseClass, cmd } = commandTarget(value);
+  return (
+    baseClass === "ilcourseregistrationgui" ||
+    baseClass === "ilgroupregistrationgui" ||
+    cmd === "join"
+  );
+}
+function isLeaveAction(value: string) {
+  const { cmd } = commandTarget(value);
+  return cmd === "leave" || cmd === "unsubscribe";
+}
+
 // ILIAS' container and dashboard templates expose the same list-item structure.
 // Keep selectors here so a theme/version adaptation does not leak into the UI.
 export function parsePage(html: string, sourceUrl: string): IliasPage {
@@ -196,6 +221,8 @@ export function parsePage(html: string, sourceUrl: string): IliasPage {
         tools.push({ title, url });
     },
   );
+  const joinUrl = tools.find((tool) => isJoinAction(tool.url))?.url;
+  const leaveUrl = tools.find((tool) => isLeaveAction(tool.url))?.url;
   const text: string[] = [];
   $(".ilc_Paragraph, .ilc_heading1, .ilc_heading2, .ilc_heading3").each(
     (_, el) => {
@@ -239,5 +266,7 @@ export function parsePage(html: string, sourceUrl: string): IliasPage {
       $(
         '.il-viewcontrol-pagination, .ilTableNav, .il-pagination, [class*="pagination"]',
       ).length > 0,
+    ...(joinUrl ? { joinUrl } : {}),
+    ...(leaveUrl ? { leaveUrl } : {}),
   };
 }

@@ -13,7 +13,7 @@ export function LoadErrorAlert({
 }: {
   title: string;
   error: string;
-  onConnect: () => void;
+  onConnect?: () => void;
   sourceUrl: string;
 }) {
   return (
@@ -23,9 +23,11 @@ export function LoadErrorAlert({
       <AlertDescription>
         {error}
         <div className="mt-3 flex flex-wrap gap-2">
-          <Button variant="outline" onClick={onConnect}>
-            Sign in again
-          </Button>
+          {onConnect && (
+            <Button variant="outline" onClick={onConnect}>
+              Sign in again
+            </Button>
+          )}
           <OriginalLink href={sourceUrl} />
         </div>
       </AlertDescription>

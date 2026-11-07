@@ -10,6 +10,13 @@ export type Item = {
   available: boolean;
 };
 export type Tool = { title: string; url: string };
+export type Breadcrumb = {
+  title: string;
+  type?: string;
+  id?: string;
+  /** Resolved ILIAS URL, when the crumb links somewhere. */
+  sourceUrl?: string;
+};
 export type IliasPage = {
   title: string;
   description: string;
@@ -17,6 +24,8 @@ export type IliasPage = {
   tools: Tool[];
   text: string[];
   notices: string[];
+  /** Repository path from ILIAS, root first, current page last. */
+  breadcrumbs?: Breadcrumb[];
   sourceUrl: string;
   authenticated: boolean;
   userName: string;

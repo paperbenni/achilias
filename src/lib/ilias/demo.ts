@@ -1,4 +1,4 @@
-import type { IliasPage, Item } from "./types";
+import type { Breadcrumb, IliasPage, Item } from "./types";
 const base = "https://ilias.uni-freiburg.de/";
 const item = (
   id: string,
@@ -93,6 +93,28 @@ export function demoSearchItems() {
   items.push(...demoGroups);
   return items;
 }
+function demoBreadcrumbs(type?: string, id?: string): Breadcrumb[] {
+  const course = demoCourses.find((c) => c.id === id);
+  const group =
+    type === "grp" ? demoGroups.find((g) => g.id === id) : undefined;
+  if (type === "crs" && course)
+    return [{ title: course.title, type: "crs", id: course.id }];
+  if (type === "grp" && group) {
+    const courseTitle = group.context?.split("›")[0].trim();
+    const parent = demoCourses.find((entry) => entry.title === courseTitle);
+    if (parent)
+      return [
+        { title: parent.title, type: "crs", id: parent.id },
+        { title: group.title, type: "grp", id: group.id },
+      ];
+  }
+  if (type === "fold")
+    return [
+      { title: "Introduction to Computer Science", type: "crs", id: "101" },
+      { title: "Lecture materials", type: "fold", id: "201" },
+    ];
+  return [];
+}
 export function demoPage(type?: string, id?: string): IliasPage {
   const course = demoCourses.find((c) => c.id === id);
   const group =
@@ -112,6 +134,7 @@ export function demoPage(type?: string, id?: string): IliasPage {
     userName: "Alex",
     hasMore: false,
     notices: [],
+    breadcrumbs: demoBreadcrumbs(type, id),
     tools:
       course || isFolder || group
         ? [

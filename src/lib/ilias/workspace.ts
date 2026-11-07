@@ -20,7 +20,7 @@ function pageMatchesObject(page: IliasPage, type: string, id: string) {
     const target = url.searchParams.get("target");
     if (target)
       return target === `${type}_${id}` || target.startsWith(`${type}_${id}_`);
-    const match = url.pathname.match(/\/goto(?:\.php)?\/([a-z]+)\/(\d+)/i);
+    const match = url.pathname.match(/\/go(?:to(?:\.php)?)?\/([a-z]+)\/(\d+)/i);
     return !!match && match[1].toLowerCase() === type && match[2] === id;
   } catch {
     return false;

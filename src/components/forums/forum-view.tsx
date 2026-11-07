@@ -73,6 +73,7 @@ import { OriginalLink } from "@/components/navigation/original-link";
 import { RefreshButton } from "@/components/navigation/refresh-button";
 import { ForumTopicPreview } from "./forum-topic-preview";
 import { useBrowserStore } from "@/hooks/use-browser-store";
+import { parentCrumb, workspaceCrumbs } from "@/lib/ilias/breadcrumbs";
 import { cn } from "@/lib/utils";
 import {
   forumHref,
@@ -139,6 +140,7 @@ export function ForumView({ state }: { state: ForumState }) {
   const [pending, startTransition] = useTransition();
   const { forum, thread, forumId, threadId, workspace, order } = state;
   const demo = workspace.mode === "demo";
+  const parent = parentCrumb(workspaceCrumbs(workspace.page, demo));
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("all");
   const [sort, setSort] = useState("source");
@@ -248,21 +250,21 @@ export function ForumView({ state }: { state: ForumState }) {
         <LiveWriteNotice sourceUrl={workspace.page.sourceUrl} />
       )}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Button variant="ghost" className="w-fit" asChild>
-          <Link
-            prefetch={demo}
-            href={
-              thread
-                ? forumHref(forumId, demo)
-                : demo
-                  ? "/browse/crs/101?demo=1"
-                  : "/"
-            }
-          >
-            <ArrowLeft data-icon="inline-start" />
-            {thread ? forum.title : "Back to your learning space"}
-          </Link>
-        </Button>
+        {thread ? (
+          <Button variant="ghost" className="w-fit" asChild>
+            <Link prefetch={demo} href={forumHref(forumId, demo)}>
+              <ArrowLeft data-icon="inline-start" />
+              {forum.title}
+            </Link>
+          </Button>
+        ) : parent?.href ? (
+          <Button variant="ghost" className="w-fit" asChild>
+            <Link prefetch={demo} href={parent.href}>
+              <ArrowLeft data-icon="inline-start" />
+              Back to {parent.title}
+            </Link>
+          </Button>
+        ) : null}
       </div>
       <div className="flex flex-wrap items-end justify-between gap-5">
         <div className="max-w-3xl">

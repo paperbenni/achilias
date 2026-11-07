@@ -307,6 +307,11 @@ export async function getForumState(
     if (thread && order === "newest") thread.posts.reverse();
     workspace.page.title = thread?.title || forum.title;
     workspace.page.sourceUrl = thread?.sourceUrl || forum.sourceUrl;
+    workspace.page.breadcrumbs = [
+      { title: "Introduction to Computer Science", type: "crs", id: "101" },
+      { title: forum.title, type: "frm", id: forumId },
+      ...(thread ? [{ title: thread.title }] : []),
+    ];
     return { ...base, forum, thread };
   }
   if (session?.status !== "connected")

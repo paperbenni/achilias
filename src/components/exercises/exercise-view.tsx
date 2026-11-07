@@ -48,6 +48,7 @@ import {
 import { OriginalLink } from "@/components/navigation/original-link";
 import { RefreshButton } from "@/components/navigation/refresh-button";
 import { useBrowserStore } from "@/hooks/use-browser-store";
+import { parentCrumb, workspaceCrumbs } from "@/lib/ilias/breadcrumbs";
 import { assessSubmission, updateExerciseUnit } from "@/app/actions/exercises";
 import {
   exerciseHref,
@@ -81,6 +82,7 @@ export function ExerciseView({ state }: { state: ExerciseState }) {
   const router = useRouter();
   const { exerciseId, unitId, workspace, creating } = state;
   const demo = workspace.mode === "demo";
+  const parent = parentCrumb(workspaceCrumbs(workspace.page, demo));
   const { value: changes, update } = useBrowserStore(
     "achilias:demo:exercises:v1",
     "sessionStorage",
@@ -195,23 +197,21 @@ export function ExerciseView({ state }: { state: ExerciseState }) {
   return (
     <div className="flex min-w-0 flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Button variant="ghost" className="w-fit" asChild>
-          <Link
-            href={
-              unitId || creating
-                ? exerciseHref(exerciseId, demo)
-                : demo
-                  ? "/browse/crs/101?demo=1"
-                  : "/"
-            }
-            prefetch={demo}
-          >
-            <ArrowLeft data-icon="inline-start" />
-            {unitId || creating
-              ? "All exercise units"
-              : "Back to your learning space"}
-          </Link>
-        </Button>
+        {unitId || creating ? (
+          <Button variant="ghost" className="w-fit" asChild>
+            <Link href={exerciseHref(exerciseId, demo)} prefetch={demo}>
+              <ArrowLeft data-icon="inline-start" />
+              All exercise units
+            </Link>
+          </Button>
+        ) : parent?.href ? (
+          <Button variant="ghost" className="w-fit" asChild>
+            <Link href={parent.href} prefetch={demo}>
+              <ArrowLeft data-icon="inline-start" />
+              Back to {parent.title}
+            </Link>
+          </Button>
+        ) : null}
         <RefreshButton />
       </div>
       <div className="flex flex-wrap items-end justify-between gap-4">

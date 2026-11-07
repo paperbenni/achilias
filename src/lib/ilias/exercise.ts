@@ -189,6 +189,11 @@ export async function getExerciseState(
   try {
     const result = await fetchExercise(session, exerciseId, unitId, creating);
     workspace.page = { ...result.root.page, items: [] };
+    const currentUnit = unitId
+      ? result.units.find((unit) => unit.id === unitId)
+      : undefined;
+    if (creating) workspace.page.title = "New exercise unit";
+    else if (currentUnit) workspace.page.title = currentUnit.title;
     workspace.fetchedAt = new Date().toISOString();
     workspace.userName = result.root.page.userName || workspace.userName;
     const sourceUrl =

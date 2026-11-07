@@ -16,6 +16,7 @@ export function emptyPage(
     tools: [],
     text: [],
     notices: [],
+    breadcrumbs: [],
     sourceUrl,
     authenticated: false,
     userName: "",

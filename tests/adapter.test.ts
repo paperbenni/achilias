@@ -49,6 +49,31 @@ describe("ILIAS 10 template adapter", () => {
     expect(page.hasMore).toBe(true);
     expect(page.items[4].sourceUrl).not.toContain("javascript:");
   });
+  test("reads the repository breadcrumb path with object references", () => {
+    const page = parsePage(
+      `<a href="logout.php">Logout</a>
+      <nav aria-label="breadcrumbs" class="breadcrumb_wrapper">
+        <div class="breadcrumb">
+          <span class="crumb"><a href="goto.php/root/1">Repository</a></span>
+          <span class="crumb"><a href="go/crs/101">Introduction to Computer Science</a></span>
+          <span class="crumb"><a href="goto.php/fold/201">Lecture materials</a></span>
+        </div>
+      </nav>
+      <h1>Lecture materials</h1>`,
+      FREIBURG + "ilias.php?ref_id=201",
+    );
+    expect(
+      page.breadcrumbs?.map(({ title, type, id }) => ({ title, type, id })),
+    ).toEqual([
+      { title: "Repository", type: "root", id: "1" },
+      {
+        title: "Introduction to Computer Science",
+        type: "crs",
+        id: "101",
+      },
+      { title: "Lecture materials", type: "fold", id: "201" },
+    ]);
+  });
   test("keeps the real page title when an upload dropzone renders its dialog first", () => {
     const page = parsePage(
       `<a href="logout.php">Logout</a>

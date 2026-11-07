@@ -107,7 +107,16 @@ export function demoSubmissions(team: boolean): Submission[] {
   ];
 }
 export function demoExercise(state: ExerciseState): ExerciseState {
-  state.workspace.page.title = "Algorithms — Übungen";
+  const currentUnit = state.unitId
+    ? demoExerciseUnits.find((unit) => unit.id === state.unitId)
+    : undefined;
+  state.workspace.page.title =
+    currentUnit?.title ||
+    (state.creating ? "New exercise unit" : "Algorithms — Übungen");
+  state.workspace.page.breadcrumbs = [
+    { title: "Introduction to Computer Science", type: "crs", id: "101" },
+    { title: "Algorithms — Übungen", type: "exc", id: "401" },
+  ];
   return {
     ...state,
     submissionsKnown: true,

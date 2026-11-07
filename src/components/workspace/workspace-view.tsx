@@ -12,6 +12,7 @@ import { LibrarySection } from "./library-section";
 import { EmptyState } from "./empty-state";
 import { LoadErrorAlert } from "./error-alert";
 import { crumbFor, demoHref } from "./nav-items";
+import { parentCrumb, workspaceCrumbs } from "@/lib/ilias/breadcrumbs";
 import type { ItemListProps } from "./item-list";
 import { useLibrary } from "@/hooks/use-library";
 import { mergeItems } from "@/lib/ilias/library";
@@ -86,6 +87,11 @@ export function WorkspaceView({
   } = useLibrary(data);
   const [selected, setSelected] = useState<Item | null>(null);
   const demo = data.mode === "demo";
+  const crumbs =
+    view === "browse" || view === "forum" || view === "exercise"
+      ? workspaceCrumbs(data.page, demo)
+      : [];
+  const parent = parentCrumb(crumbs);
   useEffect(() => {
     if (data.mode === "disconnected") return;
     const onKey = (event: KeyboardEvent) => {
@@ -209,60 +215,79 @@ export function WorkspaceView({
                     Workspace
                   </Link>
                 </li>
-                <li aria-hidden="true" className="flex items-center">
-                  <ChevronRight className="size-3 shrink-0 text-muted-foreground" />
-                </li>
-                {view === "browse" && (
-                  <>
-                    <li className="flex items-center gap-3">
-                      <GraduationCap
-                        className="size-3.5 shrink-0 text-muted-foreground"
-                        aria-hidden="true"
-                      />
-                      <Link
-                        prefetch={demo}
-                        href={demoHref("/courses", demo)}
-                        className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                {crumbs.length ? (
+                  crumbs.map((crumb, index) => {
+                    const current = index === crumbs.length - 1;
+                    return (
+                      <li
+                        key={`${crumb.title}-${index}`}
+                        aria-current={current ? "page" : undefined}
+                        className="flex min-w-0 items-center gap-3"
                       >
-                        My courses
-                      </Link>
-                    </li>
+                        <ChevronRight
+                          className="size-3 shrink-0 text-muted-foreground"
+                          aria-hidden="true"
+                        />
+                        {index === 0 && (
+                          <GraduationCap
+                            className="size-3.5 shrink-0 text-muted-foreground"
+                            aria-hidden="true"
+                          />
+                        )}
+                        {current || !crumb.href ? (
+                          <span
+                            className={`truncate text-sm ${current ? "font-medium" : "text-muted-foreground"}`}
+                          >
+                            {crumb.title}
+                          </span>
+                        ) : (
+                          <Link
+                            prefetch={demo}
+                            href={crumb.href}
+                            className="truncate text-sm text-muted-foreground transition-colors hover:text-foreground"
+                          >
+                            {crumb.title}
+                          </Link>
+                        )}
+                      </li>
+                    );
+                  })
+                ) : (
+                  <>
                     <li aria-hidden="true" className="flex items-center">
                       <ChevronRight className="size-3 shrink-0 text-muted-foreground" />
                     </li>
+                    <li
+                      aria-current="page"
+                      className="flex min-w-0 items-center gap-3"
+                    >
+                      {view === "home" ? (
+                        <Home
+                          className="size-3.5 shrink-0 text-muted-foreground"
+                          aria-hidden="true"
+                        />
+                      ) : view === "saved" ? (
+                        <Bookmark
+                          className="size-3.5 shrink-0 text-muted-foreground"
+                          aria-hidden="true"
+                        />
+                      ) : view === "settings" ? (
+                        <Settings2
+                          className="size-3.5 shrink-0 text-muted-foreground"
+                          aria-hidden="true"
+                        />
+                      ) : (
+                        <GraduationCap
+                          className="size-3.5 shrink-0 text-muted-foreground"
+                          aria-hidden="true"
+                        />
+                      )}
+                      <span className="truncate text-sm font-medium">
+                        {crumbFor(view, data.page.title)}
+                      </span>
+                    </li>
                   </>
                 )}
-                <li
-                  aria-current="page"
-                  className="flex min-w-0 items-center gap-3"
-                >
-                  {view === "home" ? (
-                    <Home
-                      className="size-3.5 shrink-0 text-muted-foreground"
-                      aria-hidden="true"
-                    />
-                  ) : view === "saved" ? (
-                    <Bookmark
-                      className="size-3.5 shrink-0 text-muted-foreground"
-                      aria-hidden="true"
-                    />
-                  ) : view === "settings" ? (
-                    <Settings2
-                      className="size-3.5 shrink-0 text-muted-foreground"
-                      aria-hidden="true"
-                    />
-                  ) : (
-                    <GraduationCap
-                      className="size-3.5 shrink-0 text-muted-foreground"
-                      aria-hidden="true"
-                    />
-                  )}
-                  <span className="truncate text-sm font-medium">
-                    {view === "browse"
-                      ? data.page.title
-                      : crumbFor(view, data.page.title)}
-                  </span>
-                </li>
               </ol>
             </nav>
           </div>
@@ -330,17 +355,12 @@ export function WorkspaceView({
             />
           ) : (
             <>
-              {view === "browse" && (
-                <Button
-                  variant="ghost"
-                  className="w-fit"
-                  onClick={() => {
-                    if (window.history.length > 1) router.back();
-                    else router.push(demoHref("/", demo));
-                  }}
-                >
-                  <ArrowLeft data-icon="inline-start" />
-                  Back to your space
+              {view === "browse" && parent?.href && (
+                <Button variant="ghost" className="w-fit" asChild>
+                  <Link prefetch={demo} href={parent.href}>
+                    <ArrowLeft data-icon="inline-start" />
+                    Back to {parent.title}
+                  </Link>
                 </Button>
               )}
               {view === "home" ? (

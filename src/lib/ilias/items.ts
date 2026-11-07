@@ -60,20 +60,25 @@ export function canPrefetchItem(item: Item, demo = false) {
 export function isExternalItem(item: Item) {
   return item.available && item.type === "webr";
 }
-export function itemHref(item: Item, demo = false) {
+/** The native route for an ILIAS object, when Achilias can open it. */
+export function objectHref(type: string, id: string, demo = false) {
   const suffix = demo ? "?demo=1" : "";
-  switch (objectTypes[item.type]?.kind) {
+  const normalized = type.toLowerCase();
+  switch (objectTypes[normalized]?.kind) {
     case "exercise":
-      return `/exercises/${item.id}${suffix}`;
+      return `/exercises/${id}${suffix}`;
     case "forum":
-      return `/forums/${item.id}${suffix}`;
+      return `/forums/${id}${suffix}`;
     case "container":
-      return `/browse/${item.type}/${item.id}${suffix}`;
+      return `/browse/${normalized}/${id}${suffix}`;
     case "file":
-      return `/api/files/${item.id}${suffix}`;
+      return `/api/files/${id}${suffix}`;
     default:
-      return item.sourceUrl;
+      return undefined;
   }
+}
+export function itemHref(item: Item, demo = false) {
+  return objectHref(item.type, item.id, demo) ?? item.sourceUrl;
 }
 
 /** File titles open the browser viewer; explicit download actions use itemHref. */

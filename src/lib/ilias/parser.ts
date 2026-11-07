@@ -3,7 +3,7 @@ import { profileName } from "./profile-name";
 import { cleanText as clean } from "./text";
 import { load, type CheerioAPI } from "cheerio";
 import type { AnyNode } from "domhandler";
-import type { IliasPage, Item } from "./types";
+import type { Breadcrumb, IliasPage, Item } from "./types";
 
 // Untriggered dialogs and templates hold copies of items that must not parse
 // into results or alerts.
@@ -61,6 +61,19 @@ function isJoinAction(value: string) {
 function isLeaveAction(value: string) {
   const { cmd } = commandTarget(value);
   return cmd === "leave" || cmd === "unsubscribe";
+}
+
+/** Read an ILIAS repository reference from a target, goto path, or ref_id. */
+function referenceFromUrl(url: URL) {
+  const target =
+    url.searchParams.get("target")?.match(/^([a-z]+)_(\d+)/i) ||
+    url.pathname.match(/\/go(?:to(?:\.php)?)?\/([a-z]+)\/(\d+)/i) ||
+    url.pathname.match(/goto_(?:[^_]+_)?([a-z]+)_(\d+)/i);
+  const fileId = fileControllerReference(url);
+  return {
+    type: target?.[1]?.toLowerCase() || (fileId ? "file" : undefined),
+    id: target?.[2] || fileId || url.searchParams.get("ref_id") || undefined,
+  };
 }
 
 // ILIAS' container and dashboard templates expose the same list-item structure.
@@ -145,18 +158,9 @@ export function parsePage(html: string, sourceUrl: string): IliasPage {
       .first();
     const iconPath = icon.attr("src") || icon.attr("href") || "";
     const iconType = iconPath.match(/icon_([a-z]+)(?:\.|_)/i)?.[1];
-    let targetType: string | undefined;
-    let id: string | undefined;
-    if (href) {
-      const u = new URL(href);
-      const target =
-        u.searchParams.get("target")?.match(/^([a-z]+)_(\d+)/i) ||
-        u.pathname.match(/\/goto\.php\/([a-z]+)\/(\d+)/i) ||
-        u.pathname.match(/goto_(?:[^_]+_)?([a-z]+)_(\d+)/i);
-      const fileId = fileControllerReference(u);
-      targetType = target?.[1] || (fileId ? "file" : undefined);
-      id = target?.[2] || fileId || u.searchParams.get("ref_id") || undefined;
-    }
+    const reference = href ? referenceFromUrl(new URL(href)) : undefined;
+    const targetType = reference?.type;
+    let id = reference?.id;
     id ||= (row.attr("id") || row.attr("data-list-item-id") || "").match(
       /(?:lg_div_|item_)(\d+)/,
     )?.[1];
@@ -249,6 +253,26 @@ export function parsePage(html: string, sourceUrl: string): IliasPage {
     [avatar.attr("aria-label"), avatar.attr("title"), avatar.attr("alt")]
       .map(profileName)
       .find(Boolean) || "";
+  // ILIAS renders the repository path as .breadcrumb_wrapper > .crumb. Keep
+  // the object reference so the app can link each ancestor to its native page.
+  const breadcrumbs: Breadcrumb[] = [];
+  $(".breadcrumb_wrapper .crumb, .breadcrumbs .crumb").each((_, el) => {
+    if (hiddenSubtree($, el)) return;
+    const node = $(el);
+    const title = clean(node.text());
+    if (!title) return;
+    const link = node.find("a[href]").first();
+    const crumbUrl = resolve(link.attr("href") || "");
+    const reference = crumbUrl
+      ? referenceFromUrl(new URL(crumbUrl))
+      : undefined;
+    breadcrumbs.push({
+      title,
+      ...(reference?.type ? { type: reference.type } : {}),
+      ...(reference?.id ? { id: reference.id } : {}),
+      ...(crumbUrl ? { sourceUrl: crumbUrl } : {}),
+    });
+  });
   return {
     title:
       readPageTitle($) ||
@@ -259,6 +283,7 @@ export function parsePage(html: string, sourceUrl: string): IliasPage {
     tools,
     text: text.slice(0, 40),
     notices,
+    breadcrumbs,
     sourceUrl,
     authenticated,
     userName,

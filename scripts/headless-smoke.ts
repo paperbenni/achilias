@@ -14,6 +14,11 @@ async function openDialog() {
   await page
     .getByRole("button", { name: "Connect your ILIAS", exact: true })
     .click();
+  const helper = page.getByRole("tab", { name: "Helper", exact: true });
+  await helper.waitFor();
+  // A pending helper session already selects and disables this tab.
+  if ((await helper.getAttribute("aria-selected")) !== "true")
+    await helper.click();
 }
 try {
   await page.goto(origin);

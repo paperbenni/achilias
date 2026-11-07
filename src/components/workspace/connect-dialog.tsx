@@ -1,11 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ParsedHtmlNotice } from "@/components/navigation/parsed-html-notice";
 import { loginUrl, normalizeInstance } from "@/lib/ilias/config";
 import { useBrowserOrigin } from "@/hooks/use-browser-origin";
 import {
-  ArrowUpRight,
-  Check,
   Cookie,
   Copy,
   KeyRound,
@@ -36,6 +34,8 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 export function ConnectDialog({
   open,
   onOpenChange,
@@ -48,14 +48,17 @@ export function ConnectDialog({
   const [url, setUrl] = useState(instance);
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
-  const [passwordAvailable, setPasswordAvailable] = useState(false);
+  const [passwordAvailable, setPasswordAvailable] = useState<boolean | null>(
+    null,
+  );
+  const [method, setMethod] = useState("helper");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [passwordBusy, setPasswordBusy] = useState(false);
   const [cookie, setCookie] = useState("");
   const [cookieBusy, setCookieBusy] = useState(false);
   const [code, setCode] = useState("");
-  const [expiresAt, setExpiresAt] = useState<number>();
+  const pendingSession = useRef(false);
   const origin = useBrowserOrigin();
   useEffect(() => {
     if (!open) return;
@@ -63,10 +66,17 @@ export function ConnectDialog({
     void fetch("/api/connect")
       .then((r) => r.json())
       .then((data) => {
-        if (!cancelled)
-          setPasswordAvailable(Boolean(data.passwordLoginAvailable));
+        if (cancelled) return;
+        const available = Boolean(data.passwordLoginAvailable);
+        setPasswordAvailable(available);
+        if (!pendingSession.current)
+          setMethod(available ? "password" : "helper");
       })
-      .catch(() => {});
+      .catch(() => {
+        if (cancelled) return;
+        setPasswordAvailable(false);
+        if (!pendingSession.current) setMethod("helper");
+      });
     return () => {
       cancelled = true;
     };
@@ -81,17 +91,25 @@ export function ConnectDialog({
         const data = await res.json();
         if (cancelled) return;
         if (data.status === "connected" && status === "pending") {
+          pendingSession.current = false;
           setStatus("idle");
           setCode("");
           // A full navigation clears any previous account's router cache.
           window.location.replace("/");
           onOpenChange(false);
         } else if (data.status === "pending") {
+          pendingSession.current = true;
           setStatus("pending");
+          setMethod("helper");
         } else if (data.status === "failed") {
+          pendingSession.current = false;
           setStatus("idle");
           setCode("");
           setError(data.error);
+        } else if (data.status === "disconnected" && status === "pending") {
+          pendingSession.current = false;
+          setStatus("idle");
+          setCode("");
         }
       } catch {
         /* Retry transient polling failures without caching any session data. */
@@ -104,9 +122,9 @@ export function ConnectDialog({
       clearInterval(interval);
     };
   }, [open, onOpenChange, status]);
-  async function connect(event?: React.FormEvent) {
-    event?.preventDefault();
+  async function connect() {
     setError("");
+    setMethod("helper");
     setStatus("starting");
     try {
       const res = await fetch("/api/connect", {
@@ -117,7 +135,6 @@ export function ConnectDialog({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setCode(data.code || "");
-      setExpiresAt(data.expiresAt);
       setStatus("pending");
     } catch (e) {
       setStatus("idle");
@@ -174,10 +191,10 @@ export function ConnectDialog({
     try {
       const res = await fetch("/api/session", { method: "DELETE" });
       if (!res.ok) throw new Error();
+      pendingSession.current = false;
       setStatus("idle");
       setError("");
       setCode("");
-      setExpiresAt(undefined);
     } catch {
       setError("Could not cancel sign-in. Try again.");
     }
@@ -191,7 +208,16 @@ export function ConnectDialog({
       );
     }
   }
+  function handleOpenChange(next: boolean) {
+    if (!next) {
+      pendingSession.current = false;
+      setError("");
+      setPasswordAvailable(null);
+    }
+    onOpenChange(next);
+  }
   const busy = status === "starting" || status === "pending";
+  const formBusy = busy || passwordBusy || cookieBusy;
   const command = `bun run connect --server '${origin}'`;
   let originalInstance = instance;
   try {
@@ -200,283 +226,263 @@ export function ConnectDialog({
     // Keep the existing instance link while a new address is incomplete.
   }
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-xl">
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <div className="mb-3 flex size-11 items-center justify-center rounded-xl bg-accent text-primary">
             <ShieldCheck className="size-5" />
           </div>
-          <DialogTitle>Connect your learning space</DialogTitle>
-          <DialogDescription>
-            Use the helper on your laptop so your university password never
-            reaches this server. You can also paste an existing ILIAS cookie.
-          </DialogDescription>
+          <DialogTitle>Sign in to ILIAS</DialogTitle>
+          <DialogDescription>Use your university account.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={connect}>
-          <FieldGroup>
-            <Field data-invalid={!!error}>
-              <FieldLabel htmlFor="instance">ILIAS instance</FieldLabel>
-              <Input
-                id="instance"
-                type="url"
-                required
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                disabled={busy}
-                aria-invalid={!!error}
-              />
-              <FieldDescription>
-                Enter your university’s public HTTPS ILIAS address, including
-                its installation path if needed. Freiburg is prefilled.
-              </FieldDescription>
-            </Field>
-            <div className="flex flex-col gap-4 py-2 text-sm">
-              <div className="flex gap-3">
-                <Laptop className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                <p>
-                  Use the helper on your computer to open the real university
-                  sign-in. This currently requires Bun and an Achilias checkout
-                  on your computer; the server runs without a desktop or
-                  browser.
-                </p>
-              </div>
-              <div className="flex gap-3">
-                <Check className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                <p>
-                  Only your ILIAS session is transferred. The server checks it
-                  before connecting, and stores it encrypted.
-                </p>
-              </div>
-            </div>
-            {error && (
-              <Alert variant="destructive">
-                <AlertTitle>Couldn’t connect</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
+        <Field>
+          <FieldLabel htmlFor="instance">ILIAS instance</FieldLabel>
+          <Input
+            id="instance"
+            type="url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            disabled={formBusy}
+          />
+        </Field>
+        {error && (
+          <Alert variant="destructive">
+            <AlertTitle>Couldn’t connect</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        {passwordAvailable === null ? (
+          <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
+            <Loader2 className="size-4 animate-spin" />
+            Loading sign-in options…
+          </div>
+        ) : (
+          <Tabs value={method} onValueChange={setMethod}>
+            <TabsList className="w-full">
+              {passwordAvailable && (
+                <TabsTrigger value="password" disabled={formBusy}>
+                  <KeyRound />
+                  Password
+                </TabsTrigger>
+              )}
+              <TabsTrigger value="helper" disabled={formBusy}>
+                <Laptop />
+                Helper
+              </TabsTrigger>
+              <TabsTrigger value="cookies" disabled={formBusy}>
+                <Cookie />
+                Cookies
+              </TabsTrigger>
+            </TabsList>
+            {passwordAvailable && (
+              <TabsContent value="password" className="mt-2">
+                <form onSubmit={passwordConnect} className="flex flex-col gap-4">
+                  <FieldGroup>
+                    <Field>
+                      <FieldLabel htmlFor="university-username">
+                        Username
+                      </FieldLabel>
+                      <Input
+                        id="university-username"
+                        autoComplete="username"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        disabled={formBusy}
+                        required
+                      />
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="university-password">
+                        Password
+                      </FieldLabel>
+                      <Input
+                        id="university-password"
+                        type="password"
+                        autoComplete="current-password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        disabled={formBusy}
+                        required
+                      />
+                    </Field>
+                    <Button type="submit" disabled={formBusy || !url}>
+                      {passwordBusy ? (
+                        <Loader2
+                          data-icon="inline-start"
+                          className="animate-spin"
+                        />
+                      ) : (
+                        <KeyRound data-icon="inline-start" />
+                      )}
+                      {passwordBusy ? "Signing in…" : "Sign in"}
+                    </Button>
+                  </FieldGroup>
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    Sent once and never stored. Only use on a server you
+                    control.
+                  </p>
+                </form>
+              </TabsContent>
             )}
-            {status === "pending" && (
-              <>
-                <Field>
-                  <FieldLabel htmlFor="helper-command">
-                    1. Run on your laptop, from an Achilias checkout
-                  </FieldLabel>
-                  <InputGroup>
-                    <InputGroupInput
-                      id="helper-command"
-                      readOnly
-                      value={command}
-                      className="font-mono text-xs"
-                    />
-                    <InputGroupAddon align="inline-end">
-                      <InputGroupButton
-                        size="icon-xs"
-                        aria-label="Copy helper command"
-                        onClick={() => copy(command)}
+            <TabsContent value="helper" className="mt-2">
+              <div className="flex flex-col gap-4">
+                {status === "pending" ? (
+                  <>
+                    <Field>
+                      <FieldLabel htmlFor="helper-command">
+                        Run on your laptop
+                      </FieldLabel>
+                      <InputGroup>
+                        <InputGroupInput
+                          id="helper-command"
+                          readOnly
+                          value={command}
+                          className="font-mono text-xs"
+                        />
+                        <InputGroupAddon align="inline-end">
+                          <InputGroupButton
+                            size="icon-xs"
+                            aria-label="Copy helper command"
+                            onClick={() => copy(command)}
+                          >
+                            <Copy />
+                          </InputGroupButton>
+                        </InputGroupAddon>
+                      </InputGroup>
+                      <FieldDescription>
+                        First time: bun install, then bun run browser:install.
+                      </FieldDescription>
+                    </Field>
+                    {code ? (
+                      <Field>
+                        <FieldLabel htmlFor="connection-code">
+                          Paste this code when asked
+                        </FieldLabel>
+                        <InputGroup>
+                          <InputGroupInput
+                            id="connection-code"
+                            aria-label="Connection code"
+                            readOnly
+                            value={code}
+                            autoComplete="off"
+                            spellCheck={false}
+                            className="font-mono text-xs"
+                          />
+                          <InputGroupAddon align="inline-end">
+                            <InputGroupButton
+                              size="icon-xs"
+                              aria-label="Copy connection code"
+                              onClick={() => copy(code)}
+                            >
+                              <Copy />
+                            </InputGroupButton>
+                          </InputGroupAddon>
+                        </InputGroup>
+                        <FieldDescription>
+                          Expires in ten minutes. Single use.
+                        </FieldDescription>
+                      </Field>
+                    ) : (
+                      <Alert>
+                        <AlertTitle>A connection is already waiting</AlertTitle>
+                        <AlertDescription>
+                          Use the code you already copied, or generate a new one.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                    <Alert>
+                      <Loader2 className="animate-spin" />
+                      <AlertTitle>Waiting for your helper</AlertTitle>
+                      <AlertDescription>
+                        Complete sign-in in the browser on your laptop.
+                      </AlertDescription>
+                    </Alert>
+                    {!code && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => connect()}
                       >
-                        <Copy />
-                      </InputGroupButton>
-                    </InputGroupAddon>
-                  </InputGroup>
+                        Generate a new connection code
+                      </Button>
+                    )}
+                    <Button type="button" variant="ghost" onClick={cancel}>
+                      Cancel sign-in
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      Sign in through a browser on your laptop. Only your
+                      ILIAS session is transferred.
+                    </p>
+                    <Button
+                      type="button"
+                      onClick={() => connect()}
+                      disabled={formBusy || !url}
+                    >
+                      {status === "starting" ? (
+                        <Loader2
+                          data-icon="inline-start"
+                          className="animate-spin"
+                        />
+                      ) : (
+                        <Laptop data-icon="inline-start" />
+                      )}
+                      {status === "starting"
+                        ? "Starting…"
+                        : "Get a connection code"}
+                    </Button>
+                  </>
+                )}
+              </div>
+            </TabsContent>
+            <TabsContent value="cookies" className="mt-2">
+              <form onSubmit={cookieConnect} className="flex flex-col gap-4">
+                <Field>
+                  <FieldLabel htmlFor="cookie-value">
+                    Cookie header or session value
+                  </FieldLabel>
+                  <Textarea
+                    id="cookie-value"
+                    rows={4}
+                    value={cookie}
+                    onChange={(e) => setCookie(e.target.value)}
+                    disabled={formBusy}
+                    placeholder="PHPSESSID=… or just the session value"
+                    spellCheck={false}
+                    required
+                    className="font-mono text-xs"
+                  />
                   <FieldDescription>
-                    First-time setup: bun install, then bun run browser:install.
-                    The helper needs a browser on your laptop.
+                    Paste the ILIAS Cookie header, just the session value, or a
+                    Playwright export.
                   </FieldDescription>
                 </Field>
-                {code ? (
-                  <Field>
-                    <FieldLabel htmlFor="connection-code">
-                      2. Paste this code when the helper asks
-                    </FieldLabel>
-                    <InputGroup>
-                      <InputGroupInput
-                        id="connection-code"
-                        aria-label="Connection code"
-                        readOnly
-                        value={code}
-                        autoComplete="off"
-                        spellCheck={false}
-                        className="font-mono text-xs"
-                      />
-                      <InputGroupAddon align="inline-end">
-                        <InputGroupButton
-                          size="icon-xs"
-                          aria-label="Copy connection code"
-                          onClick={() => copy(code)}
-                        >
-                          <Copy />
-                        </InputGroupButton>
-                      </InputGroupAddon>
-                    </InputGroup>
-                    <FieldDescription>
-                      This code connects this browser only. It expires{" "}
-                      {expiresAt
-                        ? `at ${new Date(expiresAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-                        : "after ten minutes"}{" "}
-                      and is used once.
-                    </FieldDescription>
-                  </Field>
-                ) : (
-                  <Alert>
-                    <AlertTitle>A connection is already waiting</AlertTitle>
-                    <AlertDescription>
-                      Use the code you already copied, or generate a new one.
-                      Generating a code invalidates the previous code.
-                    </AlertDescription>
-                  </Alert>
-                )}
-                <Alert>
-                  <Loader2 className="animate-spin" />
-                  <AlertTitle>Waiting for your local helper</AlertTitle>
-                  <AlertDescription>
-                    Complete myLogin on your laptop, then return here. This page
-                    connects automatically.
-                  </AlertDescription>
-                </Alert>
-                {!code && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => connect()}
-                  >
-                    Generate a new connection code
-                  </Button>
-                )}
-              </>
-            )}
-            {!busy && (
-              <Button type="submit" size="lg">
-                <ArrowUpRight data-icon="inline-start" />
-                Get a connection code
-              </Button>
-            )}
-            {status === "starting" && (
-              <Button disabled>
-                <Loader2 data-icon="inline-start" className="animate-spin" />
-                Starting connection…
-              </Button>
-            )}
-            {busy && (
-              <Button type="button" variant="ghost" onClick={cancel}>
-                Cancel sign-in
-              </Button>
-            )}
-          </FieldGroup>
-        </form>
-        <details className="rounded-lg border p-4">
-          <summary className="flex cursor-pointer items-center gap-2 font-heading text-sm font-medium">
-            <Cookie className="size-4" />
-            Use cookies from your browser
-          </summary>
-          <form onSubmit={cookieConnect} className="mt-4 flex flex-col gap-4">
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              Paste the ILIAS <code>Cookie</code> request header from your
-              browser’s DevTools, or a Playwright storageState/cookie JSON
-              export. Only cookies for the exact ILIAS host are kept, and the
-              server verifies the dashboard before connecting.
-            </p>
-            <FieldGroup>
-              <Field>
-                <FieldLabel htmlFor="cookie-value">
-                  Cookie header or JSON export
-                </FieldLabel>
-                <Textarea
-                  id="cookie-value"
-                  rows={4}
-                  value={cookie}
-                  onChange={(e) => setCookie(e.target.value)}
-                  disabled={busy || passwordBusy || cookieBusy}
-                  placeholder="PHPSESSID=…; other=…"
-                  spellCheck={false}
-                  required
-                  className="font-mono text-xs"
-                />
-                <FieldDescription>
-                  Cookies are bearer credentials. Remove any export file after
-                  using it, and disconnect when finished.
-                </FieldDescription>
-              </Field>
-              <Button
-                type="submit"
-                variant="outline"
-                disabled={busy || passwordBusy || cookieBusy || !url}
-              >
-                {cookieBusy ? (
-                  <Loader2 data-icon="inline-start" className="animate-spin" />
-                ) : (
-                  <Cookie data-icon="inline-start" />
-                )}
-                {cookieBusy ? "Verifying cookies…" : "Connect with cookies"}
-              </Button>
-            </FieldGroup>
-          </form>
-        </details>
-        {passwordAvailable && (
-          <form
-            onSubmit={passwordConnect}
-            className="flex flex-col gap-4 rounded-lg border p-4"
-          >
-            <div>
-              <h3 className="font-heading text-sm font-medium">
-                Use your university password
-              </h3>
-              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                Only enable this on a server you control. Achilias sends these
-                credentials to your university’s sign-in page, uses them once,
-                and never stores them. Accounts with a second factor must use
-                the browser helper.
-              </p>
-            </div>
-            <FieldGroup>
-              <Field>
-                <FieldLabel htmlFor="university-username">
-                  University username
-                </FieldLabel>
-                <Input
-                  id="university-username"
-                  autoComplete="username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  disabled={passwordBusy || busy || cookieBusy}
-                  required
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="university-password">Password</FieldLabel>
-                <Input
-                  id="university-password"
-                  type="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={passwordBusy || busy || cookieBusy}
-                  required
-                />
-              </Field>
-              <Button
-                type="submit"
-                disabled={passwordBusy || busy || cookieBusy || !url}
-              >
-                {passwordBusy ? (
-                  <Loader2 data-icon="inline-start" className="animate-spin" />
-                ) : (
-                  <KeyRound data-icon="inline-start" />
-                )}
-                {passwordBusy
-                  ? "Signing in…"
-                  : "Sign in with university account"}
-              </Button>
-            </FieldGroup>
-          </form>
+                <Button
+                  type="submit"
+                  variant="outline"
+                  disabled={formBusy || !url}
+                >
+                  {cookieBusy ? (
+                    <Loader2 data-icon="inline-start" className="animate-spin" />
+                  ) : (
+                    <Cookie data-icon="inline-start" />
+                  )}
+                  {cookieBusy ? "Verifying…" : "Connect with cookies"}
+                </Button>
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  Cookies are bearer credentials. Disconnect when finished.
+                </p>
+              </form>
+            </TabsContent>
+          </Tabs>
         )}
         <ParsedHtmlNotice
+          compact
           feature="connection"
           sourceUrl={loginUrl(originalInstance)}
         />
-        <p className="text-xs text-muted-foreground">
-          For a remote server, use HTTPS or an SSH tunnel. If ILIAS rejects a
-          transferred session, the helper can sign in through an SSH SOCKS proxy
-          to the server; see the README.
-        </p>
       </DialogContent>
     </Dialog>
   );

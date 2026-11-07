@@ -294,7 +294,8 @@ function findAutoForm($: CheerioAPI, base: URL) {
 /**
  * Sign in through the university's real password form. Credentials are used
  * only for this request and never saved; only ILIAS cookies leave this module.
- * Opt-in via ACHILIAS_PASSWORD_LOGIN for a single-user local deployment.
+ * Defaults on for local use; disable with ACHILIAS_PASSWORD_LOGIN=false. Only
+ * use on a single-user deployment you control.
  */
 export async function passwordLogin(
   instance: string,

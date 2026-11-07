@@ -19,7 +19,7 @@ Routes orchestrate server loaders; loaders adapt ILIAS into typed data; feature 
 | Authenticated requests, redirect boundaries, and cookie rotation                     | `src/lib/ilias/client.ts`                                                |
 | Session encryption, cookies, claims, and per-session locks                           | `src/lib/ilias/session.ts`                                               |
 | Laptop helper and direct cookie sign-in                                              | `scripts/browser-login.ts` (helper), `remote-login.ts`, `remote-client.ts`, `cookie-login.ts` |
-| Opt-in myLogin form sign-in over HTTP                                                 | `password-login.ts`, `app/api/connect/password`                          |
+| myLogin form sign-in over HTTP                                                        | `password-login.ts`, `app/api/connect/password`                          |
 | Object labels, support classification, identity, and destinations                    | `src/lib/ilias/items.ts`                                                 |
 | Shared reference/thread/post ID validation                                           | `src/lib/ilias/identifiers.ts`                                           |
 | Saved/recent item validation, merging, and updates                                   | `src/lib/ilias/library.ts`                                               |

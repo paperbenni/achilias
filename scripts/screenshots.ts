@@ -97,10 +97,8 @@ try {
         await page
           .getByRole("button", { name: "Connect your ILIAS", exact: true })
           .click();
-        await page
-          .getByRole("button", { name: "Get a connection code", exact: true })
-          .waitFor();
-        // Capture the setup before generating any session or secret connection code.
+        await page.getByRole("tab").first().waitFor();
+        // Capture the default sign-in form before creating any session.
       },
     },
     {

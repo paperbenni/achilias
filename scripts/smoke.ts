@@ -257,7 +257,7 @@ try {
     .getByRole("button", { name: "Reconnect account", exact: true })
     .click();
   await page
-    .getByRole("heading", { name: "Connect your learning space", exact: true })
+    .getByRole("heading", { name: "Sign in to ILIAS", exact: true })
     .waitFor();
   await page.waitForTimeout(2200);
   assert.equal(

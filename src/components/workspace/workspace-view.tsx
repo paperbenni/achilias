@@ -575,6 +575,7 @@ export function WorkspaceView({
         open={connectOpen}
         onOpenChange={setConnectOpen}
         instance={data.instance}
+        passwordAvailable={data.passwordLoginAvailable}
       />
       <ItemDialog
         item={selected}

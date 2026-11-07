@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { ParsedHtmlNotice } from "@/components/navigation/parsed-html-notice";
 import { loginUrl, normalizeInstance } from "@/lib/ilias/config";
 import { useBrowserOrigin } from "@/hooks/use-browser-origin";
@@ -36,51 +36,33 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+type ConnectMethod = "password" | "helper" | "cookies";
+type ConnectStatus = "idle" | "starting" | "pending";
+
 export function ConnectDialog({
   open,
   onOpenChange,
   instance,
+  passwordAvailable,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   instance: string;
+  passwordAvailable: boolean;
 }) {
   const [url, setUrl] = useState(instance);
-  const [status, setStatus] = useState("idle");
+  const [status, setStatus] = useState<ConnectStatus>("idle");
   const [error, setError] = useState("");
-  const [passwordAvailable, setPasswordAvailable] = useState<boolean | null>(
-    null,
+  const [method, setMethod] = useState<ConnectMethod>(() =>
+    passwordAvailable ? "password" : "helper",
   );
-  const [method, setMethod] = useState("helper");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [passwordBusy, setPasswordBusy] = useState(false);
   const [cookie, setCookie] = useState("");
   const [cookieBusy, setCookieBusy] = useState(false);
   const [code, setCode] = useState("");
-  const pendingSession = useRef(false);
   const origin = useBrowserOrigin();
-  useEffect(() => {
-    if (!open) return;
-    let cancelled = false;
-    void fetch("/api/connect")
-      .then((r) => r.json())
-      .then((data) => {
-        if (cancelled) return;
-        const available = Boolean(data.passwordLoginAvailable);
-        setPasswordAvailable(available);
-        if (!pendingSession.current)
-          setMethod(available ? "password" : "helper");
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setPasswordAvailable(false);
-        if (!pendingSession.current) setMethod("helper");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [open]);
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
@@ -91,23 +73,19 @@ export function ConnectDialog({
         const data = await res.json();
         if (cancelled) return;
         if (data.status === "connected" && status === "pending") {
-          pendingSession.current = false;
           setStatus("idle");
           setCode("");
           // A full navigation clears any previous account's router cache.
           window.location.replace("/");
           onOpenChange(false);
         } else if (data.status === "pending") {
-          pendingSession.current = true;
           setStatus("pending");
           setMethod("helper");
         } else if (data.status === "failed") {
-          pendingSession.current = false;
           setStatus("idle");
           setCode("");
           setError(data.error);
         } else if (data.status === "disconnected" && status === "pending") {
-          pendingSession.current = false;
           setStatus("idle");
           setCode("");
         }
@@ -191,7 +169,6 @@ export function ConnectDialog({
     try {
       const res = await fetch("/api/session", { method: "DELETE" });
       if (!res.ok) throw new Error();
-      pendingSession.current = false;
       setStatus("idle");
       setError("");
       setCode("");
@@ -210,9 +187,8 @@ export function ConnectDialog({
   }
   function handleOpenChange(next: boolean) {
     if (!next) {
-      pendingSession.current = false;
       setError("");
-      setPasswordAvailable(null);
+      setMethod(passwordAvailable ? "password" : "helper");
     }
     onOpenChange(next);
   }
@@ -251,233 +227,229 @@ export function ConnectDialog({
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-        {passwordAvailable === null ? (
-          <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
-            <Loader2 className="size-4 animate-spin" />
-            Loading sign-in options…
-          </div>
-        ) : (
-          <Tabs value={method} onValueChange={setMethod}>
-            <TabsList className="w-full">
-              {passwordAvailable && (
-                <TabsTrigger value="password" disabled={formBusy}>
-                  <KeyRound />
-                  Password
-                </TabsTrigger>
-              )}
-              <TabsTrigger value="helper" disabled={formBusy}>
-                <Laptop />
-                Helper
-              </TabsTrigger>
-              <TabsTrigger value="cookies" disabled={formBusy}>
-                <Cookie />
-                Cookies
-              </TabsTrigger>
-            </TabsList>
+        <Tabs
+          value={method}
+          onValueChange={(value) => setMethod(value as ConnectMethod)}
+        >
+          <TabsList className="w-full">
             {passwordAvailable && (
-              <TabsContent value="password" className="mt-2">
-                <form onSubmit={passwordConnect} className="flex flex-col gap-4">
-                  <FieldGroup>
-                    <Field>
-                      <FieldLabel htmlFor="university-username">
-                        Username
-                      </FieldLabel>
-                      <Input
-                        id="university-username"
-                        autoComplete="username"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        disabled={formBusy}
-                        required
-                      />
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="university-password">
-                        Password
-                      </FieldLabel>
-                      <Input
-                        id="university-password"
-                        type="password"
-                        autoComplete="current-password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        disabled={formBusy}
-                        required
-                      />
-                    </Field>
-                    <Button type="submit" disabled={formBusy || !url}>
-                      {passwordBusy ? (
-                        <Loader2
-                          data-icon="inline-start"
-                          className="animate-spin"
-                        />
-                      ) : (
-                        <KeyRound data-icon="inline-start" />
-                      )}
-                      {passwordBusy ? "Signing in…" : "Sign in"}
-                    </Button>
-                  </FieldGroup>
-                  <p className="text-xs leading-relaxed text-muted-foreground">
-                    Sent once and never stored. Only use on a server you
-                    control.
-                  </p>
-                </form>
-              </TabsContent>
+              <TabsTrigger value="password" disabled={formBusy}>
+                <KeyRound />
+                Password
+              </TabsTrigger>
             )}
-            <TabsContent value="helper" className="mt-2">
-              <div className="flex flex-col gap-4">
-                {status === "pending" ? (
-                  <>
+            <TabsTrigger value="helper" disabled={formBusy}>
+              <Laptop />
+              Helper
+            </TabsTrigger>
+            <TabsTrigger value="cookies" disabled={formBusy}>
+              <Cookie />
+              Cookies
+            </TabsTrigger>
+          </TabsList>
+          {passwordAvailable && (
+            <TabsContent value="password" className="mt-2">
+              <form onSubmit={passwordConnect} className="flex flex-col gap-4">
+                <FieldGroup>
+                  <Field>
+                    <FieldLabel htmlFor="university-username">
+                      Username
+                    </FieldLabel>
+                    <Input
+                      id="university-username"
+                      autoComplete="username"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      disabled={formBusy}
+                      required
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="university-password">
+                      Password
+                    </FieldLabel>
+                    <Input
+                      id="university-password"
+                      type="password"
+                      autoComplete="current-password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={formBusy}
+                      required
+                    />
+                  </Field>
+                  <Button type="submit" disabled={formBusy || !url}>
+                    {passwordBusy ? (
+                      <Loader2
+                        data-icon="inline-start"
+                        className="animate-spin"
+                      />
+                    ) : (
+                      <KeyRound data-icon="inline-start" />
+                    )}
+                    {passwordBusy ? "Signing in…" : "Sign in"}
+                  </Button>
+                </FieldGroup>
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  Sent once and never stored. Only use on a server you
+                  control.
+                </p>
+              </form>
+            </TabsContent>
+          )}
+          <TabsContent value="helper" className="mt-2">
+            <div className="flex flex-col gap-4">
+              {status === "pending" ? (
+                <>
+                  <Field>
+                    <FieldLabel htmlFor="helper-command">
+                      Run on your laptop
+                    </FieldLabel>
+                    <InputGroup>
+                      <InputGroupInput
+                        id="helper-command"
+                        readOnly
+                        value={command}
+                        className="font-mono text-xs"
+                      />
+                      <InputGroupAddon align="inline-end">
+                        <InputGroupButton
+                          size="icon-xs"
+                          aria-label="Copy helper command"
+                          onClick={() => copy(command)}
+                        >
+                          <Copy />
+                        </InputGroupButton>
+                      </InputGroupAddon>
+                    </InputGroup>
+                    <FieldDescription>
+                      First time: bun install, then bun run browser:install.
+                    </FieldDescription>
+                  </Field>
+                  {code ? (
                     <Field>
-                      <FieldLabel htmlFor="helper-command">
-                        Run on your laptop
+                      <FieldLabel htmlFor="connection-code">
+                        Paste this code when asked
                       </FieldLabel>
                       <InputGroup>
                         <InputGroupInput
-                          id="helper-command"
+                          id="connection-code"
+                          aria-label="Connection code"
                           readOnly
-                          value={command}
+                          value={code}
+                          autoComplete="off"
+                          spellCheck={false}
                           className="font-mono text-xs"
                         />
                         <InputGroupAddon align="inline-end">
                           <InputGroupButton
                             size="icon-xs"
-                            aria-label="Copy helper command"
-                            onClick={() => copy(command)}
+                            aria-label="Copy connection code"
+                            onClick={() => copy(code)}
                           >
                             <Copy />
                           </InputGroupButton>
                         </InputGroupAddon>
                       </InputGroup>
                       <FieldDescription>
-                        First time: bun install, then bun run browser:install.
+                        Expires in ten minutes. Single use.
                       </FieldDescription>
                     </Field>
-                    {code ? (
-                      <Field>
-                        <FieldLabel htmlFor="connection-code">
-                          Paste this code when asked
-                        </FieldLabel>
-                        <InputGroup>
-                          <InputGroupInput
-                            id="connection-code"
-                            aria-label="Connection code"
-                            readOnly
-                            value={code}
-                            autoComplete="off"
-                            spellCheck={false}
-                            className="font-mono text-xs"
-                          />
-                          <InputGroupAddon align="inline-end">
-                            <InputGroupButton
-                              size="icon-xs"
-                              aria-label="Copy connection code"
-                              onClick={() => copy(code)}
-                            >
-                              <Copy />
-                            </InputGroupButton>
-                          </InputGroupAddon>
-                        </InputGroup>
-                        <FieldDescription>
-                          Expires in ten minutes. Single use.
-                        </FieldDescription>
-                      </Field>
-                    ) : (
-                      <Alert>
-                        <AlertTitle>A connection is already waiting</AlertTitle>
-                        <AlertDescription>
-                          Use the code you already copied, or generate a new one.
-                        </AlertDescription>
-                      </Alert>
-                    )}
+                  ) : (
                     <Alert>
-                      <Loader2 className="animate-spin" />
-                      <AlertTitle>Waiting for your helper</AlertTitle>
+                      <AlertTitle>A connection is already waiting</AlertTitle>
                       <AlertDescription>
-                        Complete sign-in in the browser on your laptop.
+                        Use the code you already copied, or generate a new one.
                       </AlertDescription>
                     </Alert>
-                    {!code && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => connect()}
-                      >
-                        Generate a new connection code
-                      </Button>
-                    )}
-                    <Button type="button" variant="ghost" onClick={cancel}>
-                      Cancel sign-in
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm leading-relaxed text-muted-foreground">
-                      Sign in through a browser on your laptop. Only your
-                      ILIAS session is transferred.
-                    </p>
+                  )}
+                  <Alert>
+                    <Loader2 className="animate-spin" />
+                    <AlertTitle>Waiting for your helper</AlertTitle>
+                    <AlertDescription>
+                      Complete sign-in in the browser on your laptop.
+                    </AlertDescription>
+                  </Alert>
+                  {!code && (
                     <Button
                       type="button"
+                      variant="outline"
                       onClick={() => connect()}
-                      disabled={formBusy || !url}
                     >
-                      {status === "starting" ? (
-                        <Loader2
-                          data-icon="inline-start"
-                          className="animate-spin"
-                        />
-                      ) : (
-                        <Laptop data-icon="inline-start" />
-                      )}
-                      {status === "starting"
-                        ? "Starting…"
-                        : "Get a connection code"}
+                      Generate a new connection code
                     </Button>
-                  </>
-                )}
-              </div>
-            </TabsContent>
-            <TabsContent value="cookies" className="mt-2">
-              <form onSubmit={cookieConnect} className="flex flex-col gap-4">
-                <Field>
-                  <FieldLabel htmlFor="cookie-value">
-                    Cookie header or session value
-                  </FieldLabel>
-                  <Textarea
-                    id="cookie-value"
-                    rows={4}
-                    value={cookie}
-                    onChange={(e) => setCookie(e.target.value)}
-                    disabled={formBusy}
-                    placeholder="PHPSESSID=… or just the session value"
-                    spellCheck={false}
-                    required
-                    className="font-mono text-xs"
-                  />
-                  <FieldDescription>
-                    Paste the ILIAS Cookie header, just the session value, or a
-                    Playwright export.
-                  </FieldDescription>
-                </Field>
-                <Button
-                  type="submit"
-                  variant="outline"
-                  disabled={formBusy || !url}
-                >
-                  {cookieBusy ? (
-                    <Loader2 data-icon="inline-start" className="animate-spin" />
-                  ) : (
-                    <Cookie data-icon="inline-start" />
                   )}
-                  {cookieBusy ? "Verifying…" : "Connect with cookies"}
-                </Button>
-                <p className="text-xs leading-relaxed text-muted-foreground">
-                  Cookies are bearer credentials. Disconnect when finished.
-                </p>
-              </form>
-            </TabsContent>
-          </Tabs>
-        )}
+                  <Button type="button" variant="ghost" onClick={cancel}>
+                    Cancel sign-in
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    Sign in through a browser on your laptop. Only your
+                    ILIAS session is transferred.
+                  </p>
+                  <Button
+                    type="button"
+                    onClick={() => connect()}
+                    disabled={formBusy || !url}
+                  >
+                    {status === "starting" ? (
+                      <Loader2
+                        data-icon="inline-start"
+                        className="animate-spin"
+                      />
+                    ) : (
+                      <Laptop data-icon="inline-start" />
+                    )}
+                    {status === "starting"
+                      ? "Starting…"
+                      : "Get a connection code"}
+                  </Button>
+                </>
+              )}
+            </div>
+          </TabsContent>
+          <TabsContent value="cookies" className="mt-2">
+            <form onSubmit={cookieConnect} className="flex flex-col gap-4">
+              <Field>
+                <FieldLabel htmlFor="cookie-value">
+                  Cookie header or session value
+                </FieldLabel>
+                <Textarea
+                  id="cookie-value"
+                  rows={4}
+                  value={cookie}
+                  onChange={(e) => setCookie(e.target.value)}
+                  disabled={formBusy}
+                  placeholder="PHPSESSID=… or just the session value"
+                  spellCheck={false}
+                  required
+                  className="font-mono text-xs"
+                />
+                <FieldDescription>
+                  Paste the ILIAS Cookie header, just the session value, or a
+                  Playwright export.
+                </FieldDescription>
+              </Field>
+              <Button
+                type="submit"
+                variant="outline"
+                disabled={formBusy || !url}
+              >
+                {cookieBusy ? (
+                  <Loader2 data-icon="inline-start" className="animate-spin" />
+                ) : (
+                  <Cookie data-icon="inline-start" />
+                )}
+                {cookieBusy ? "Verifying…" : "Connect with cookies"}
+              </Button>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Cookies are bearer credentials. Disconnect when finished.
+              </p>
+            </form>
+          </TabsContent>
+        </Tabs>
         <ParsedHtmlNotice
           compact
           feature="connection"

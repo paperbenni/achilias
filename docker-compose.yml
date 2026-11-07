@@ -1,23 +1,9 @@
-# Example Docker Compose deployment for Achilias.
-#
-#   docker compose up -d
-#
-# This pulls the published image from GitHub Container Registry. To update:
-#
-#   docker compose pull
-#   docker compose up -d
+# Example deployment for Achilias. See README.md#docker-compose for usage and
+# docs/deployment.md for production guidance.
 #
 # The host port defaults to 3000; override it with ACHILIAS_PORT (and set
-# ACHILIAS_ORIGIN to match). Terminate TLS in a reverse proxy in front of the
-# published port and keep the app port off the public interface. Run exactly
-# one replica: session locks, rate limits, and search coordination are
-# in-process.
-#
-# The published image currently targets linux/amd64. On other architectures,
-# build locally from the Dockerfile and point Compose at the result:
-#
-#   docker build -t achilias:local .
-#   ACHILIAS_IMAGE=achilias:local docker compose up -d
+# ACHILIAS_ORIGIN to match). Run exactly one replica: session locks, rate
+# limits, and search coordination are in-process.
 
 services:
   achilias:

@@ -4,6 +4,7 @@ import { dashboardUrl, loginUrl } from "./config";
 import { upstreamTransport } from "./upstream-transport";
 import { importInstanceCookies } from "./cookie-import";
 import { fetchPage } from "./client";
+import { formFields } from "./html-forms";
 import { parsePage } from "./parser";
 import { readBoundedText } from "./bounded-read";
 import type { Session } from "./session";
@@ -197,45 +198,6 @@ function chooseLoginLink($: CheerioAPI, base: URL) {
   return null;
 }
 
-/** Serialize the controls a browser would submit for a form. */
-function serializeForm($: CheerioAPI, form: Selection) {
-  const data = new URLSearchParams();
-  form.find("input[name]").each((_, el) => {
-    const input = $(el);
-    const type = (input.attr("type") || "text").toLowerCase();
-    if (["submit", "button", "image", "reset", "file"].includes(type)) return;
-    if ((type === "checkbox" || type === "radio") && !input.is("[checked]"))
-      return;
-    const value =
-      input.attr("value") ??
-      (type === "checkbox" || type === "radio" ? "on" : "");
-    data.append(input.attr("name")!, value);
-  });
-  form.find("select[name]").each((_, el) => {
-    const select = $(el);
-    const selected = select.find("option").filter((_, option) => {
-      return $(option).is("[selected]");
-    });
-    const option = selected.length ? selected.first() : select.find("option").first();
-    if (option.length)
-      data.append(
-        select.attr("name")!,
-        option.attr("value") ?? option.text(),
-      );
-  });
-  form.find("textarea[name]").each((_, el) => {
-    data.append($(el).attr("name")!, $(el).text());
-  });
-  const submit = form
-    .find(
-      'input[type="submit"][name], button[type="submit"][name], button[name]:not([type])',
-    )
-    .first();
-  if (submit.length)
-    data.append(submit.attr("name")!, submit.attr("value") ?? "");
-  return data;
-}
-
 function usernameField($: CheerioAPI, form: Selection) {
   const candidates = form
     .find("input[name]")
@@ -385,7 +347,9 @@ export async function passwordLogin(
           "The university login form did not offer username and password fields.",
           422,
         );
-      const data = serializeForm(page.$, form);
+      const data = new URLSearchParams(
+        formFields(page.$, form, { submitter: true }),
+      );
       data.set(user, username);
       data.set(pass, password);
       page = await send(jar, action, { form: data, referer: page.url });
@@ -403,7 +367,9 @@ export async function passwordLogin(
           422,
         );
       page = await send(jar, auto.url, {
-        form: serializeForm(page.$, auto.form),
+        form: new URLSearchParams(
+          formFields(page.$, auto.form, { submitter: true }),
+        ),
         referer: page.url,
       });
       autoSubmitted = true;

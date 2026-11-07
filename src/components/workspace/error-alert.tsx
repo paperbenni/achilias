@@ -24,7 +24,7 @@ export function LoadErrorAlert({
         {error}
         <div className="mt-3 flex flex-wrap gap-2">
           <Button variant="outline" onClick={onConnect}>
-            Reconnect account
+            Sign in again
           </Button>
           <OriginalLink href={sourceUrl} />
         </div>

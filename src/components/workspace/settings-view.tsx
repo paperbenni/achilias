@@ -37,7 +37,7 @@ export function SettingsView({
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Your ILIAS connection</CardTitle>
+            <CardTitle>Your ILIAS account</CardTitle>
             <CardDescription>{data.instanceName}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
@@ -46,15 +46,14 @@ export function SettingsView({
             </p>
             <Badge className="w-fit" variant="secondary">
               {data.mode === "live"
-                ? "Connected"
+                ? "Signed in"
                 : demo
-                  ? "Demo · no account connected"
-                  : "Not connected"}
+                  ? "Demo · no account signed in"
+                  : "Not signed in"}
             </Badge>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              Sign-in happens on the university’s own page. Only ILIAS cookies
-              are copied; university identity-provider cookies stay in the
-              sign-in browser. Sessions are encrypted on the server and expire
+              Sign-in credentials are used once and never stored. Achilias keeps
+              only your ILIAS session, encrypted on the server. Sessions expire
               here after 12 hours or earlier if ILIAS ends them.
             </p>
             <ParsedHtmlNotice
@@ -65,7 +64,7 @@ export function SettingsView({
           <CardFooter>
             <Button onClick={onConnect}>
               <ShieldCheck data-icon="inline-start" />
-              {data.mode === "live" ? "Reconnect account" : "Connect account"}
+              {data.mode === "live" ? "Sign in again" : "Sign in"}
             </Button>
           </CardFooter>
         </Card>

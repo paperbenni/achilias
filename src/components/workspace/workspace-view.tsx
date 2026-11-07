@@ -5,7 +5,7 @@ import { SettingsView } from "./settings-view";
 import { ItemList } from "./item-list";
 import { QuickSearch } from "./quick-search";
 import { ItemDialog } from "./item-dialog";
-import { DisconnectedHero } from "./disconnected-hero";
+import { DisconnectedView } from "./disconnected-view";
 import { PageHeading } from "./page-heading";
 import { BrowseTabs } from "./browse-tabs";
 import { LibrarySection } from "./library-section";
@@ -85,6 +85,7 @@ export function WorkspaceView({
   const [selected, setSelected] = useState<Item | null>(null);
   const demo = data.mode === "demo";
   useEffect(() => {
+    if (data.mode === "disconnected") return;
     const onKey = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key === "k") {
         event.preventDefault();
@@ -93,7 +94,7 @@ export function WorkspaceView({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [setSearchOpen]);
+  }, [data.mode, setSearchOpen]);
   function contextualItem(item: Item) {
     const onPage = data.page.items.some(
       (pageItem) => itemKey(pageItem) === itemKey(item),
@@ -175,6 +176,10 @@ export function WorkspaceView({
       sourceUrl={source}
     />
   );
+  if (data.mode === "disconnected")
+    return (
+      <DisconnectedView data={data} view={view} onClearHistory={clear} />
+    );
   return (
     <>
       <a
@@ -268,14 +273,7 @@ export function WorkspaceView({
             >
               <Search />
             </Button>
-            {data.mode === "disconnected" ? (
-              <Button size="sm" onClick={() => setConnectOpen(true)}>
-                Connect account
-                <ArrowUpRight data-icon="inline-end" />
-              </Button>
-            ) : demo ? (
-              <Badge variant="secondary">Demo workspace</Badge>
-            ) : null}
+            {demo ? <Badge variant="secondary">Demo workspace</Badge> : null}
           </div>
         </header>
         <div
@@ -294,14 +292,13 @@ export function WorkspaceView({
                   size="sm"
                   onClick={() => setConnectOpen(true)}
                 >
-                  Connect your account
+                  Sign in
                   <ArrowRight data-icon="inline-end" />
                 </Button>
               </AlertDescription>
             </Alert>
           )}
-          {(view === "forum" || view === "exercise") &&
-          data.mode !== "disconnected" ? (
+          {view === "forum" || view === "exercise" ? (
             <>
               {data.error ? (
                 <LoadErrorAlert
@@ -329,8 +326,6 @@ export function WorkspaceView({
               onConnect={() => setConnectOpen(true)}
               onClearHistory={clear}
             />
-          ) : data.mode === "disconnected" ? (
-            <DisconnectedHero onConnect={() => setConnectOpen(true)} />
           ) : (
             <>
               {view === "browse" && (
@@ -542,7 +537,7 @@ export function WorkspaceView({
           )}
           <footer className="mt-3 flex flex-wrap items-center justify-end gap-3 border-t pt-6 text-xs text-muted-foreground">
             <span>
-              Independent frontend
+              Achilias
               {data.fetchedAt
                 ? ` · Fetched ${new Date(data.fetchedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" })} Berlin time`
                 : demo

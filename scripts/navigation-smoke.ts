@@ -129,11 +129,11 @@ try {
   });
   await app.getByRole("button", { name: /Cached example account/ }).click();
   await app
-    .getByRole("menuitem", { name: "Disconnect account", exact: true })
+    .getByRole("menuitem", { name: "Log out", exact: true })
     .click();
   await app
     .getByRole("heading", {
-      name: "Connect to ILIAS",
+      name: "Sign in to ILIAS",
       exact: true,
     })
     .waitFor();

@@ -567,7 +567,7 @@ export function QuickSearch({
                 onOpenChange(false);
                 onConnect();
               }}>
-                <ShieldCheck /> Connect your account to search ILIAS
+                <ShieldCheck /> Sign in to search ILIAS
               </CommandItem>
             </CommandGroup>
           )}

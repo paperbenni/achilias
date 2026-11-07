@@ -20,7 +20,7 @@ try {
     {
       file: "welcome.png",
       path: "/",
-      heading: "Connect to ILIAS",
+      heading: "Sign in to ILIAS",
     },
     { file: "overview.png", path: "/?demo=1", heading: "Overview" },
     {
@@ -90,12 +90,14 @@ try {
     },
     {
       file: "connection.png",
-      path: "/",
-      heading: "Connect to ILIAS",
+      path: "/settings?demo=1",
+      heading: "Features & connection",
       dialog: true,
       prepare: async (page) => {
         await page
-          .getByRole("button", { name: "Connect your ILIAS", exact: true })
+          .locator('[data-slot="card"]')
+          .filter({ hasText: "Your ILIAS account" })
+          .getByRole("button", { name: "Sign in", exact: true })
           .click();
         await page.getByRole("tab").first().waitFor();
         // Capture the default sign-in form before creating any session.

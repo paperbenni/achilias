@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     template: "%s · Achilias",
   },
   description:
-    "An independent frontend for ILIAS courses, files, forums and exercises.",
+    "A calmer frontend for ILIAS courses, files, forums and exercises.",
   robots: { index: false, follow: false },
 };
 export default function RootLayout({

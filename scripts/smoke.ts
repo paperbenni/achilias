@@ -14,8 +14,10 @@ try {
   const page = await context.newPage();
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(origin);
-  await page.getByRole("heading", { name: "Connect to ILIAS" }).waitFor();
-  await page.getByRole("link", { name: "Try the demo" }).click();
+  await page
+    .getByRole("heading", { name: "Sign in to ILIAS", exact: true })
+    .waitFor();
+  await page.getByRole("link", { name: "Explore the demo" }).click();
   await page.getByRole("heading", { name: "Overview" }).waitFor();
   assert.equal(
     await page
@@ -254,7 +256,7 @@ try {
     .getByText("Couldn’t load this learning space", { exact: true })
     .waitFor();
   await page
-    .getByRole("button", { name: "Reconnect account", exact: true })
+    .getByRole("button", { name: "Sign in again", exact: true })
     .click();
   await page
     .getByRole("heading", { name: "Sign in to ILIAS", exact: true })

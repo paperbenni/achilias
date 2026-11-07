@@ -27,7 +27,7 @@ The course and forum screens below use the demo workspace. All course names, mat
 
 ![Dark demo overview with readable course cards and navigation](docs/screenshots/overview-dark.png)
 
-Choose **Light**, **Dark**, or **System** from the account menu at the bottom of the sidebar. Before connecting, use **Appearance** in the same place. The preference stays on this browser and follows the operating system when set to System.
+Choose **Light**, **Dark**, or **System** from the account menu at the bottom of the sidebar. Before connecting, use the appearance button at the top of the sign-in page. The preference stays on this browser and follows the operating system when set to System.
 
 </details>
 
@@ -124,13 +124,13 @@ bun install
 bun run dev --hostname 127.0.0.1
 ```
 
-Open **http://127.0.0.1:3000**. Choose **Connect your ILIAS** and pick a method. Local use defaults to the password form. See [Sign-in methods](#sign-in-methods) for requirements and security notes.
+Open **http://127.0.0.1:3000**. Sign in on the homepage and pick a method. Local use defaults to the password form. See [Sign-in methods](#sign-in-methods) for requirements and security notes.
 
 Try **http://127.0.0.1:3000/?demo=1** without an account. Example courses, activities, and PDFs are explicitly marked as demo content. Demo bookmarks are isolated from connected accounts.
 
 ## Sign-in methods
 
-The connection dialog offers three tabs:
+The sign-in form offers three tabs:
 
 | Method | Default | What it needs | Notes |
 | --- | --- | --- | --- |
@@ -140,13 +140,14 @@ The connection dialog offers three tabs:
 
 Password sign-in accepts any public HTTPS ILIAS instance the user selects. Do **not** use it on a shared or public deployment: the server sees your university password, which may unlock more than ILIAS, and myLogin/SSO terms may prohibit credential proxying. Set `ACHILIAS_PASSWORD_LOGIN=false` to disable it.
 
-Cookies are bearer credentials: remove any export file after use and disconnect when finished. A server that cannot reach the same ILIAS network as your browser may reject the session.
+Cookies are bearer credentials: remove any export file after use and log out when finished. A server that cannot reach the same ILIAS network as your browser may reject the session.
 
-The helper’s temporary connection code lasts ten minutes. Cancel and retry from the dialog if needed. On Freiburg’s real ILIAS page, select **Anmelden / Login**, complete **myLogin**, and wait until you reach ILIAS. The helper connects automatically.
+The helper’s temporary connection code lasts ten minutes. Cancel and retry from the form if needed. On Freiburg’s real ILIAS page, select **Anmelden / Login**, complete **myLogin**, and wait until you reach ILIAS. The helper connects automatically.
 
 ## What works
 
 - Server-rendered dashboard content, course/group browsing, nested folders and categories.
+- Course and group pages distinguish guest access from membership, offer the ILIAS join action when available, and show an unavailable state instead of an unrelated redirect.
 - Authenticated, streamed file downloads. Errors stay in the interface rather than opening a JSON error page.
 - Course introduction text and original course-tool links.
 - Native exercise/tutor workspace: Übungseinheiten, submission review and downloads, assessment status and marks, private tutor notes, learner feedback, and unit creation/fixed-deadline editing.
@@ -216,8 +217,8 @@ ACHILIAS_SECURE_COOKIE=true
 
 Bind the server to loopback behind your reverse proxy and keep the private data directory persistent.
 
-1. Open Achilias in your normal browser, choose **Connect your ILIAS**, open **Helper**, and select **Get a connection code**.
-2. On your laptop, use an Achilias checkout, run `bun install` and `bun run browser:install` once, then run the helper command shown in the dialog:
+1. Open Achilias in your normal browser, sign in on the homepage, open **Helper**, and select **Get a connection code**.
+2. On your laptop, use an Achilias checkout, run `bun install` and `bun run browser:install` once, then run the helper command shown in the form:
 
    ```sh
    bun run connect --server https://your-achilias.example
@@ -281,7 +282,7 @@ Copy `.env.example` to `.env.local` when changing defaults. Bun loads `.env.loca
 | `ACHILIAS_PASSWORD_LOGIN`     | Set `false` to hide the university password form. On by default; only use on a single-user server you control. See [Sign-in methods](#sign-in-methods).                                                                       |
 | `ACHILIAS_BUILD_DIR`          | Optional separate build output directory, useful while `next dev` is running.                                                                                                                                                |
 
-Restart the server after configuration changes. Users choose the ILIAS instance in the connection dialog; its specific theme/authentication may differ.
+Restart the server after configuration changes. Users choose the ILIAS instance in the sign-in form; its specific theme/authentication may differ.
 
 ### Data and hosting
 

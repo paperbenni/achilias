@@ -10,8 +10,6 @@ import {
   LogOut,
   Search,
   Settings2,
-  Palette,
-  ShieldCheck,
   University,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -50,46 +48,15 @@ import {
   workspaceNav,
   type WorkspaceViewName,
 } from "./nav-items";
+import { Brand } from "./brand";
 
 export type { WorkspaceViewName };
-function Brand({ demo = false }: { demo?: boolean }) {
-  return (
-    <Link
-      prefetch={demo}
-      href={demo ? "/?demo=1" : "/"}
-      className="flex items-center gap-2.5"
-      aria-label="Achilias home"
-    >
-      <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          aria-hidden="true"
-          className="size-6"
-        >
-          <path
-            d="M4 18 11.5 5 19 18M7 13h9M16 5l4 7"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </span>
-      <span className="text-xl font-semibold tracking-tight">
-        achilias<span className="text-primary">.</span>
-      </span>
-    </Link>
-  );
-}
 export function Navigation({
   data,
   openSearch,
-  connect,
 }: {
   data: Workspace;
   openSearch: () => void;
-  connect: () => void;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -106,10 +73,10 @@ export function Navigation({
             <p className="truncate text-xs font-medium">{data.instanceName}</p>
             <p className="mt-0.5 text-[11px] text-muted-foreground">
               {data.mode === "live"
-                ? "Connected"
+                ? "Signed in"
                 : data.mode === "demo"
                   ? "Demo workspace"
-                  : "Not connected"}
+                  : "Not signed in"}
             </p>
           </div>
         </div>
@@ -185,81 +152,61 @@ export function Navigation({
       </SidebarContent>
       <SidebarFooter className="p-4">
         <Separator className="mb-2" />
-        {data.mode === "disconnected" ? (
-          <>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="justify-start">
-                  <Palette />
-                  Appearance
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent side="top" align="start">
-                <AppearanceMenu />
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button variant="outline" onClick={connect}>
-              <ShieldCheck data-icon="inline-start" />
-              Connect account
-            </Button>
-          </>
-        ) : (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                className="h-auto justify-start gap-3 py-2"
-              >
-                <Avatar className="size-8">
-                  <AvatarFallback>
-                    {data.mode === "demo"
-                      ? "AL"
-                      : (data.userName || "You").slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="flex flex-1 flex-col items-start">
-                  <span>{data.userName || "Your account"}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {data.mode === "demo"
-                      ? "Exploring the demo"
-                      : "Connected to ILIAS"}
-                  </span>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              className="h-auto justify-start gap-3 py-2"
+            >
+              <Avatar className="size-8">
+                <AvatarFallback>
+                  {data.mode === "demo"
+                    ? "AL"
+                    : (data.userName || "You").slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span className="flex flex-1 flex-col items-start">
+                <span>{data.userName || "Your account"}</span>
+                <span className="text-xs text-muted-foreground">
+                  {data.mode === "demo"
+                    ? "Exploring the demo"
+                    : "Signed in to ILIAS"}
                 </span>
-                <ChevronDown />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent side="top" align="start">
-              <AppearanceMenu />
-              <DropdownMenuSeparator />
-              <DropdownMenuGroup>
-                <DropdownMenuItem
-                  onSelect={() => router.push(demoHref("/settings", demo))}
-                >
-                  <Settings2 />
-                  Connection settings
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={async () => {
-                    if (data.mode === "live") {
-                      const response = await fetch("/api/session", {
-                        method: "DELETE",
-                      });
-                      if (!response.ok) {
-                        toast.error("Could not disconnect. Please try again.");
-                        return;
-                      }
+              </span>
+              <ChevronDown />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="top" align="start">
+            <AppearanceMenu />
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuItem
+                onSelect={() => router.push(demoHref("/settings", demo))}
+              >
+                <Settings2 />
+                Connection settings
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={async () => {
+                  if (data.mode === "live") {
+                    const response = await fetch("/api/session", {
+                      method: "DELETE",
+                    });
+                    if (!response.ok) {
+                      toast.error("Could not log out. Please try again.");
+                      return;
                     }
-                    // Drop all prefetched/visited content at an account boundary.
-                    window.location.replace("/");
-                  }}
-                >
-                  <LogOut />
-                  {data.mode === "demo" ? "Leave demo" : "Disconnect account"}
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+                  }
+                  // Drop all prefetched/visited content at an account boundary.
+                  window.location.replace("/");
+                }}
+              >
+                <LogOut />
+                {data.mode === "demo" ? "Leave demo" : "Log out"}
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </SidebarFooter>
     </Sidebar>
   );

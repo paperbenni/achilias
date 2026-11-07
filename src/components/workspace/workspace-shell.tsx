@@ -55,14 +55,18 @@ export function WorkspaceShell({
     () => ({ searchOpen, setSearchOpen, connectOpen, setConnectOpen }),
     [searchOpen, connectOpen],
   );
+  // Signed-out pages are a focused, full-screen sign-in flow. The workspace
+  // sidebar and navigation only make sense once there is an account or demo.
+  if (data.mode === "disconnected")
+    return (
+      <WorkspaceShellContext.Provider value={value}>
+        {children}
+      </WorkspaceShellContext.Provider>
+    );
   return (
     <WorkspaceShellContext.Provider value={value}>
       <SidebarProvider>
-        <Navigation
-          data={data}
-          openSearch={() => setSearchOpen(true)}
-          connect={() => setConnectOpen(true)}
-        />
+        <Navigation data={data} openSearch={() => setSearchOpen(true)} />
         {children}
         <ConnectDialog
           key={data.mode}

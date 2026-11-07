@@ -10,15 +10,12 @@ const context = await browser.newContext();
 const page = await context.newPage();
 const errors: string[] = [];
 page.on("pageerror", (error) => errors.push(error.message));
-async function openDialog() {
-  await page
-    .getByRole("button", { name: "Connect your ILIAS", exact: true })
-    .click();
+async function openHelper() {
   await page.getByRole("tab", { name: "Helper", exact: true }).click();
 }
 try {
   await page.goto(origin);
-  await openDialog();
+  await openHelper();
   await page
     .getByRole("button", { name: "Get a connection code", exact: true })
     .click();
@@ -72,7 +69,7 @@ try {
     400,
   );
   await page.reload();
-  await openDialog();
+  await openHelper();
   await page
     .getByRole("button", {
       name: "Generate a new connection code",

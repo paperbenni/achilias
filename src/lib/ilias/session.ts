@@ -16,7 +16,6 @@ import path from "node:path";
 import { dataDirectory, getStorageKey } from "./private-storage";
 import { clearCachedSearchForms } from "./search-form";
 import { clearWorkspacePages } from "./page-cache";
-import { cookies } from "next/headers";
 import type { SerializedCookieJar } from "tough-cookie";
 import { parsePairingCode, verifyPairing } from "./pairing";
 import { isLoopbackHostname } from "./loopback";
@@ -101,6 +100,7 @@ export async function readSession(id?: string): Promise<Session | null> {
   return session;
 }
 export async function currentSession() {
+  const { cookies } = await import("next/headers");
   return readSession((await cookies()).get(SESSION_COOKIE)?.value);
 }
 const lockState = globalThis as typeof globalThis & {
@@ -134,6 +134,7 @@ export async function deleteSession(id: string) {
   });
 }
 export async function setSessionCookie(id: string) {
+  const { cookies } = await import("next/headers");
   (await cookies()).set(SESSION_COOKIE, id, {
     httpOnly: true,
     sameSite: "strict",

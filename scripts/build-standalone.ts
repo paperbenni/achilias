@@ -19,9 +19,9 @@ await execa(
     "build",
     "scripts/cli.mts",
     "--target=node",
-    "--format=cjs",
+    "--format=esm",
     "--packages=external",
-    "--outfile=bin/cli.cjs",
+    "--outfile=bin/cli.mjs",
   ],
   { cwd: root, stdio: "inherit" },
 );

@@ -50,4 +50,4 @@ test-results/
 !.env.example
 
 # Compiled CLI
-/bin/cli.cjs
+/bin/cli.mjs

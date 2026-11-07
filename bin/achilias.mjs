@@ -1,2 +1,2 @@
 #!/usr/bin/env node
-await import("./cli.cjs");
+await import("./cli.mjs");

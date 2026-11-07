@@ -8,6 +8,7 @@ import {
 } from "../src/lib/ilias/config";
 import { browserLogin } from "./browser-login";
 import { importInstanceCookies } from "../src/lib/ilias/cookie-import";
+import { configuredOrigin } from "../src/lib/ilias/origin";
 import { remoteRequest, remoteServerUrl } from "../src/lib/ilias/remote-client";
 const args = process.argv.slice(2);
 function option(name: string) {
@@ -98,7 +99,7 @@ try {
   } else {
     const instance = assertInstance(option("--instance") || FREIBURG);
     const app = remoteServerUrl(
-      option("--app") || process.env.ACHILIAS_ORIGIN || "http://127.0.0.1:3000",
+      option("--app") || configuredOrigin() || "http://127.0.0.1:3000",
     );
     const sessions = await import("../src/lib/ilias/session");
     const { newPairing } = await import("../src/lib/ilias/pairing");

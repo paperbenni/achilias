@@ -20,6 +20,7 @@ import { cookies } from "next/headers";
 import type { SerializedCookieJar } from "tough-cookie";
 import { parsePairingCode, verifyPairing } from "./pairing";
 import { isLoopbackHostname } from "./loopback";
+import { configuredOrigin, isHttpsOrigin } from "./origin";
 
 export const SESSION_COOKIE = "achilias_session";
 const dir = dataDirectory;
@@ -137,8 +138,7 @@ export async function setSessionCookie(id: string) {
     httpOnly: true,
     sameSite: "strict",
     secure:
-      process.env.ACHILIAS_SECURE_COOKIE === "true" ||
-      process.env.ACHILIAS_ORIGIN?.startsWith("https://") === true,
+      process.env.ACHILIAS_SECURE_COOKIE === "true" || isHttpsOrigin(),
     path: "/",
     maxAge,
   });
@@ -158,7 +158,7 @@ export async function createSession(instance: string) {
 export function requireSameOrigin(request: Request) {
   const origin = request.headers.get("origin");
   if (!origin) throw new Error("Request origin is not allowed.");
-  const configured = process.env.ACHILIAS_ORIGIN;
+  const configured = configuredOrigin();
   const originUrl = new URL(origin);
   // Next can normalize request.url to localhost even when the browser uses
   // 127.0.0.1. The Host header reflects that browser-visible local origin.

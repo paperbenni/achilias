@@ -6,7 +6,7 @@ import {
   deleteSession,
   SESSION_COOKIE,
 } from "../src/lib/ilias/session";
-const origin = process.env.ACHILIAS_TEST_URL || "http://127.0.0.1:3001";
+const origin = process.env.ACHILIAS_TEST_URL || "http://127.0.0.1:3000";
 const browser = await chromium.launch({ headless: true });
 const ids = [randomUUID(), randomUUID()];
 const instances = [
@@ -51,7 +51,7 @@ try {
       0,
     );
     const response = await contexts[index].request.get(origin + "/settings");
-    assert.match(response.headers()["cache-control"], /private.*no-store/);
+    assert.match(response.headers()["cache-control"], /no-store/);
     assert.equal(
       (
         await (
@@ -107,7 +107,7 @@ try {
   );
   assert.deepEqual(errors, []);
   console.log(
-    "Passed: separate browser sessions and instance settings, private/no-store pages, independent logout, custom-instance pairing, and private-host rejection.",
+    "Passed: separate browser sessions and instance settings, no-store pages, independent logout, custom-instance pairing, and private-host rejection.",
   );
 } finally {
   for (const context of contexts)

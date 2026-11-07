@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { saveSession, deleteSession, SESSION_COOKIE } from "../src/lib/ilias/session";
 import type { Item } from "../src/lib/ilias/types";
 
-const origin = process.env.ACHILIAS_TEST_URL || "http://127.0.0.1:3001";
+const origin = process.env.ACHILIAS_TEST_URL || "http://127.0.0.1:3000";
 const id = randomUUID();
 const browser = await chromium.launch({ headless: true });
 const group: Item = { id: "304", type: "fold", title: "Gruppe 04", context: "Vorlesung › Tutorate", description: "", meta: "", available: true, sourceUrl: "https://campus.example/goto.php?target=fold_304" };

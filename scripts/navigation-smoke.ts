@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { saveSession, deleteSession } from "../src/lib/ilias/session";
 import { newPairing } from "../src/lib/ilias/pairing";
+// Production preview: run against `next start` on port 3001.
 const origin = process.env.ACHILIAS_TEST_URL || "http://127.0.0.1:3001";
 const browser = await chromium.launch({ headless: true });
 const id = randomUUID();

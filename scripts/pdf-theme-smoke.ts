@@ -1,6 +1,6 @@
 import { chromium, expect } from "playwright/test";
 import assert from "node:assert/strict";
-const origin = process.env.ACHILIAS_TEST_URL || "http://127.0.0.1:3001";
+const origin = process.env.ACHILIAS_TEST_URL || "http://127.0.0.1:3000";
 // Full Chromium's new headless mode includes the native PDF viewer.
 const browser = await chromium.launch({ channel: "chromium", headless: true });
 const context = await browser.newContext({

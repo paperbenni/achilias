@@ -1,6 +1,6 @@
 import { chromium, expect } from "playwright/test";
 import assert from "node:assert/strict";
-const origin = process.env.ACHILIAS_TEST_URL || "http://127.0.0.1:3001";
+const origin = process.env.ACHILIAS_TEST_URL || "http://127.0.0.1:3000";
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1364, height: 1000 } });
 const errors: string[] = [];

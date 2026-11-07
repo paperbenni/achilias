@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { saveSession, deleteSession, SESSION_COOKIE } from "../src/lib/ilias/session";
 import type { Item } from "../src/lib/ilias/types";
+// Production-only: dev does not expose the final prefetch behavior.
 const origin = process.env.ACHILIAS_TEST_URL || "http://127.0.0.1:3001";
 const id = randomUUID();
 const browser = await chromium.launch({ headless: true });

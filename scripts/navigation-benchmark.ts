@@ -1,5 +1,6 @@
 import { chromium, type Locator, type Page } from "playwright";
 import { writeFile } from "node:fs/promises";
+// Production preview: run against `next start` on port 3001.
 const origin = process.env.ACHILIAS_TEST_URL || "http://127.0.0.1:3001";
 const browser = await chromium.launch({ headless: true });
 const latency = Number(process.env.ACHILIAS_BENCH_LATENCY || 120);

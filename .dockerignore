@@ -11,6 +11,7 @@ node_modules
 .gitignore
 
 # Not needed to build or run the server.
+.github
 docs
 tests
 scripts

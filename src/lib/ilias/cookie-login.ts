@@ -25,8 +25,9 @@ const attributes = new Set([
 ]);
 const sessionCookieName = "PHPSESSID";
 const knownCookieNames = new Set(["phpsessid", "ilclientid"]);
-const cookiePair = /^[A-Za-z0-9!#$%&'*+\-.^_`|~]+=[^=;\s]+$/;
-const cookieName = /^([A-Za-z0-9!#$%&'*+\-.^_`|~]+)=/;
+const cookieNameChars = "[A-Za-z0-9!#$%&'*+\\-.^_`|~]+";
+const cookiePair = new RegExp(`^${cookieNameChars}=[^=;\\s]+$`);
+const cookieName = new RegExp(`^(${cookieNameChars})=`);
 
 function rawCookieValues(input: string, hostname: string) {
   const lines = input

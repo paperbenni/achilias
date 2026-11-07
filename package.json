@@ -7,13 +7,7 @@
   },
   "files": [
     "bin/",
-    "scripts/cli.mts",
-    "scripts/connect.mts",
-    "scripts/start.mts",
-    "scripts/browser-login.mts",
-    "src/lib/ilias/",
-    "standalone/",
-    "tsconfig.json"
+    "standalone/"
   ],
   "publishConfig": {
     "access": "public"

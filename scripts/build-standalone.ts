@@ -12,3 +12,16 @@ await execa("bun", ["run", "package:standalone"], {
   cwd: root,
   stdio: "inherit",
 });
+
+await execa(
+  "bun",
+  [
+    "build",
+    "scripts/cli.mts",
+    "--target=node",
+    "--format=cjs",
+    "--packages=external",
+    "--outfile=bin/cli.cjs",
+  ],
+  { cwd: root, stdio: "inherit" },
+);

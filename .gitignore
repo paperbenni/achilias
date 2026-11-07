@@ -48,3 +48,6 @@ playwright-report/
 test-results/
 
 !.env.example
+
+# Compiled CLI
+/bin/cli.cjs

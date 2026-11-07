@@ -21,10 +21,6 @@ export type ConnectOptions = {
 
 export async function runConnect(options: ConnectOptions) {
   const { server, cookies: cookieFile } = options;
-  if (!server && !(process.versions as { bun?: string }).bun)
-    throw new Error(
-      "Local sign-in needs an Achilias checkout. Run `bun run connect` there, or use `--server` to connect to a running Achilias instance.",
-    );
   if (server) {
     const origin = remoteServerUrl(server);
     console.log(`Connecting to ${origin}`);

@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: process.env.ACHILIAS_STANDALONE === "true" ? "standalone" : undefined,
+  // Keep sanitize-html and its PostCSS dependency together for standalone tracing.
+  serverExternalPackages: ["sanitize-html"],
   // Reuse visited pages briefly in this browser. No shared server data cache.
   experimental: { staleTimes: { dynamic: 30, static: 30 } },
   turbopack: {

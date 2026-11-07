@@ -3,7 +3,6 @@ import {
   readSmallJson,
   RequestLimitError,
 } from "@/lib/ilias/request-limits";
-import { allowedInstances } from "@/lib/ilias/config";
 import { requireSameOrigin } from "@/lib/ilias/session";
 import { passwordLoginEnabled } from "@/lib/ilias/login-flags";
 import {
@@ -56,17 +55,7 @@ export async function POST(request: Request) {
       );
     const password = body.password;
     const target = assertPublicInstance(body.instance);
-    // Do not turn this endpoint into an open credential proxy.
-    if (!allowedInstances().includes(target))
-      return Response.json(
-        {
-          error:
-            "Password sign-in is only allowed for configured ILIAS instances.",
-        },
-        { status: 403, headers: noStore },
-      );
-
-    return connectWithVerifiedJar(target, () =>
+    return await connectWithVerifiedJar(target, () =>
       passwordLogin(target, username, password),
     );
   } catch (error) {

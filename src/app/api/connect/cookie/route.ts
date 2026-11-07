@@ -43,7 +43,9 @@ export async function POST(request: Request) {
       );
     const target = assertPublicInstance(body.instance);
 
-    return connectWithVerifiedJar(target, () => cookieLogin(target, cookies));
+    return await connectWithVerifiedJar(target, () =>
+      cookieLogin(target, cookies),
+    );
   } catch (error) {
     return connectFailure(
       error,

@@ -2,9 +2,9 @@ import { readFile } from "node:fs/promises";
 import { createInterface } from "node:readline/promises";
 import { randomUUID } from "node:crypto";
 import {
-  assertInstance,
   dashboardUrl,
   FREIBURG,
+  normalizeInstance,
 } from "../src/lib/ilias/config";
 import { browserLogin } from "./browser-login";
 import { importInstanceCookies } from "../src/lib/ilias/cookie-import";
@@ -52,10 +52,10 @@ try {
       code = input.trim();
     }
     const metadata = await remoteRequest(origin, code);
-    const instance = assertInstance(metadata.instance);
+    const instance = normalizeInstance(metadata.instance);
     if (
       option("--instance") &&
-      assertInstance(option("--instance")!) !== instance
+      normalizeInstance(option("--instance")!) !== instance
     )
       throw new Error(
         "The selected instance does not match this server connection.",
@@ -97,7 +97,7 @@ try {
       "Connected. Return to Achilias; the page will update automatically.",
     );
   } else {
-    const instance = assertInstance(option("--instance") || FREIBURG);
+    const instance = normalizeInstance(option("--instance") || FREIBURG);
     const app = remoteServerUrl(
       option("--app") || configuredOrigin() || "http://127.0.0.1:3000",
     );

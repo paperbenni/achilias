@@ -13,26 +13,24 @@ afterEach(() => {
 });
 
 describe("password sign-in default", () => {
-  test("is on for local use", () => {
+  test("is on by default", () => {
     delete process.env.ACHILIAS_ORIGIN;
     delete process.env.ACHILIAS_PASSWORD_LOGIN;
     expect(passwordLoginEnabled()).toBe(true);
   });
 
-  test("is off for an HTTPS origin unless enabled", () => {
+  test("does not depend on the app origin", () => {
     process.env.ACHILIAS_ORIGIN = "https://learn.example.org";
     delete process.env.ACHILIAS_PASSWORD_LOGIN;
-    expect(passwordLoginEnabled()).toBe(false);
+    expect(passwordLoginEnabled()).toBe(true);
   });
 
-  test("can be explicitly enabled for an HTTPS origin", () => {
-    process.env.ACHILIAS_ORIGIN = "https://learn.example.org";
+  test("can be explicitly enabled", () => {
     process.env.ACHILIAS_PASSWORD_LOGIN = "true";
     expect(passwordLoginEnabled()).toBe(true);
   });
 
-  test("can be explicitly disabled for local use", () => {
-    delete process.env.ACHILIAS_ORIGIN;
+  test("can be explicitly disabled", () => {
     process.env.ACHILIAS_PASSWORD_LOGIN = "false";
     expect(passwordLoginEnabled()).toBe(false);
   });

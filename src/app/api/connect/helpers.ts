@@ -1,4 +1,4 @@
-import { assertInstance } from "@/lib/ilias/config";
+import { normalizeInstance } from "@/lib/ilias/config";
 import { publicHostname } from "@/lib/ilias/upstream-transport";
 import {
   createSession,
@@ -23,7 +23,7 @@ export class ConnectRequestError extends Error {
 }
 
 export function assertPublicInstance(input: string) {
-  const target = assertInstance(input);
+  const target = normalizeInstance(input);
   if (!publicHostname(new URL(target).hostname))
     throw new ConnectRequestError(
       "Enter a public Internet HTTPS ILIAS hostname. Private networks and IP addresses are not supported.",

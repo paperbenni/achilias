@@ -16,23 +16,6 @@ export function normalizeInstance(input: string) {
   if (!url.pathname.endsWith("/")) url.pathname += "/";
   return url.href;
 }
-export function allowedInstances() {
-  return [
-    FREIBURG,
-    ...(process.env.ILIAS_INSTANCES || "").split(",").filter(Boolean),
-  ].map(normalizeInstance);
-}
-export function assertInstance(input: string) {
-  const normalized = normalizeInstance(input);
-  if (
-    process.env.ACHILIAS_RESTRICT_INSTANCES === "true" &&
-    !allowedInstances().includes(normalized)
-  )
-    throw new Error(
-      "This server restricts ILIAS instances. Ask its administrator to add this HTTPS base URL to ILIAS_INSTANCES.",
-    );
-  return normalized;
-}
 export function instanceName(instance: string) {
   return instance === FREIBURG
     ? "University of Freiburg"

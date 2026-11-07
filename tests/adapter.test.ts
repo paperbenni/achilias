@@ -3,7 +3,6 @@ import { afterEach, describe, expect, mock, test } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { parsePage } from "../src/lib/ilias/parser";
 import {
-  assertInstance,
   FREIBURG,
   normalizeInstance,
   objectUrl,
@@ -146,21 +145,12 @@ describe("ILIAS 10 template adapter", () => {
   });
 });
 describe("instance and credential boundaries", () => {
-  test("normalizes installation paths and only accepts configured instances", () => {
+  test("normalizes installation paths and rejects unsupported URLs", () => {
     expect(normalizeInstance("https://example.edu/ilias/login.php?x=1")).toBe(
       "https://example.edu/ilias/",
     );
-    expect(assertInstance(FREIBURG)).toBe(FREIBURG);
-    const restricted = process.env.ACHILIAS_RESTRICT_INSTANCES;
-    process.env.ACHILIAS_RESTRICT_INSTANCES = "true";
-    try {
-      expect(() => assertInstance("https://unconfigured.example/")).toThrow();
-    } finally {
-      if (restricted === undefined)
-        delete process.env.ACHILIAS_RESTRICT_INSTANCES;
-      else process.env.ACHILIAS_RESTRICT_INSTANCES = restricted;
-    }
-    expect(assertInstance("https://another-university.edu/ilias/")).toBe(
+    expect(normalizeInstance(FREIBURG)).toBe(FREIBURG);
+    expect(normalizeInstance("https://another-university.edu/ilias/")).toBe(
       "https://another-university.edu/ilias/",
     );
     for (const target of [

@@ -6,9 +6,9 @@ Achilias supports independent users on one server process. Each browser profile 
 
 The server never launches a browser. Users choose a method in **Sign in to ILIAS**; see the README’s [sign-in methods](../README.md#sign-in-methods) for the password form, laptop helper, and cookie import. The helper transfers only the ILIAS instance’s cookies to the browser’s pending server session. The direct cookie form accepts a `Cookie` header, a bare session value, or a Playwright/cookie JSON export; the server keeps only exact-instance cookies and verifies the dashboard before connecting.
 
-With the default HTTPS configuration, sign-in requires Bun, this checkout, and the browser helper on the user’s computer. It is **not a browser-only login service** unless password sign-in is explicitly enabled. Native university SSO cannot simply be embedded into a third-party origin. Session portability, MFA and IP-binding depend on the instance; the README documents the optional SOCKS workaround. Confirm the flow with a real test account before inviting users.
+With the default HTTPS configuration, the helper requires Bun, this checkout, and a browser on the user’s computer. Password sign-in is also available by default; disable it with `ACHILIAS_PASSWORD_LOGIN=false` if the server must not receive credentials. Native university SSO cannot simply be embedded into a third-party origin. Session portability, MFA and IP-binding depend on the instance; the README documents the optional SOCKS workaround. Confirm the flow with a real test account before inviting users.
 
-Local use enables password sign-in by default. On a public HTTPS deployment it is off unless `ACHILIAS_PASSWORD_LOGIN=true` is set. Password sign-in is restricted to configured instances and should never be enabled on a shared or public deployment: the operator can see credentials that may unlock more than ILIAS, and credential proxying may violate the university’s SSO terms. MFA and JavaScript-only sign-in pages are not supported. See [sign-in methods](../README.md#sign-in-methods) for the user-facing behavior.
+Password sign-in is on by default. On a public HTTPS deployment set `ACHILIAS_PASSWORD_LOGIN=false` unless you intend to accept university credentials. It should never be enabled on a shared or public deployment: the operator can see credentials that may unlock more than ILIAS, and credential proxying may violate the university’s SSO terms. MFA and JavaScript-only sign-in pages are not supported. See [sign-in methods](../README.md#sign-in-methods) for the user-facing behavior.
 
 ## Run behind HTTPS
 
@@ -54,14 +54,7 @@ Terminate TLS at the proxy and keep the app port inaccessible directly. Use a de
 
 Public HTTPS hostnames on port 443 are accepted by default. Private networks, IP literals, single-label/local hostnames and reserved addresses are rejected. Every TLS connection resolves the hostname, rejects the entire answer if any IP is non-public, and pins the vetted addresses to that connection. Same-instance redirects cannot send cookies elsewhere; redirects that would repeat a POST are refused. There is no environment-proxy bypass in this transport.
 
-For a curated service, optionally restrict the accepted instances:
-
-```dotenv
-ACHILIAS_RESTRICT_INSTANCES=true
-ILIAS_INSTANCES=https://another-university.edu/ilias/
-```
-
-Freiburg is always on the curated list. The restriction does not allow private-network destinations. Other institutions may have unsupported HTML, SSO or permissions: being able to enter an instance URL is not a compatibility guarantee.
+The ILIAS instance is selected by each user in the connection dialog; there is no server-wide instance allowlist. Other institutions may have unsupported HTML, SSO or permissions: being able to enter an instance URL is not a compatibility guarantee.
 
 ## Isolation, limits, and operations
 

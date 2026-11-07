@@ -134,11 +134,11 @@ The connection dialog offers three tabs:
 
 | Method | Default | What it needs | Notes |
 | --- | --- | --- | --- |
-| **Password** | On for local/HTTP use; off for an HTTPS `ACHILIAS_ORIGIN` | Your university username and password | Achilias submits the real myLogin form over HTTPS, uses the password once, and keeps only ILIAS cookies. The password is never stored. Only use this on a server you control; accounts with MFA must use the helper. |
-| **Helper** | Default for an HTTPS `ACHILIAS_ORIGIN` | Bun, an Achilias checkout, and Chromium on your laptop | Opens the real university sign-in in a browser on your laptop and transfers only the resulting ILIAS cookies. The server needs no display or browser. |
+| **Password** | On by default; set `ACHILIAS_PASSWORD_LOGIN=false` to hide it | Your university username and password | Achilias submits the real myLogin form over HTTPS, uses the password once, and keeps only ILIAS cookies. The password is never stored. Only use this on a server you control; accounts with MFA must use the helper. |
+| **Helper** | Always available; default when password sign-in is disabled | Bun, an Achilias checkout, and Chromium on your laptop | Opens the real university sign-in in a browser on your laptop and transfers only the resulting ILIAS cookies. The server needs no display or browser. |
 | **Cookies** | Always available | An existing ILIAS session | Paste the `Cookie` header, just the session value, or a Playwright storageState/cookie JSON export. Achilias keeps only cookies for the exact ILIAS host and verifies the dashboard before connecting. |
 
-Password sign-in only accepts the configured instances (Freiburg plus `ILIAS_INSTANCES`). Do **not** enable it on a shared or public deployment: the server sees your university password, which may unlock more than ILIAS, and myLogin/SSO terms may prohibit credential proxying. Set `ACHILIAS_PASSWORD_LOGIN=false` to disable it anywhere, or `true` to force it on.
+Password sign-in accepts any public HTTPS ILIAS instance the user selects. Do **not** use it on a shared or public deployment: the server sees your university password, which may unlock more than ILIAS, and myLogin/SSO terms may prohibit credential proxying. Set `ACHILIAS_PASSWORD_LOGIN=false` to disable it.
 
 Cookies are bearer credentials: remove any export file after use and disconnect when finished. A server that cannot reach the same ILIAS network as your browser may reject the session.
 
@@ -272,17 +272,15 @@ Copy `.env.example` to `.env.local` when changing defaults. Bun loads `.env.loca
 
 | Variable                      | Purpose                                                                                                                                                                                                                      |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ILIAS_INSTANCES`             | Comma-separated additional HTTPS base URLs, including an installation subdirectory when applicable. Freiburg is always allowed. Used when `ACHILIAS_RESTRICT_INSTANCES=true`; public HTTPS instances are otherwise accepted. |
 | `ACHILIAS_WRITE_TARGETS`      | Comma-separated canonical exercise/forum URLs allowed to make live changes. Unset means disabled. See [live testing](docs/live-testing.md).                                                                                  |
-| `ACHILIAS_RESTRICT_INSTANCES` | Set `true` to accept only Freiburg and the configured `ILIAS_INSTANCES`. Default accepts public HTTPS hostnames.                                                                                                             |
 | `ACHILIAS_TRUST_PROXY`        | Set `true` only behind a proxy that overwrites `X-Forwarded-For` and prevents direct app access. Enables per-client sign-in limits.                                                                                          |
 | `ACHILIAS_DATA_DIR`           | Directory for encrypted sessions and the encryption key. Default: `.local/` in the checkout.                                                                                                                                 |
-| `ACHILIAS_ORIGIN`             | Exact browser-visible app origin for mutation origin checks, especially behind a reverse proxy. Defaults to the local browser-visible host; configure this explicitly for remote use.                                        |
+| `ACHILIAS_ORIGIN`             | Exact browser-visible **Achilias app** origin for mutation origin checks, especially behind a reverse proxy. This is not the ILIAS instance; users choose that in the dialog. Defaults to the local browser-visible host.      |
 | `ACHILIAS_SECURE_COOKIE`      | Automatically enabled for an HTTPS `ACHILIAS_ORIGIN`; set `true` to force it. Leave unset for local HTTP.                                                                                                                    |
-| `ACHILIAS_PASSWORD_LOGIN`     | Set `false` to hide the university password form. Defaults to on for local use and off for an HTTPS `ACHILIAS_ORIGIN`; only use on a single-user server you control. See [Sign-in methods](#sign-in-methods).                  |
+| `ACHILIAS_PASSWORD_LOGIN`     | Set `false` to hide the university password form. On by default; only use on a single-user server you control. See [Sign-in methods](#sign-in-methods).                                                                       |
 | `ACHILIAS_BUILD_DIR`          | Optional separate build output directory, useful while `next dev` is running.                                                                                                                                                |
 
-Restart the server after configuration changes. Additional instances appear through the URL field in the connection dialog; their specific themes/authentication have not been verified.
+Restart the server after configuration changes. Users choose the ILIAS instance in the connection dialog; its specific theme/authentication may differ.
 
 ### Data and hosting
 

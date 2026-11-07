@@ -92,6 +92,70 @@ describe("password sign-in through myLogin", () => {
     expect(fields.get("yt0")).toBe("Login");
   });
 
+  test("submits the IdP's hidden local-storage form before the login form", async () => {
+    const calls: { url: string; method: string; body?: string }[] = [];
+    mockTransport((url, init) => {
+      calls.push({
+        url,
+        method: init?.method || "GET",
+        body: typeof init?.body === "string" ? init.body : undefined,
+      });
+      const parsed = new URL(url);
+      if (parsed.pathname === "/login.php")
+        return html(`<a href="shib_login.php?target=">Login</a>`);
+      if (parsed.pathname === "/shib_login.php")
+        return redirect(
+          "https://mylogin.ub.uni-freiburg.de/idp/profile/SAML2/Redirect/SSO?SAMLRequest=abc&RelayState=xyz",
+        );
+      if (
+        parsed.hostname === "mylogin.ub.uni-freiburg.de" &&
+        parsed.pathname === "/idp/profile/SAML2/Redirect/SSO" &&
+        parsed.searchParams.has("SAMLRequest")
+      )
+        return html(`<form name="form1" action="/idp/profile/SAML2/Redirect/SSO?execution=e1s1" method="post">
+          <input type="hidden" name="csrf_token" value="csrf">
+          <input type="hidden" name="shib_idp_ls_exception.shib_idp_session_ss">
+          <input type="hidden" name="shib_idp_ls_success.shib_idp_session_ss" value="false">
+          <input type="hidden" name="shib_idp_ls_value.shib_idp_session_ss">
+          <input type="hidden" name="shib_idp_ls_supported">
+          <input type="hidden" name="_eventId_proceed">
+        </form>`);
+      if (
+        parsed.hostname === "mylogin.ub.uni-freiburg.de" &&
+        parsed.pathname === "/idp/profile/SAML2/Redirect/SSO" &&
+        parsed.searchParams.get("execution") === "e1s1"
+      )
+        return redirect(
+          "https://mylogin.ub.uni-freiburg.de/authn/login?context=abc",
+        );
+      if (
+        parsed.hostname === "mylogin.ub.uni-freiburg.de" &&
+        parsed.pathname === "/authn/login"
+      ) {
+        if (init?.method === "POST")
+          return redirect(FREIBURG + "ilias.php?baseClass=ilDashboardGUI", {
+            "set-cookie": "PHPSESSID=ilias-session; Path=/; Secure; HttpOnly",
+          });
+        return html(loginForm);
+      }
+      if (url.startsWith(FREIBURG)) return dashboard();
+      return new Response("not found", { status: 404 });
+    });
+
+    const result = await passwordLogin(FREIBURG, "alice", "s3cret");
+    expect(result.userName).toBe("Alex Example");
+    const hidden = calls.find(
+      (call) =>
+        call.url.includes("SAML2/Redirect/SSO?execution=e1s1") &&
+        call.method === "POST",
+    );
+    expect(hidden).toBeDefined();
+    const fields = new URLSearchParams(hidden!.body);
+    expect(fields.get("csrf_token")).toBe("csrf");
+    expect(fields.get("shib_idp_ls_success.shib_idp_session_ss")).toBe("false");
+    expect(fields.get("_eventId_proceed")).toBe("");
+  });
+
   test("prefers the university SSO link over a local ILIAS password form", async () => {
     const posted: string[] = [];
     mockTransport((url, init) => {

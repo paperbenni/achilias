@@ -206,7 +206,10 @@ function serializeForm($: CheerioAPI, form: Selection) {
     if (["submit", "button", "image", "reset", "file"].includes(type)) return;
     if ((type === "checkbox" || type === "radio") && !input.is("[checked]"))
       return;
-    data.append(input.attr("name")!, input.attr("value") ?? "on");
+    const value =
+      input.attr("value") ??
+      (type === "checkbox" || type === "radio" ? "on" : "");
+    data.append(input.attr("name")!, value);
   });
   form.find("select[name]").each((_, el) => {
     const select = $(el);

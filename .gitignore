@@ -42,6 +42,8 @@ next-env.d.ts
 
 # Encrypted personal ILIAS sessions and encryption key
 .local/
+# Prepared local server for the npm package
+standalone/
 playwright-report/
 test-results/
 

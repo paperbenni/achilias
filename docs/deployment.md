@@ -2,11 +2,13 @@
 
 Achilias supports independent users on one server process. Each browser profile has one active ILIAS connection, with its own encrypted cookie jar and temporary login codes. Users can enter different public HTTPS ILIAS base URLs, including installations under a path. No shared university account or Achilias registration is required. ILIAS remains responsible for account permissions.
 
+For personal local use, `npx achilias` starts the production standalone build on `127.0.0.1` with a user data directory, so no hosted Achilias server is required. The rest of this guide covers a shared deployment.
+
 ## Sign-in experience
 
 The server never launches a browser. Users choose a method in **Sign in to ILIAS**; see the README’s [sign-in methods](../README.md#sign-in-methods) for the password form, laptop helper, and cookie import. The helper transfers only the ILIAS instance’s cookies to the browser’s pending server session. The direct cookie form accepts a `Cookie` header, a bare session value, or a Playwright/cookie JSON export; the server keeps only exact-instance cookies and verifies the dashboard before connecting.
 
-With the default HTTPS configuration, the helper requires Bun, this checkout, and a browser on the user’s computer. Password sign-in is always available, so the server must be trusted with university credentials. Native university SSO cannot simply be embedded into a third-party origin. Session portability, MFA and IP-binding depend on the instance; the README documents the optional SOCKS workaround. Confirm the flow with a real test account before inviting users.
+With the default HTTPS configuration, the helper runs on the user’s laptop with Node.js 22.19+ or Bun via `npx achilias connect --server ...` or `bunx achilias connect --server ...`; no Achilias checkout is needed, and Chromium downloads on first use. Password sign-in is always available, so the server must be trusted with university credentials. Native university SSO cannot simply be embedded into a third-party origin. Session portability, MFA and IP-binding depend on the instance; the README documents the optional SOCKS workaround. Confirm the flow with a real test account before inviting users.
 
 Password sign-in is always available. It should never be exposed on a shared or public deployment: the operator can see credentials that may unlock more than ILIAS, and credential proxying may violate the university’s SSO terms. MFA and JavaScript-only sign-in pages are not supported. See [sign-in methods](../README.md#sign-in-methods) for the user-facing behavior.
 

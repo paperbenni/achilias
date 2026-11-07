@@ -103,7 +103,8 @@ try {
   const proc = Bun.spawn(
     [
       process.execPath,
-      "scripts/connect.ts",
+      "scripts/cli.mts",
+      "connect",
       "--server",
       origin,
       "--cookies",

@@ -2,6 +2,7 @@
 node_modules
 .next
 .local
+standalone
 
 # Secrets and per-machine configuration come from the runtime environment.
 .env

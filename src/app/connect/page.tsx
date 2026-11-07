@@ -19,7 +19,9 @@ export default function ClaimSession() {
     window.history.replaceState(null, "", "/connect");
     async function claim() {
       if (!token)
-        throw new Error("Open the connection link printed by bun run connect.");
+        throw new Error(
+          "Open the connection link printed by npx achilias connect or bun run connect.",
+        );
       const response = await fetch("/api/session/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

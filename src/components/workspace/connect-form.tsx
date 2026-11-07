@@ -190,7 +190,7 @@ export function ConnectForm({
   const busy = status === "starting" || status === "pending";
   const formBusy = busy || passwordBusy || cookieBusy;
   const tabDisabled = (value: ConnectMethod) => formBusy && method !== value;
-  const command = `bun run connect --server '${origin}'`;
+  const command = `npx achilias connect --server '${origin}'`;
   let originalInstance = instance;
   try {
     originalInstance = normalizeInstance(url);
@@ -300,7 +300,8 @@ export function ConnectForm({
                     </InputGroupAddon>
                   </InputGroup>
                   <FieldDescription>
-                    First time: bun install, then bun run browser:install.
+                    No checkout needed. Chromium installs automatically on
+                    first use; Bun users can run the same command with bunx.
                   </FieldDescription>
                 </Field>
                 {code ? (

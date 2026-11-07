@@ -1,4 +1,5 @@
 .next/
+standalone/
 node_modules/
 bun.lock
 .local/

@@ -4,6 +4,14 @@ A calmer frontend for ILIAS, built with **Bun, Next.js App Router, React, Tailwi
 
 ## Quick start
 
+### Run locally with npx
+
+```sh
+npx achilias
+```
+
+This runs the production build included in the published package, not a development server. It starts Achilias on your computer, opens the local URL (**http://127.0.0.1:3000** by default), and keeps encrypted sessions in your user data directory. Requires Node.js 22.19+ or Bun. Use `--port`, `--data-dir`, or `--no-open` to change the defaults. `bunx achilias` works too. Nothing is sent to a hosted Achilias server.
+
 ### Docker Compose
 
 The published image is `ghcr.io/paperbenni/achilias:latest` (currently `linux/amd64`). With Docker and Compose v2 installed:
@@ -28,7 +36,9 @@ docker build -t achilias:local .
 ACHILIAS_IMAGE=achilias:local docker compose up -d
 ```
 
-### From source
+### From source (development)
+
+Use this when working on Achilias. For a local production build, use `npx achilias` above.
 
 ```sh
 bun install
@@ -171,7 +181,7 @@ The sign-in form offers three tabs:
 | Method | Default | What it needs | Notes |
 | --- | --- | --- | --- |
 | **Password** | Always available | Your university username and password | Achilias submits the real myLogin form over HTTPS, uses the password once, and keeps only ILIAS cookies. The password is never stored. Only use this on a server you control; accounts with MFA must use the helper. |
-| **Helper** | Always available | Bun, an Achilias checkout, and Chromium on your laptop | Opens the real university sign-in in a browser on your laptop and transfers only the resulting ILIAS cookies. The server needs no display or browser. |
+| **Helper** | Always available | Node.js 22.19+ or Bun on your laptop; Chromium downloads on first use | Opens the real university sign-in in a browser on your laptop and transfers only the resulting ILIAS cookies. No Achilias checkout is needed: run it with `npx achilias connect` or `bunx achilias connect`. The server needs no display or browser. |
 | **Cookies** | Always available | An existing ILIAS session | Paste the `Cookie` header, just the session value, or a Playwright storageState/cookie JSON export. Achilias keeps only cookies for the exact ILIAS host and verifies the dashboard before connecting. |
 
 Password sign-in accepts any public HTTPS ILIAS instance the user selects. It cannot be disabled. Do **not** deploy on a shared or public server: the server sees your university password, which may unlock more than ILIAS, and myLogin/SSO terms may prohibit credential proxying.
@@ -253,11 +263,13 @@ ACHILIAS_ORIGIN=https://your-achilias.example
 Bind the server to loopback behind your reverse proxy and keep the private data directory persistent.
 
 1. Open Achilias in your normal browser, sign in on the homepage, open **Helper**, and select **Get a connection code**.
-2. On your laptop, use an Achilias checkout, run `bun install` and `bun run browser:install` once, then run the helper command shown in the form:
+2. On your laptop, run the helper command shown in the form. No checkout or manual browser install is needed; the first run downloads Chromium:
 
    ```sh
-   bun run connect --server https://your-achilias.example
+   npx achilias connect --server https://your-achilias.example
    ```
+
+   Bun users can run the same command with `bunx achilias connect --server https://your-achilias.example`.
 
 3. Paste the code into the helper’s terminal prompt. It is read from stdin, rather than a shell argument or URL. Complete myLogin in the local browser window. Achilias connects automatically when the server verifies the transferred session.
 
@@ -276,7 +288,7 @@ Open **http://127.0.0.1:3000** in your normal browser. Set `ACHILIAS_ORIGIN=http
 If ILIAS rejects a transferred session because login and server requests originate from different IPs, use the same SSH tunnel as a SOCKS proxy for the helper’s university browser:
 
 ```sh
-bun run connect --server http://127.0.0.1:3000 --proxy socks5://127.0.0.1:1080
+npx achilias connect --server http://127.0.0.1:3000 --proxy socks5://127.0.0.1:1080
 ```
 
 The login browser’s university traffic then exits through your server, while its window remains on your laptop. This accommodates address-bound sessions without a server display. It still depends on the installation’s authentication policy and needs verification with an actual Freiburg account. [Shibboleth supports session address checks](https://shibboleth.atlassian.net/wiki/spaces/SHIB2/pages/2577072330); the exact Freiburg configuration is not known.
@@ -285,7 +297,7 @@ If you already have a cookie export, `--server` also accepts `--cookies /absolut
 
 ## Connection command and session import
 
-You can also initiate sign-in from the terminal, while the app is running:
+You can also initiate sign-in from the terminal, while the app is running. From a checkout, use `bun run connect`. The helper (`--server`) is available without a checkout as `npx achilias connect` or `bunx achilias connect`.
 
 ```sh
 bun run connect
@@ -301,7 +313,7 @@ bun run connect --cookies /absolute/path/to/cookies.json
 
 Only cookies whose domain exactly matches the ILIAS instance are imported. The command checks the authenticated dashboard before creating a connection link. Do not commit cookie exports. Remove the export after importing it. Some ILIAS installations bind a session to its source IP; a remotely imported session may need the same network egress as its browser.
 
-Without `--server`, run this command from the same checkout and with the same `ACHILIAS_DATA_DIR` as the app. With `--server`, run it on your laptop; no shared data directory is used. `--instance https://your-instance.example/ilias/` and `--app http://127.0.0.1:3000` are supported. `bun run connect --help` describes the options.
+Without `--server`, run this command from the same checkout/data directory as the app. With `--server`, run it on your laptop; no shared data directory is used. `--instance https://your-instance.example/ilias/` and `--app http://127.0.0.1:3000` are supported. `npx achilias connect --help` describes the options.
 
 ## Configuration
 
@@ -349,6 +361,8 @@ bun run test:search-prefetch
 ```
 
 `bun run test` runs the unit and fixture suite. `bun run test:e2e` covers the demo flows in Chromium. Focused browser scripts for forums, headless pairing, exercises, forms, search, PDF/theme, cards, and multi-user isolation are listed in `package.json`. Production-only navigation and search-prefetch checks run against a preview on port 3001. Set `ACHILIAS_TEST_URL` to test another local port. The browser checks use demo data or a deliberately credential-free session; they do not sign in to a real account.
+
+The published package is `achilias`: `npx achilias` starts the production standalone build included in the package, and `npx achilias connect --server ...` runs the helper without a checkout. The `Publish npm package` workflow publishes on the `release` branch when `NPM_TOKEN` is configured; `npm publish` runs `prepublishOnly`, which builds the production standalone server with `bun run build:standalone`. Until the package is on npm, `npx github:paperbenni/achilias connect --server ...` runs the helper from the repository; the local start command needs the published standalone build.
 
 Stop `next dev` before running `bun run build`; both use the `.next` directory.
 

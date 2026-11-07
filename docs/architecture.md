@@ -19,7 +19,7 @@ Statements about ILIAS internals below are version-sensitive; the revision used 
 | Shared object capabilities | `src/lib/ilias/items.ts` |
 | Browser storage and hooks | `src/lib/browser-store.ts`, `src/hooks` |
 | Feature and shared UI | `src/components` |
-| Helper and CLI | `scripts` |
+| Helper and CLI | `bin`, `scripts` |
 | Tests | `tests`, `scripts/*-smoke.ts` |
 
 ## Adding a feature
@@ -95,6 +95,8 @@ Exercise action schemas and their TypeScript input types share **Zod** definitio
 `html-forms.ts` retains a small static-form compatibility adapter. Cheerio's built-in serializer incorrectly reads multi-select labels and disabled fieldsets; jsdom's FormData currently includes disabled options. Neither reduced the compatibility burden in testing. `bun run test:forms` compares the retained adapter with Chromium, covering the supported form controls. Uploads, script-generated controls, and unsupported ILIAS workflows remain in the original UI. Do not replace this adapter without running those browser comparisons.
 
 Cookies, HTTPS, and IP classification use **tough-cookie**, **Undici**, and **ipaddr.js**. Session encryption uses Node's authenticated **AES-GCM** implementation; there is no handwritten cipher. The file envelope, account binding, and single-use pairing are application policy, so a general authentication framework would not remove the ILIAS session-transfer integration.
+
+The CLI uses **Commander** for commands and options, **execa** for child processes, **wait-on** for local-server readiness, **get-port** for port selection, **env-paths** for the platform data directory, and **open** for the browser. `npx achilias` starts the production standalone build included in the published package; `npx achilias connect` runs the laptop helper.
 
 ## Native PDF opening and appearance
 

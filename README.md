@@ -2,6 +2,43 @@
 
 A calmer frontend for ILIAS, built with **Bun, Next.js App Router, React, Tailwind CSS, and shadcn/ui (Radix Nova)**. Freiburg’s ILIAS is the default instance. This is an independent project, not a university service.
 
+## Quick start
+
+### Docker Compose
+
+The published image is `ghcr.io/paperbenni/achilias:latest` (currently `linux/amd64`). With Docker and Compose v2 installed:
+
+```sh
+docker compose up -d
+```
+
+Open **http://127.0.0.1:3000**. To update later:
+
+```sh
+docker compose pull
+docker compose up -d
+```
+
+Sessions and the encryption key persist in the `achilias-data` volume. Compose reads variables from a `.env` file next to `docker-compose.yml`; `.env.example` lists the available options. The example Compose file binds to `127.0.0.1` and disables password sign-in by default; use the helper or cookie import, or set `ACHILIAS_PASSWORD_LOGIN=true` for local testing. Put HTTPS and a reverse proxy in front for anything public, and run exactly one replica. See [Configuration](#configuration) and the [deployment guide](docs/deployment.md).
+
+On a non-amd64 machine, build the image locally and point Compose at it:
+
+```sh
+docker build -t achilias:local .
+ACHILIAS_IMAGE=achilias:local docker compose up -d
+```
+
+### From source
+
+```sh
+bun install
+bun run dev --hostname 127.0.0.1
+```
+
+Open **http://127.0.0.1:3000**. Sign in on the homepage and pick a method; local use defaults to the password form. See [Sign-in methods](#sign-in-methods) for requirements and security notes.
+
+Try **http://127.0.0.1:3000/?demo=1** without an account. Example courses, activities, and PDFs are explicitly marked as demo content. Demo bookmarks are isolated from connected accounts.
+
 ## Before connecting a real account
 
 Live changes are **disabled by default**. Browse locally first and compare the parsed data with the original. ILIAS can still record visits, downloads, or read status while browsing. Follow the [real-instance testing guide](docs/live-testing.md) before enabling any grade, deadline, feedback, or explicit mark-as-read changes. Authenticated Freiburg compatibility still needs a controlled real-account test.
@@ -14,13 +51,14 @@ One server process supports separate user sessions and user-entered public HTTPS
 
 The course and forum screens below use the demo workspace. All course names, materials, discussions, and saved items are examples. The connection screenshot shows the default username/password form.
 
-**A calmer starting point**
-
 ![Achilias welcome screen with university sign-in and a link to explore the demo](docs/screenshots/welcome.png)
 
-**Courses at a glance**
+<details>
+<summary>Courses at a glance</summary>
 
 ![Demo overview showing four course cards, search, and bookmarks](docs/screenshots/overview.png)
+
+</details>
 
 <details>
 <summary>Dark mode</summary>
@@ -31,69 +69,78 @@ Choose **Light**, **Dark**, or **System** from the account menu at the bottom of
 
 </details>
 
-**Materials and activities in one place**
+<details>
+<summary>Materials and activities in one place</summary>
 
 ![Demo course showing folders, a downloadable file, and activities labeled as available in ILIAS](docs/screenshots/course.png)
 
-**Discussions without the maze**
+</details>
+
+<details>
+<summary>Discussions without the maze</summary>
 
 ![Demo forum with searchable topics, unread counts, and pinned and closed discussions](docs/screenshots/forum.png)
 
+</details>
+
 <details>
-<summary>See the unread-only forum view</summary>
+<summary>Unread-only forum view</summary>
 
 ![Demo forum filtered to its two unread discussions, with the HTML-based feature notice and original ILIAS button](docs/screenshots/forum-unread.png)
 
 </details>
 
-**A conversation you can follow**
+<details>
+<summary>A conversation you can follow</summary>
 
 ![Demo thread reader with formatted posts, reply context, unread navigation, and individual post links](docs/screenshots/thread.png)
 
+</details>
+
 <details>
-<summary>See the mobile course view</summary>
+<summary>Mobile course view</summary>
 
 <img src="docs/screenshots/mobile-course.png" alt="Mobile demo course view with responsive navigation and learning materials" width="390" />
 
 </details>
 
 <details>
-<summary>See the mobile forum view</summary>
+<summary>Mobile forum view</summary>
 
 <img src="docs/screenshots/mobile-forum.png" alt="Mobile demo forum with unread filtering and readable discussion rows" width="390" />
 
 </details>
 
 <details>
-<summary>See the mobile thread reader</summary>
+<summary>Mobile thread reader</summary>
 
 <img src="docs/screenshots/mobile-thread.png" alt="Mobile demo thread with unread navigation, formatted replies, reply context, and original-post links" width="390" />
 
 </details>
 
 <details>
-<summary>See saved folders, files, and forums</summary>
+<summary>Saved folders, files, and forums</summary>
 
 ![Saved demo items showing a folder, downloadable file, and forum together](docs/screenshots/saved.png)
 
 </details>
 
 <details>
-<summary>See feature support and HTML-based integration labels</summary>
+<summary>Feature support and HTML-based integration labels</summary>
 
 ![Connection and feature settings distinguishing available features, HTML-based integrations, and activities that open in ILIAS](docs/screenshots/settings.png)
 
 </details>
 
 <details>
-<summary>See the sign-in dialog</summary>
+<summary>Sign-in dialog</summary>
 
 <img src="docs/screenshots/connection.png" alt="Connection dialog with the default university username/password form and a link to the original ILIAS page" width="512" />
 
 </details>
 
 <details>
-<summary>See exercise units and tutor submission review</summary>
+<summary>Exercise units and tutor submission review</summary>
 
 ![Demo exercise units with deadlines and links to review submissions](docs/screenshots/exercises.png)
 
@@ -102,7 +149,7 @@ Choose **Light**, **Dark**, or **System** from the account menu at the bottom of
 </details>
 
 <details>
-<summary>See assessment and unit deadline editing</summary>
+<summary>Assessment and unit deadline editing</summary>
 
 <img src="docs/screenshots/assessment.png" alt="Demo assessment editor separating pass/fail, marks, and private tutor notes, with an original ILIAS fallback" width="560" />
 
@@ -111,22 +158,11 @@ Choose **Light**, **Dark**, or **System** from the account menu at the bottom of
 </details>
 
 <details>
-<summary>See team submission review on mobile</summary>
+<summary>Team submission review on mobile</summary>
 
 <img src="docs/screenshots/mobile-submissions.png" alt="Mobile tutor view showing team submissions, review filters, and scoped assessment actions" width="390" />
 
 </details>
-
-## Run locally
-
-```sh
-bun install
-bun run dev --hostname 127.0.0.1
-```
-
-Open **http://127.0.0.1:3000**. Sign in on the homepage and pick a method. Local use defaults to the password form. See [Sign-in methods](#sign-in-methods) for requirements and security notes.
-
-Try **http://127.0.0.1:3000/?demo=1** without an account. Example courses, activities, and PDFs are explicitly marked as demo content. Demo bookmarks are isolated from connected accounts.
 
 ## Sign-in methods
 
@@ -208,7 +244,7 @@ See the [measurements, limitations, and reproduction steps](docs/performance/REA
 
 The server can run without a display, Xvfb, VNC, or Chromium. You complete Freiburg’s interactive myLogin step on your laptop, then the helper transfers only the resulting ILIAS cookies to the server. University passwords and identity-provider cookies are not transferred. The server validates the dashboard from its own network before connecting your account.
 
-On the server, install dependencies, build, and start the app. The server never needs a display or Chromium. Set these in its `.env.local` when serving over HTTPS:
+On the server, run the container from the [quick start](#quick-start) or install dependencies, build, and start the app from source. The server never needs a display or Chromium. When serving over HTTPS, set these in `.env` (Docker Compose) or `.env.local` (source):
 
 ```dotenv
 ACHILIAS_ORIGIN=https://your-achilias.example
@@ -270,7 +306,7 @@ Without `--server`, run this command from the same checkout and with the same `A
 
 ## Configuration
 
-Copy `.env.example` to `.env.local` when changing defaults. Bun loads `.env.local` for the connection command too.
+Copy `.env.example` to `.env.local` when running from source; Bun loads `.env.local` for the connection command too. For Docker Compose, use `.env` instead.
 
 | Variable                      | Purpose                                                                                                                                                                                                                      |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

@@ -12,7 +12,21 @@ Password sign-in is on by default. On a public HTTPS deployment set `ACHILIAS_PA
 
 ## Run behind HTTPS
 
-Use Node >=22.19 and Bun. Run one production app process, with persistent private session storage. For example:
+Run one production app process, with persistent private session storage. Use the published container image or a source build.
+
+### Docker
+
+The repository's `docker-compose.yml` pulls `ghcr.io/paperbenni/achilias:latest` (currently `linux/amd64`) and persists `/data` in a named volume:
+
+```sh
+docker compose up -d
+```
+
+Set `ACHILIAS_ORIGIN`, `ACHILIAS_TRUST_PROXY`, and the published port in `.env`, then expose only the loopback-bound port through your reverse proxy. The image runs as an unprivileged user and includes a health check. Update with `docker compose pull && docker compose up -d`. On other architectures, build locally with `docker build -t achilias:local .` and set `ACHILIAS_IMAGE=achilias:local`.
+
+### From source
+
+Use Node >=22.19 and Bun. For example:
 
 ```sh
 bun install --frozen-lockfile

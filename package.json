@@ -1,6 +1,6 @@
 {
   "name": "achilias",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "A calmer frontend for ILIAS, with a local production server and a laptop sign-in helper.",
   "bin": {
     "achilias": "bin/achilias.mjs"

@@ -253,11 +253,16 @@ export function parsePage(html: string, sourceUrl: string): IliasPage {
     [avatar.attr("aria-label"), avatar.attr("title"), avatar.attr("alt")]
       .map(profileName)
       .find(Boolean) || "";
-  // ILIAS renders the repository path as .breadcrumb_wrapper > .crumb. Keep
-  // the object reference so the app can link each ancestor to its native page.
+  // ILIAS uses either UI-framework crumbs or the legacy locator's list items.
+  // Prefer the modern trail when both are rendered; combining them duplicates
+  // ancestors. Keep object references so the app can link back to each parent.
   const breadcrumbs: Breadcrumb[] = [];
-  $(".breadcrumb_wrapper .crumb, .breadcrumbs .crumb").each((_, el) => {
-    if (hiddenSubtree($, el)) return;
+  const modernCrumbs = $(".breadcrumb_wrapper .crumb, .breadcrumbs .crumb")
+    .filter((_, el) => !hiddenSubtree($, el));
+  const crumbNodes = modernCrumbs.length
+    ? modernCrumbs
+    : $("ol.breadcrumb > li").filter((_, el) => !hiddenSubtree($, el));
+  crumbNodes.each((_, el) => {
     const node = $(el);
     const title = clean(node.text());
     if (!title) return;

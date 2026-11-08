@@ -26,7 +26,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 22.19.0
           registry-url: https://registry.npmjs.org
 
       - name: Set up Bun
@@ -40,10 +40,16 @@ jobs:
       - name: Typecheck
         run: bun run typecheck
 
+      - name: Lint
+        run: bun run lint
+
       - name: Test
         run: bun test tests
 
+      - name: Build and verify release package under Node and Bun
+        run: bun run release:prepare
+
       - name: Publish
-        run: npm publish --provenance --access public
+        run: npm publish release/*.tgz --ignore-scripts --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

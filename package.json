@@ -1,12 +1,13 @@
 {
   "name": "achilias",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A calmer frontend for ILIAS, with a local production server and a laptop sign-in helper.",
   "bin": {
     "achilias": "bin/achilias.mjs"
   },
   "files": [
-    "bin/",
+    "bin/achilias.mjs",
+    "bin/cli.mjs",
     "standalone/"
   ],
   "publishConfig": {
@@ -23,7 +24,9 @@
     "connect": "bun scripts/connect.mts",
     "build:standalone": "bun scripts/build-standalone.ts",
     "package:standalone": "bun scripts/package-standalone.ts",
-    "prepublishOnly": "bun run build:standalone",
+    "release:prepare": "bun scripts/prepare-release.mts",
+    "test:package": "bun scripts/test-package.mts",
+    "prepublishOnly": "bun run release:prepare",
     "test:e2e": "bun scripts/smoke.ts && bun scripts/forum-smoke.ts && bun scripts/headless-smoke.ts && bun scripts/exercise-smoke.ts && bun scripts/multi-user-smoke.ts && bun scripts/form-serialization-smoke.ts && bun scripts/pdf-theme-smoke.ts && bun scripts/card-actions-smoke.ts",
     "screenshots": "bun scripts/screenshots.ts",
     "test:forums": "bun scripts/forum-smoke.ts",

@@ -362,7 +362,11 @@ bun run test:search-prefetch
 
 `bun run test` runs the unit and fixture suite. `bun run test:e2e` covers the demo flows in Chromium. Focused browser scripts for forums, headless pairing, exercises, forms, search, PDF/theme, cards, and multi-user isolation are listed in `package.json`. Production-only navigation and search-prefetch checks run against a preview on port 3001. Set `ACHILIAS_TEST_URL` to test another local port. The browser checks use demo data or a deliberately credential-free session; they do not sign in to a real account.
 
-The published package is `achilias`: `npx achilias` starts the production standalone build included in the package, and `npx achilias connect --server ...` runs the helper without a checkout. The `Publish npm package` workflow publishes on the `release` branch when `NPM_TOKEN` is configured; `npm publish` runs `prepublishOnly`, which builds the production standalone server with `bun run build:standalone`. Until the package is on npm, `npx github:paperbenni/achilias connect --server ...` runs the helper from the repository; the local start command needs the published standalone build.
+The published package is `achilias`: `npx achilias` starts the production standalone build included in the package, and `npx achilias connect --server ...` runs the helper without a checkout. The CLI is built as native ESM so dependency imports and package-relative paths retain their runtime semantics.
+
+To prepare a release, bump `package.json` to an unpublished version and run `bun run release:prepare`. This builds the server and CLI, packs them, installs the tarball outside the checkout with production dependencies only, and checks version/help output, default startup, HTTP responses, JS/CSS assets, the session API, and shutdown under both Node and Bun. Only a passing tarball is copied to `release/`. Run `bun run test:package <package.tgz>` to check an existing archive.
+
+The `Publish npm package` workflow runs this process on the `release` branch and publishes the exact verified tarball when `NPM_TOKEN` is configured. For a manual release, use `npm publish release/achilias-<version>.tgz --ignore-scripts --access public` after preparation; `--ignore-scripts` preserves the tested artifact. Publishing directly from the checkout also runs release preparation through `prepublishOnly`.
 
 Stop `next dev` before running `bun run build`; both use the `.next` directory.
 

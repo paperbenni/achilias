@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
@@ -28,6 +28,10 @@ export function DisconnectedView({
   onClearHistory: () => void;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const query = searchParams.toString();
+  const returnTo = `${pathname}${query ? `?${query}` : ""}`;
   if (view === "settings")
     return (
       <main className="flex min-h-svh flex-col">
@@ -69,7 +73,11 @@ export function DisconnectedView({
               remember.
             </p>
             <div className="mt-8">
-              <ConnectForm instance={data.instance} showNotice={false} />
+              <ConnectForm
+                instance={data.instance}
+                showNotice={false}
+                returnTo={returnTo}
+              />
             </div>
             <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
               <Button variant="link" className="h-auto p-0" asChild>

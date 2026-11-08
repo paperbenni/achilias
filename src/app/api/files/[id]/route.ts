@@ -2,6 +2,7 @@ import { currentSession } from "@/lib/ilias/session";
 import { objectUrl } from "@/lib/ilias/config";
 import { downloadHeaders, downloadResponse } from "@/lib/ilias/download";
 import { fetchUpstream, IliasError } from "@/lib/ilias/client";
+import { fileSignInRequired } from "@/lib/auth-navigation";
 export const runtime = "nodejs";
 function examplePdf() {
   const text =
@@ -47,9 +48,9 @@ export async function GET(
   }
   const session = await currentSession();
   if (session?.status !== "connected")
-    return Response.json(
-      { error: "Connect your account to download files." },
-      { status: 401, headers },
+    return fileSignInRequired(
+      request,
+      "Connect your account to download files.",
     );
   try {
     const { response } = await fetchUpstream(
@@ -59,6 +60,8 @@ export async function GET(
     );
     return await downloadResponse(response, `ilias-file-${id}`, { inlinePdf });
   } catch (e) {
+    if (e instanceof IliasError && e.status === 401)
+      return fileSignInRequired(request, e.message);
     return Response.json(
       { error: e instanceof Error ? e.message : "Download failed." },
       { status: e instanceof IliasError ? e.status : 400, headers },

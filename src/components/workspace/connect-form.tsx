@@ -4,6 +4,7 @@ import { ParsedHtmlNotice } from "@/components/navigation/parsed-html-notice";
 import { loginUrl, normalizeInstance } from "@/lib/ilias/config";
 import { useBrowserOrigin } from "@/hooks/use-browser-origin";
 import { cn } from "@/lib/utils";
+import { safeReturnTo } from "@/lib/auth-navigation";
 import { Cookie, Copy, KeyRound, Laptop, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,11 +35,14 @@ export function ConnectForm({
   instance,
   showNotice = true,
   className,
+  returnTo = "/",
 }: {
   instance: string;
   showNotice?: boolean;
   className?: string;
+  returnTo?: string;
 }) {
+  const destination = safeReturnTo(returnTo);
   const formId = useId();
   const [url, setUrl] = useState(instance);
   const [status, setStatus] = useState<ConnectStatus>("idle");
@@ -85,7 +89,7 @@ export function ConnectForm({
         if (cancelled) return;
         if (data.status === "connected") {
           // A full navigation clears any previous account's router cache.
-          window.location.replace("/");
+          window.location.replace(destination);
         } else if (data.status === "failed") {
           setStatus("idle");
           setCode("");
@@ -103,7 +107,7 @@ export function ConnectForm({
       cancelled = true;
       clearInterval(interval);
     };
-  }, [status]);
+  }, [status, destination]);
   async function connect() {
     setError("");
     setMethod("helper");
@@ -137,7 +141,7 @@ export function ConnectForm({
       if (!res.ok) throw new Error(data.error || "Could not sign in.");
       setPassword("");
       // A full navigation clears any previous account's router cache.
-      window.location.replace("/");
+      window.location.replace(destination);
     } catch (e) {
       setPassword("");
       setError(e instanceof Error ? e.message : "Could not sign in.");
@@ -159,7 +163,7 @@ export function ConnectForm({
       if (!res.ok) throw new Error(data.error || "Could not connect.");
       setCookie("");
       // A full navigation clears any previous account's router cache.
-      window.location.replace("/");
+      window.location.replace(destination);
     } catch (e) {
       setCookie("");
       setError(e instanceof Error ? e.message : "Could not connect.");

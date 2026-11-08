@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
+  // An isolated production preview can coexist with the running dev server.
+  distDir: process.env.ACHILIAS_BUILD_DIR || ".next",
   output: process.env.ACHILIAS_STANDALONE === "true" ? "standalone" : undefined,
   // Keep sanitize-html and its PostCSS dependency together for standalone tracing.
   serverExternalPackages: ["sanitize-html"],
@@ -18,6 +20,13 @@ const nextConfig: NextConfig = {
           { key: "X-Frame-Options", value: "DENY" },
           { key: "Cache-Control", value: "private, no-store" },
         ],
+      },
+      {
+        source: "/offline.html",
+        headers: [{
+          key: "Content-Security-Policy",
+          value: "default-src 'none'; img-src 'self'; style-src 'self'; script-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+        }],
       },
     ];
   },

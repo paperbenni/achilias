@@ -22,6 +22,7 @@ import {
 } from "@/lib/ilias/compatibility";
 
 import { OriginalLink } from "@/components/navigation/original-link";
+import { InstallCard } from "@/components/pwa/install-card";
 
 export function SettingsView({
   data,
@@ -122,6 +123,7 @@ export function SettingsView({
           </CardFooter>
         </Card>
       </div>
+      <InstallCard />
       <Card>
         <CardHeader>
           <CardTitle>Feature support</CardTitle>

@@ -4,6 +4,31 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Installed apps can extend behind device cutouts and the home indicator. */
+body {
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+    env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+[data-mobile="true"][data-slot="sidebar"] {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+[data-slot="sidebar-container"] {
+  margin-left: env(safe-area-inset-left);
+  margin-right: env(safe-area-inset-right);
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+[data-state="collapsed"] > [data-slot="sidebar-container"] {
+  margin-left: 0;
+  margin-right: 0;
+}
+.app-notice {
+  padding-bottom: max(.75rem, env(safe-area-inset-bottom));
+  padding-left: max(1.25rem, env(safe-area-inset-left));
+  padding-right: max(1.25rem, env(safe-area-inset-right));
+}
+
 /* Keep mouse controls compact; touch screens and small windows need larger targets.
    The button marker survives Radix wrappers that replace data-slot. */
 @media (width < 48rem), (pointer: coarse) {

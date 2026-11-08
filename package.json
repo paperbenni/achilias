@@ -32,6 +32,8 @@
     "screenshots": "bun scripts/screenshots.ts",
     "test:forums": "bun scripts/forum-smoke.ts",
     "test:mobile": "bun scripts/mobile-smoke.ts",
+    "test:pwa": "bun scripts/pwa-smoke.ts",
+    "icons:generate": "bun scripts/generate-app-icons.ts",
     "test:headless": "bun scripts/headless-smoke.ts",
     "benchmark:navigation": "bun scripts/navigation-benchmark.ts",
     "test:navigation": "bun scripts/navigation-smoke.ts",

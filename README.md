@@ -336,6 +336,27 @@ ILIAS session jars stay server-side, encrypted at rest. The key and files have o
 
 University identity-provider cookies are not copied into the ILIAS adapter. Remote session uploads are limited to 256 KiB, filtered to the exact ILIAS host, verified server-side, and discarded if the connection expires or is cancelled during verification. Server requests use an explicit instance boundary, validate each redirect, and never forward ILIAS cookies to an external identity provider. Personal pages and downloads use private/no-store responses. Downloaded content is served as an attachment with `nosniff` and sandbox headers. Saved titles and URLs remain in browser localStorage until cleared under **Features & connection**.
 
+## Install Achilias as an app
+
+Achilias is an installable PWA. Open **Features & connection → Achilias on your device** for installation options. Chrome and Edge can show an **Install Achilias** button; browser menus also offer installation. On iPhone/iPad, use the browser's **Share → Add to Home Screen** menu and enable **Open as Web App** if offered. Desktop Safari uses **File → Add to Dock**.
+
+The installed app has its own window, the Achilles-heel home-screen icon, launch colors, device safe-area spacing, and course/bookmark shortcuts where supported. Updates offer **Reload to update** and **Later**, so an update does not interrupt a form automatically.
+
+**Your phone needs a reachable HTTPS deployment of Achilias.** The default `http://127.0.0.1:3000` server is local to the computer running it; that address on a phone refers to the phone itself. Plain HTTP over a LAN is not sufficient for service workers. Use the [HTTPS deployment setup](docs/deployment.md) for phone access. Localhost works for development and installation on the same computer.
+
+Courses, discussions, files, and saving changes still require a connection to Achilias and ILIAS. Offline launches show a cached reconnect screen with a retry button. The service worker caches only that public screen, its styles/script, and app icons; authenticated pages, API responses, and downloaded files are not added to its cache. Failed writes are not queued or replayed. Existing bookmarks remain in browser storage. Push notifications are not enabled: they would require a reliable background ILIAS event source and a notification service.
+
+The manifest and icons work in development, but worker registration is enabled only in production builds. To test offline behavior without disturbing `next dev`:
+
+```sh
+ACHILIAS_BUILD_DIR=.next-build bun run build
+ACHILIAS_BUILD_DIR=.next-build bun run start --port 3001
+# In another terminal:
+bun run test:pwa
+```
+
+`test:pwa` checks browser installability, icon sizes, the public-only cache, offline recovery, API failures, and explicit update activation. It uses no live account. Set `ACHILIAS_TEST_URL` to target a different production preview. Regenerate PNG app icons from `src/app/icon.svg` with `bun run icons:generate` after changing the logo.
+
 ## HTML-based features
 
 Sign-in/session verification, course listings, materials and availability, course information/tool links, forum content/actions, and exercise/tutor tools depend on parsing ILIAS HTML. These screens and their feature entries are marked **HTML-based**: ILIAS or theme updates can make them incomplete or incorrect. Each screen keeps an **Open original in ILIAS** button beside the notice, including on load errors. Item detail dialogs also label parsed metadata and link to the original object. Demo notices explain that the displayed content is an example and link to the real instance.

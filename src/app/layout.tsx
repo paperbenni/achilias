@@ -1,5 +1,6 @@
 import { ThemeProvider } from "@/components/theme-provider";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { PwaProvider } from "@/components/pwa/pwa-provider";
 import { Agentation } from "agentation";
 import { Geist, Geist_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,6 +12,10 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 export const metadata: Metadata = {
+  applicationName: "Achilias",
+  appleWebApp: { capable: true, title: "Achilias", statusBarStyle: "default" },
+  icons: { apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }] },
+  formatDetection: { telephone: false },
   title: {
     default: "Achilias",
     template: "%s · Achilias",
@@ -18,6 +23,12 @@ export const metadata: Metadata = {
   description:
     "A calmer frontend for ILIAS courses, files, forums and exercises.",
   robots: { index: false, follow: false },
+};
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#245c49",
 };
 export default function RootLayout({
   children,
@@ -33,8 +44,10 @@ export default function RootLayout({
       <body className="antialiased">
         <ThemeProvider>
           <TooltipProvider>
-            {children}
-            <Toaster />
+            <PwaProvider>
+              {children}
+              <Toaster />
+            </PwaProvider>
           </TooltipProvider>
         </ThemeProvider>
         {process.env.NODE_ENV === "development" && <Agentation />}

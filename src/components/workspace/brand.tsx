@@ -16,9 +16,16 @@ export function Brand({ demo = false }: { demo?: boolean }) {
           className="size-6"
         >
           <path
-            d="M4 18 11.5 5 19 18M7 13h9M16 5l4 7"
+            d="m11 3-1 7c-.3 2-2 4-2 6 0 2 1.5 3 3.5 3H20c1.2 0 1.5-1.6.5-2.3L15 13.5 16 3"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="m2 9.5 4 4.5m-.2-4 .2 4-4.2.3"
+            stroke="currentColor"
+            strokeWidth="1.8"
             strokeLinecap="round"
             strokeLinejoin="round"
           />

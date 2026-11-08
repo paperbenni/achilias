@@ -251,14 +251,22 @@ export function ForumView({ state }: { state: ForumState }) {
       )}
       <div className="flex flex-wrap items-center justify-between gap-3">
         {thread ? (
-          <Button variant="ghost" className="w-fit" asChild>
+          <Button
+            variant="ghost"
+            className="h-auto w-fit max-w-full justify-start whitespace-normal py-2 text-left"
+            asChild
+          >
             <Link prefetch={demo} href={forumHref(forumId, demo)}>
               <ArrowLeft data-icon="inline-start" />
               {forum.title}
             </Link>
           </Button>
         ) : parent?.href ? (
-          <Button variant="ghost" className="w-fit" asChild>
+          <Button
+            variant="ghost"
+            className="h-auto w-fit max-w-full justify-start whitespace-normal py-2 text-left"
+            asChild
+          >
             <Link prefetch={demo} href={parent.href}>
               <ArrowLeft data-icon="inline-start" />
               Back to {parent.title}

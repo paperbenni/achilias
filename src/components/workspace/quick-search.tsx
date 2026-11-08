@@ -454,11 +454,13 @@ export function QuickSearch({
       open={open}
       onOpenChange={onOpenChange}
       title="Find a course or material"
+      showCloseButton
       description="Search your courses, this page, bookmarks, and recent history, or search the ILIAS repository."
       className="top-1/2 h-[min(88svh,52rem)] max-h-[calc(100svh-2rem)] w-[calc(100%-2rem)] max-w-[calc(100%-2rem)] -translate-y-1/2 gap-0 overflow-hidden p-0 sm:max-w-4xl"
     >
       <Command shouldFilter={false} className="h-auto min-h-0 flex-1">
         <CommandInput
+          className="pr-12"
           placeholder="Search courses, groups, folders, and materials…"
           value={searchQuery}
           onValueChange={(value) => {

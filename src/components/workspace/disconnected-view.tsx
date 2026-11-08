@@ -40,9 +40,9 @@ export function DisconnectedView({
           <div className="flex items-center gap-2">
             <AppearanceButton />
             <Button variant="ghost" asChild>
-              <Link href="/">
+              <Link href="/" aria-label="Back to sign in">
                 <ArrowLeft data-icon="inline-start" />
-                Back to sign in
+                <span className="hidden sm:inline">Back to sign in</span>
               </Link>
             </Button>
           </div>
@@ -57,7 +57,7 @@ export function DisconnectedView({
       </main>
     );
   return (
-    <main className="grid min-h-svh bg-background lg:grid-cols-2">
+    <main className="grid min-h-svh grid-cols-1 bg-background lg:grid-cols-2">
       <section className="flex flex-col px-6 py-8 sm:px-10 lg:px-16 xl:px-24">
         <div className="flex items-center justify-between gap-4">
           <Brand />

@@ -12,7 +12,12 @@ export function OriginalLink({
   compact?: boolean;
 }) {
   return (
-    <Button variant="outline" size={compact ? "sm" : "default"} asChild>
+    <Button
+      variant="outline"
+      size={compact ? "sm" : "default"}
+      className="h-auto max-w-full whitespace-normal py-2 text-left"
+      asChild
+    >
       <a href={href} target="_blank" rel="noopener noreferrer">
         {children}
         <ArrowUpRight data-icon="inline-end" />

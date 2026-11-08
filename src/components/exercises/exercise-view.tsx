@@ -198,14 +198,22 @@ export function ExerciseView({ state }: { state: ExerciseState }) {
     <div className="flex min-w-0 flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         {unitId || creating ? (
-          <Button variant="ghost" className="w-fit" asChild>
+          <Button
+            variant="ghost"
+            className="h-auto w-fit max-w-full justify-start whitespace-normal py-2 text-left"
+            asChild
+          >
             <Link href={exerciseHref(exerciseId, demo)} prefetch={demo}>
               <ArrowLeft data-icon="inline-start" />
               All exercise units
             </Link>
           </Button>
         ) : parent?.href ? (
-          <Button variant="ghost" className="w-fit" asChild>
+          <Button
+            variant="ghost"
+            className="h-auto w-fit max-w-full justify-start whitespace-normal py-2 text-left"
+            asChild
+          >
             <Link href={parent.href} prefetch={demo}>
               <ArrowLeft data-icon="inline-start" />
               Back to {parent.title}
@@ -405,15 +413,18 @@ export function ExerciseView({ state }: { state: ExerciseState }) {
           </TabsContent>
           <TabsContent value="submissions" className="mt-5">
             <div className="flex flex-col gap-5">
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 {[
-                  ["Needs assessment", counts.review ?? "—"],
-                  ["Missing submissions", counts.missing ?? "—"],
-                  ["Late submissions", counts.late ?? "—"],
-                ].map(([title, count]) => (
+                  ["Needs assessment", "To assess", counts.review ?? "—"],
+                  ["Missing submissions", "Missing", counts.missing ?? "—"],
+                  ["Late submissions", "Late", counts.late ?? "—"],
+                ].map(([title, shortTitle, count]) => (
                   <Card key={title} size="sm">
                     <CardHeader>
-                      <CardDescription>{title}</CardDescription>
+                      <CardDescription>
+                        <span className="sm:hidden">{shortTitle}</span>
+                        <span className="hidden sm:inline">{title}</span>
+                      </CardDescription>
                       <CardTitle>{count}</CardTitle>
                     </CardHeader>
                   </Card>

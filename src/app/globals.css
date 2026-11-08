@@ -4,6 +4,42 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Keep mouse controls compact; touch screens and small windows need larger targets.
+   The button marker survives Radix wrappers that replace data-slot. */
+@media (width < 48rem), (pointer: coarse) {
+  :is(
+    [data-touch-target],
+    [data-slot="sidebar-menu-button"],
+    [data-slot="tabs-trigger"],
+    [data-slot="toggle-group-item"],
+    [data-slot="select-trigger"],
+    [data-slot="command-item"]
+  ) {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+  }
+
+  [data-slot="input-group"],
+  input[data-slot="input"] {
+    min-height: 2.75rem;
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: 1rem;
+  }
+
+  [data-slot="tabs-list"] {
+    height: auto;
+    min-height: 3.125rem;
+  }
+
+  [data-slot="dialog-header"]:not(.sr-only) {
+    padding-right: 2rem;
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -142,6 +178,7 @@
   }
   .page-title {
     @apply text-3xl font-medium leading-tight tracking-tight sm:text-4xl;
+    overflow-wrap: anywhere;
   }
   .section-title {
     @apply text-lg font-medium tracking-tight;
@@ -151,6 +188,7 @@
   }
   .resource-title {
     @apply h-auto max-w-full justify-start whitespace-normal p-0 text-left text-sm font-medium text-foreground;
+    overflow-wrap: anywhere;
   }
   .course-monogram {
     @apply flex size-12 items-center justify-center rounded-xl bg-accent text-accent-foreground;

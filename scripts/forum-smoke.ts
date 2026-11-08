@@ -133,6 +133,7 @@ try {
     () => document.querySelector("article")?.id === "post-1014",
   );
   await page
+    .getByRole("navigation", { name: "Breadcrumb", exact: true })
     .getByRole("link", { name: "Questions & discussion", exact: true })
     .click();
   await page.getByRole("radio", { name: "Unread 1", exact: true }).click();

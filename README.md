@@ -351,6 +351,7 @@ bun run test
 # Start the dev server first, then:
 bun run test:e2e
 bun run test:search
+bun run test:mobile
 # Production build:
 bun run build
 bun run start --hostname 127.0.0.1
@@ -360,7 +361,7 @@ bun run benchmark:navigation
 bun run test:search-prefetch
 ```
 
-`bun run test` runs the unit and fixture suite. `bun run test:e2e` covers the demo flows in Chromium. Focused browser scripts for forums, headless pairing, exercises, forms, search, PDF/theme, cards, and multi-user isolation are listed in `package.json`. Production-only navigation and search-prefetch checks run against a preview on port 3001. Set `ACHILIAS_TEST_URL` to test another local port. The browser checks use demo data or a deliberately credential-free session; they do not sign in to a real account.
+`bun run test` runs the unit and fixture suite. `bun run test:e2e` covers the demo flows in Chromium. `bun run test:mobile` checks 320px and 390px phones, a 768px tablet, touch targets, navigation, and dialogs in short viewports. Focused browser scripts for forums, headless pairing, exercises, forms, search, PDF/theme, cards, and multi-user isolation are listed in `package.json`. Production-only navigation and search-prefetch checks run against a preview on port 3001. Set `ACHILIAS_TEST_URL` to test another local port. The browser checks use demo data or a deliberately credential-free session; they do not sign in to a real account.
 
 The published package is `achilias`: `npx achilias` starts the production standalone build included in the package, and `npx achilias connect --server ...` runs the helper without a checkout. The CLI is built as native ESM so dependency imports and package-relative paths retain their runtime semantics.
 

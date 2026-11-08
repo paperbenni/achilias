@@ -27,6 +27,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
 
@@ -66,7 +67,10 @@ export function Navigation({
   return (
     <Sidebar collapsible="offcanvas" role="navigation" aria-label="Workspace">
       <SidebarHeader className="px-5 pt-7 pb-6">
-        <Brand demo={data.mode === "demo"} />
+        <div className="flex items-center justify-between gap-3">
+          <Brand demo={data.mode === "demo"} />
+          <SidebarTrigger className="md:hidden" aria-label="Close navigation" />
+        </div>
         <div className="mt-5 flex items-center gap-2.5 rounded-lg border bg-background px-3 py-3">
           <University className="size-4 text-primary" />
           <div className="min-w-0 flex-1">
@@ -86,10 +90,15 @@ export function Navigation({
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton onClick={openSearch}>
+                <SidebarMenuButton
+                  onClick={() => {
+                    setOpenMobile(false);
+                    openSearch();
+                  }}
+                >
                   <Search />
                   <span>Quick search</span>
-                  <kbd className="ml-auto text-[10px] text-muted-foreground">
+                  <kbd className="ml-auto hidden text-[10px] text-muted-foreground md:inline">
                     ⌘ K
                   </kbd>
                 </SidebarMenuButton>
@@ -181,7 +190,10 @@ export function Navigation({
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem
-                onSelect={() => router.push(demoHref("/settings", demo))}
+                onSelect={() => {
+                  setOpenMobile(false);
+                  router.push(demoHref("/settings", demo));
+                }}
               >
                 <Settings2 />
                 Connection settings

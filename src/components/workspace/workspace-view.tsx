@@ -27,7 +27,7 @@ import {
   itemHref,
   typeNames,
 } from "@/lib/ilias/items";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -88,11 +88,25 @@ export function WorkspaceView({
   } = useLibrary(data);
   const [selected, setSelected] = useState<Item | null>(null);
   const demo = data.mode === "demo";
+  const breadcrumbNav = useRef<HTMLElement>(null);
   const crumbs =
     view === "browse" || view === "forum" || view === "exercise"
       ? workspaceCrumbs(data.page, demo)
       : [];
   const parent = parentCrumb(crumbs);
+  useEffect(() => {
+    const nav = breadcrumbNav.current;
+    if (!nav) return;
+    // Deep repository paths should scroll, not squeeze labels to zero width.
+    // Keep the current page visible after navigation and viewport changes.
+    const showCurrent = () => {
+      nav.scrollLeft = nav.scrollWidth;
+    };
+    showCurrent();
+    const observer = new ResizeObserver(showCurrent);
+    observer.observe(nav);
+    return () => observer.disconnect();
+  }, [data.page.title, data.page.breadcrumbs, view]);
   useEffect(() => {
     if (data.mode === "disconnected") return;
     const onKey = (event: KeyboardEvent) => {
@@ -201,9 +215,14 @@ export function WorkspaceView({
         <header className="flex h-20 shrink-0 items-center justify-between gap-4 border-b px-5 lg:px-10">
           <div className="flex min-w-0 items-center gap-3">
             <SidebarTrigger className="md:hidden" />
-            <nav aria-label="Breadcrumb" className="min-w-0">
-              <ol className="flex min-w-0 items-center gap-3">
-                <li className="flex items-center gap-3">
+            <nav
+              ref={breadcrumbNav}
+              aria-label="Breadcrumb"
+              tabIndex={0}
+              className="min-w-0 overflow-x-auto"
+            >
+              <ol className="flex w-max items-center gap-3">
+                <li className="flex shrink-0 items-center gap-3">
                   <LayoutDashboard
                     className="size-3.5 shrink-0 text-muted-foreground"
                     aria-hidden="true"
@@ -223,7 +242,7 @@ export function WorkspaceView({
                       <li
                         key={`${crumb.title}-${index}`}
                         aria-current={current ? "page" : undefined}
-                        className="flex min-w-0 items-center gap-3"
+                        className="flex shrink-0 items-center gap-3"
                       >
                         <ChevronRight
                           className="size-3 shrink-0 text-muted-foreground"
@@ -237,7 +256,7 @@ export function WorkspaceView({
                         )}
                         {current || !crumb.href ? (
                           <span
-                            className={`truncate text-sm ${current ? "font-medium" : "text-muted-foreground"}`}
+                            className={`max-w-[40vw] truncate text-sm sm:max-w-96 ${current ? "font-medium" : "text-muted-foreground"}`}
                           >
                             {crumb.title}
                           </span>
@@ -245,7 +264,7 @@ export function WorkspaceView({
                           <Link
                             prefetch={demo}
                             href={crumb.href}
-                            className="truncate text-sm text-muted-foreground transition-colors hover:text-foreground"
+                            className="max-w-64 truncate text-sm text-muted-foreground transition-colors hover:text-foreground"
                           >
                             {crumb.title}
                           </Link>
@@ -301,7 +320,11 @@ export function WorkspaceView({
             >
               <Search />
             </Button>
-            {demo ? <Badge variant="secondary">Demo workspace</Badge> : null}
+            {demo ? (
+              <Badge variant="secondary" className="hidden sm:inline-flex">
+                Demo workspace
+              </Badge>
+            ) : null}
           </div>
         </header>
         <div
@@ -358,7 +381,11 @@ export function WorkspaceView({
           ) : (
             <>
               {view === "browse" && parent?.href && (
-                <Button variant="ghost" className="w-fit" asChild>
+                <Button
+                  variant="ghost"
+                  className="h-auto w-fit max-w-full justify-start whitespace-normal py-2 text-left"
+                  asChild
+                >
                   <Link prefetch={demo} href={parent.href}>
                     <ArrowLeft data-icon="inline-start" />
                     Back to {parent.title}

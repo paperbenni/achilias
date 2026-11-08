@@ -27,7 +27,7 @@ export function PageHeading({
               ? "Bookmarks are stored only in this browser."
               : view === "browse"
                 ? data.page.description
-                : "Courses and groups from your ILIAS dashboard."}
+                : "Your course and group memberships in ILIAS."}
           </p>
         )}
       </div>

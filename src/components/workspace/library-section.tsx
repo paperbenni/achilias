@@ -47,7 +47,7 @@ export function LibrarySection({
   return (
     <section className="flex flex-col gap-5" id="courses">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
+        <div className="flex w-full items-center gap-2 sm:w-auto">
           {view === "home" ? (
             <h2 className="section-title">
               <Link
@@ -67,10 +67,14 @@ export function LibrarySection({
                 ? `${courses.length} ${courses.length === 1 ? "course or group" : "courses and groups"}`
                 : courses.length}
           </Badge>
+          {view === "home" && (
+            <div className="ml-auto sm:ml-2">
+              <RefreshButton />
+            </div>
+          )}
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          {view === "home" && <RefreshButton />}
-          <div className="w-44 sm:w-56">
+        <div className="flex w-full min-w-0 items-center gap-3 sm:w-auto">
+          <div className="min-w-0 flex-1 sm:w-56">
             <InputGroup>
               <InputGroupAddon>
                 <Search />

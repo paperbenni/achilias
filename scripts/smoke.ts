@@ -249,7 +249,7 @@ try {
   });
   assert.equal(
     await sourceLink.getAttribute("href"),
-    "https://ilias.uni-freiburg.de/ilias.php?baseClass=ilDashboardGUI",
+    "https://ilias.uni-freiburg.de/ilias.php?baseClass=ilMembershipOverviewGUI",
   );
   assert.equal(await sourceLink.getAttribute("target"), "_blank");
   await page

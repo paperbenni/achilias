@@ -40,9 +40,41 @@ describe("workspace breadcrumbs", () => {
     expect(crumbs).toEqual([
       { title: "My courses", href: "/courses" },
       { title: "Open WebUI Support- und Info-Bereich", href: "/browse/crs/101" },
-      { title: "Open WebUI Support-Forum" },
+      { title: "Open WebUI Support-Forum", href: "/forums/201" },
     ]);
     expect(parentCrumb(crumbs)?.href).toBe("/browse/crs/101");
+    // Forum state replaces the generic header with the thread title. The
+    // former current-object crumb becomes a clickable ancestor at this point.
+    const threadCrumbs = workspaceCrumbs(
+      { ...parsed, title: "Spend Checker Tool API" },
+      false,
+    );
+    expect(threadCrumbs.at(-1)).toEqual({ title: "Spend Checker Tool API" });
+    expect(parentCrumb(threadCrumbs)).toEqual({
+      title: "Open WebUI Support-Forum",
+      href: "/forums/201",
+    });
+  });
+
+  test("resolves known controller references without guessing unknown object types", () => {
+    for (const [controller, href] of [
+      ["ilObjCourseGUI", "/browse/crs/201"],
+      ["ilObjGroupGUI", "/browse/grp/201"],
+      ["ilObjFolderGUI", "/browse/fold/201"],
+      ["ilObjCategoryGUI", "/browse/cat/201"],
+      ["ilObjForumGUI", "/forums/201"],
+      ["ilObjExerciseGUI", "/exercises/201"],
+      ["UnknownGUI", undefined],
+    ]) {
+      const parsed = parsePage(
+        `<h1>Child</h1><ol class="breadcrumb"><li><a href="ilias.php?cmdClass=${controller}&amp;ref_id=201">Parent</a></li></ol>`,
+        "https://ilias.example/ilias.php",
+      );
+      expect(parentCrumb(workspaceCrumbs(parsed, false))).toEqual({
+        title: "Parent",
+        ...(href ? { href } : {}),
+      });
+    }
   });
 
   test("keeps nested folders in order with the newer LTR markup", () => {

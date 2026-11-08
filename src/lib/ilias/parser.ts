@@ -77,6 +77,28 @@ function referenceFromUrl(url: URL) {
   };
 }
 
+function breadcrumbReferenceFromUrl(url: URL) {
+  const reference = referenceFromUrl(url);
+  // Current-object locator links use controller URLs rather than goto links.
+  // ref_id identifies the object; an explicit known controller gives its type.
+  const controllerTypes: Record<string, string> = {
+    ilobjcoursegui: "crs",
+    ilobjgroupgui: "grp",
+    ilobjfoldergui: "fold",
+    ilobjcategorygui: "cat",
+    ilobjforumgui: "frm",
+    ilobjexercisegui: "exc",
+  };
+  const controllerType = url.pathname.endsWith("/ilias.php") &&
+    url.searchParams.get("ref_id")
+    ? controllerTypes[(url.searchParams.get("cmdClass") || "").toLowerCase()]
+    : undefined;
+  return {
+    ...reference,
+    type: reference.type || controllerType,
+  };
+}
+
 // ILIAS' container and dashboard templates expose the same list-item structure.
 // Keep selectors here so a theme/version adaptation does not leak into the UI.
 export function parsePage(html: string, sourceUrl: string): IliasPage {
@@ -277,7 +299,7 @@ export function parsePage(html: string, sourceUrl: string): IliasPage {
     const link = node.find("a[href]").first();
     const crumbUrl = resolve(link.attr("href") || "");
     const reference = crumbUrl
-      ? referenceFromUrl(new URL(crumbUrl))
+      ? breadcrumbReferenceFromUrl(new URL(crumbUrl))
       : undefined;
     breadcrumbs.push({
       title,

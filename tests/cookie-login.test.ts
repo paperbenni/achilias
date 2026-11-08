@@ -17,6 +17,7 @@ const dashboard = () =>
   new Response(
     `<a href="logout.php">Logout</a>
      <h1 class="il-page-content-header">Dashboard</h1>
+     <footer>powered by ILIAS (v11.0)</footer>
      <div class="il-maincontrols-metabar"><img class="il-avatar" alt="Alex Example"></div>`,
     { headers: { "content-type": "text/html; charset=utf-8" } },
   );
@@ -36,6 +37,7 @@ describe("cookie sign-in", () => {
       "Cookie: PHPSESSID=ilias-session; path=/",
     );
     expect(result.userName).toBe("Alex Example");
+    expect(result.iliasVersion).toBe("11.0");
     expect(sent).toContain("PHPSESSID=ilias-session");
   });
 

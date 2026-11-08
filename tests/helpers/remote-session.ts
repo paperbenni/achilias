@@ -32,7 +32,7 @@ const cookies = [
   },
 ];
 const dashboard = () =>
-  new Response('<a href="logout.php">Logout</a><h1>Dashboard</h1>', {
+  new Response('<a href="logout.php">Logout</a><h1>Dashboard</h1><footer>powered by ILIAS (v11.0)</footer>', {
     headers: { "content-type": "text/html" },
   });
 let upstreamCookie = "";
@@ -69,6 +69,7 @@ await assert.rejects(() => remoteSession(first.code + "x"));
 await completeRemoteLogin(first.code, cookies);
 const connected = await readSession(first.session.id);
 assert.equal(connected?.status, "connected");
+assert.equal(connected?.iliasVersion, "11.0");
 assert.equal(connected?.remotePairing, undefined);
 assert.ok(upstreamCookie.includes("PHPSESSID=ilias-session-example"));
 assert.ok(!upstreamCookie.includes("idp-secret"));

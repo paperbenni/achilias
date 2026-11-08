@@ -16,6 +16,10 @@ import {
 import { ParsedHtmlNotice } from "@/components/navigation/parsed-html-notice";
 import { dashboardUrl, loginUrl } from "@/lib/ilias/config";
 import type { Workspace } from "@/lib/ilias/types";
+import {
+  ILIAS_REFERENCE_MAJOR,
+  iliasCompatibility,
+} from "@/lib/ilias/compatibility";
 
 import { OriginalLink } from "@/components/navigation/original-link";
 
@@ -29,6 +33,8 @@ export function SettingsView({
   onClearHistory: () => void;
 }) {
   const demo = data.mode === "demo";
+  const version = data.page.iliasVersion || data.iliasVersion;
+  const compatibility = iliasCompatibility(version);
   return (
     <>
       <div>
@@ -51,6 +57,30 @@ export function SettingsView({
                   ? "Demo · no account signed in"
                   : "Not signed in"}
             </Badge>
+            <div className="space-y-2 text-sm leading-relaxed">
+              <p>
+                ILIAS version: {data.mode === "live"
+                  ? version || "Unknown"
+                  : "No live server connected"}
+              </p>
+              <p className="text-muted-foreground">
+                Development reference: ILIAS {ILIAS_REFERENCE_MAJOR}. Version
+                detection reads the standard ILIAS footer. Matching this version
+                does not guarantee compatibility with your instance or theme.
+              </p>
+              {data.mode === "live" && compatibility === "unknown" && (
+                <p className="text-muted-foreground">
+                  No version has been detected in the pages loaded so far.
+                  Compatibility could not be determined.
+                </p>
+              )}
+              {data.mode === "live" && compatibility === "unverified" && (
+                <p>
+                  This server version is outside the development reference.
+                  Some features may fail or miss content.
+                </p>
+              )}
+            </div>
             <p className="text-sm leading-relaxed text-muted-foreground">
               Sign-in credentials are used once and never stored. Achilias keeps
               only your ILIAS session, encrypted on the server. Sessions expire

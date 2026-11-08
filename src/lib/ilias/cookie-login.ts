@@ -159,5 +159,9 @@ export async function cookieLogin(instance: string, input: string) {
       422,
     );
   }
-  return { jar: candidate.jar!, userName: page.userName };
+  return {
+    jar: candidate.jar!,
+    userName: page.userName,
+    iliasVersion: page.iliasVersion,
+  };
 }

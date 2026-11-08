@@ -13,6 +13,7 @@ await saveSession({
   status: "connected",
   createdAt: Date.now(),
   userName: "Metadata example account",
+  iliasVersion: "11.0",
 });
 let requests = 0;
 upstreamTransport.fetch = (async () => {
@@ -24,6 +25,7 @@ const first = await getWorkspaceMetadata(false);
 const next = await getWorkspaceMetadata(false);
 assert.equal(first.mode, "live");
 assert.equal(first.userName, "Metadata example account");
+assert.equal(first.iliasVersion, "11.0");
 assert.equal(requests, 0);
 assert.equal(next.storageKey, first.storageKey);
 assert.equal(first.page.items.length, 0);

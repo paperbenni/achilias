@@ -1,5 +1,6 @@
 import { fileControllerReference } from "./file-reference";
 import { profileName } from "./profile-name";
+import { readIliasVersion } from "./compatibility";
 import { cleanText as clean } from "./text";
 import { load, type CheerioAPI } from "cheerio";
 import type { AnyNode } from "domhandler";
@@ -279,6 +280,7 @@ export function parsePage(html: string, sourceUrl: string): IliasPage {
     });
   });
   return {
+    iliasVersion: readIliasVersion($),
     title:
       readPageTitle($) ||
       clean($("title").text()).replace(/:.*$/, "") ||

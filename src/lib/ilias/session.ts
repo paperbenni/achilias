@@ -34,6 +34,7 @@ export type Session = {
   jar?: SerializedCookieJar;
   error?: string;
   userName?: string;
+  iliasVersion?: string;
 };
 function sessionPath(id: string) {
   if (!/^[a-f0-9-]{36}$/.test(id)) throw new Error("Invalid session.");

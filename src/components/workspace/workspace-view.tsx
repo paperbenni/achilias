@@ -11,6 +11,7 @@ import { BrowseTabs } from "./browse-tabs";
 import { LibrarySection } from "./library-section";
 import { EmptyState } from "./empty-state";
 import { LoadErrorAlert } from "./error-alert";
+import { CompatibilityNotice } from "./compatibility-notice";
 import { crumbFor, demoHref } from "./nav-items";
 import { parentCrumb, workspaceCrumbs } from "@/lib/ilias/breadcrumbs";
 import type { ItemListProps } from "./item-list";
@@ -308,6 +309,7 @@ export function WorkspaceView({
           tabIndex={-1}
           className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-5 py-8 lg:px-10 lg:py-10"
         >
+          <CompatibilityNotice data={data} />
           {demo && (
             <Alert>
               <Sparkles />

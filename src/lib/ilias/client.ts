@@ -191,6 +191,19 @@ export async function fetchAuthenticatedHtml(session: Session, target: string) {
       401,
     );
   observeSearchForm(session, html, url);
+  if (page.iliasVersion && page.iliasVersion !== session.iliasVersion) {
+    session.iliasVersion = page.iliasVersion;
+    if (session.status === "connected")
+      await withSessionLock(session.id, async () => {
+        const current = await readSession(session.id);
+        if (
+          current?.status !== "connected" ||
+          current.iliasVersion === page.iliasVersion
+        ) return;
+        current.iliasVersion = page.iliasVersion;
+        await saveSession(current);
+      });
+  }
   return { html, url, page };
 }
 export async function fetchPage(session: Session, target: string) {

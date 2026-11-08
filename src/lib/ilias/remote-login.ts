@@ -96,6 +96,7 @@ export async function completeRemoteLogin(code: string, data: unknown) {
       const current = await remoteSession(code);
       current.jar = candidate.jar;
       current.userName = page.userName;
+      current.iliasVersion = page.iliasVersion;
       current.status = "connected";
       delete current.remotePairing;
       await saveSession(current);

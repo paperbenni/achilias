@@ -33,6 +33,7 @@ export async function getWorkspaceContext(demo = false) {
     instance,
     instanceName: instanceName(instance),
     userName: demo ? "Alex" : connected ? profileName(session.userName) : "",
+    iliasVersion: connected ? session.iliasVersion : undefined,
     storageKey: connected
       ? createHash("sha256").update(session.id).digest("hex").slice(0, 16)
       : undefined,

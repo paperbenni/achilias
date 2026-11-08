@@ -18,6 +18,8 @@ export type Breadcrumb = {
   sourceUrl?: string;
 };
 export type IliasPage = {
+  /** Version reported by the standard ILIAS footer, when exposed. */
+  iliasVersion?: string;
   title: string;
   description: string;
   items: Item[];
@@ -38,6 +40,7 @@ export type IliasPage = {
   membership?: "member" | "guest";
 };
 export type Workspace = {
+  iliasVersion?: string;
   storageKey?: string;
   mode: "disconnected" | "demo" | "live";
   instance: string;

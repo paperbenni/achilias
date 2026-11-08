@@ -304,6 +304,7 @@ export async function passwordLogin(
         return {
           jar: candidate.jar!,
           userName: dashboard.userName || parsed.userName,
+          iliasVersion: dashboard.iliasVersion || parsed.iliasVersion,
         };
       }
     }

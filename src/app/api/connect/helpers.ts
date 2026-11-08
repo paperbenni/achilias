@@ -54,7 +54,11 @@ export function connectFailure(
 /** Replace the current connection only after the candidate session verifies. */
 export async function connectWithVerifiedJar(
   target: string,
-  verify: () => Promise<{ jar: SerializedCookieJar; userName?: string }>,
+  verify: () => Promise<{
+    jar: SerializedCookieJar;
+    userName?: string;
+    iliasVersion?: string;
+  }>,
 ) {
   const previous = await currentSession();
   if (previous) await deleteSession(previous.id);
@@ -63,6 +67,7 @@ export async function connectWithVerifiedJar(
     const result = await withVerificationLimit(verify);
     session.jar = result.jar;
     session.userName = result.userName;
+    session.iliasVersion = result.iliasVersion;
     session.status = "connected";
     await saveSession(session);
     return Response.json({ status: "connected" }, { headers: noStore });

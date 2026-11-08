@@ -390,6 +390,8 @@ Reference sources:
 
 ### Code map
 
+Achilias uses **ILIAS 10 as its development reference**, not a verified compatibility guarantee. It detects the version from standard footers on authenticated pages it already loads and retains the last detected version for the connection. Features & connection shows that version, or “Unknown” when none has been exposed. Other major versions and prereleases receive a dismissible compatibility notice, once per connection and version in each browser tab. Detection adds no requests; customized themes and page changes can still affect any version. Existing page/form checks and write restrictions remain in force.
+
 See [code organization and feature development](docs/architecture.md) for the module map, shared object capabilities, browser-state rules, and verification guidance. Version-sensitive ILIAS source assumptions are collected in [upstream ILIAS assumptions](docs/architecture.md#upstream-ilias-assumptions). Upstream ILIAS code is reference material, not vendored into the app.
 
 PDF titles open a new browser tab through the authenticated file proxy, including from saved items and quick search. The proxy checks the actual PDF signature before allowing inline display; other content remains an attachment. No custom PDF viewer or PDF parsing service is used. Browser PDF settings can still choose downloading instead of previewing. `bun run test:pdf-theme` checks native Chromium preview plus theme persistence, system preference, cross-tab updates and mobile access.

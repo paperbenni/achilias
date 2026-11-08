@@ -22,6 +22,7 @@ const dashboard = () =>
   html(
     `<a href="logout.php">Logout</a>
      <h1 class="il-page-content-header">Dashboard</h1>
+     <footer>powered by ILIAS (v11.0)</footer>
      <div class="il-maincontrols-metabar"><img class="il-avatar" alt="Alex Example"></div>`,
     { "set-cookie": "PHPSESSID=ilias-session; Path=/; Secure; HttpOnly" },
   );
@@ -75,6 +76,7 @@ describe("password sign-in through myLogin", () => {
 
     const result = await passwordLogin(FREIBURG, "alice", "s3cret");
     expect(result.userName).toBe("Alex Example");
+    expect(result.iliasVersion).toBe("11.0");
     const jar = CookieJar.fromJSON(result.jar);
     expect(await jar?.getCookieString(FREIBURG)).toContain(
       "PHPSESSID=ilias-session",

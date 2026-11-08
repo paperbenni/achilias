@@ -1,5 +1,6 @@
 import { validObjectId } from "./identifiers";
-import { load, type CheerioAPI } from "cheerio";
+import { load, type Cheerio, type CheerioAPI } from "cheerio";
+import type { AnyNode } from "domhandler";
 import { cleanText as clean } from "./text";
 import { readPageTitle } from "./parser";
 import { upstreamLink } from "./links";
@@ -13,7 +14,11 @@ import type {
   ForumTopic,
 } from "./forum-types";
 
-function targets($: CheerioAPI, selector: string, sourceUrl: string) {
+function targets(
+  $: CheerioAPI,
+  selector: string | Cheerio<AnyNode>,
+  sourceUrl: string,
+) {
   return $(selector)
     .toArray()
     .filter((el) => !$(el).closest(".ilFrmPostContent").length)
@@ -27,6 +32,16 @@ function targets($: CheerioAPI, selector: string, sourceUrl: string) {
         : [];
     });
 }
+
+/** News blocks have their own pagination, unrelated to forum topics or posts. */
+function forumPagination($: CheerioAPI) {
+  return $(".il-viewcontrol-pagination, .ilTableNav").filter(
+    (_, el) => !$(el).closest(
+      "#il_right_col, #il_left_col, .il-maincontrols, .ilFrmPostContent, dialog, template, [hidden], [aria-hidden='true']",
+    ).length,
+  );
+}
+
 function pages(
   $: CheerioAPI,
   sourceUrl: string,
@@ -35,7 +50,7 @@ function pages(
   const ref = new URL(sourceUrl).searchParams.get("ref_id");
   const result = targets(
     $,
-    ".il-viewcontrol-pagination a, .il-viewcontrol-pagination button, .ilTableNav a",
+    forumPagination($).find("a[href], button[data-action]"),
     sourceUrl,
   )
     .filter(({ params }) => {
@@ -156,7 +171,7 @@ export function parseForumOverview(
     sourceUrl,
     createUrl: action($, sourceUrl, ["createthread"]),
     pages: pages($, sourceUrl),
-    paginationDetected: $(".il-viewcontrol-pagination, .ilTableNav").length > 0,
+    paginationDetected: forumPagination($).length > 0,
     recognized:
       $('.il-panel-listing, .il-panel-listing-std, .il-item, table[id*="frm"]')
         .length > 0 || topics.length > 0,
@@ -285,7 +300,7 @@ export function parseForumThread(
     replyUrl: action($, sourceUrl, ["createtoplevelpost"], { threadId }),
     markReadUrl: markRead?.url,
     pages: pages($, sourceUrl, threadId),
-    paginationDetected: $(".il-viewcontrol-pagination").length > 0,
+    paginationDetected: forumPagination($).length > 0,
     limited: targets($, "a[href], button[data-action]", sourceUrl).some(
       ({ params }) =>
         (params.get("cmd") || "").toLowerCase() === "resetlimitedview",

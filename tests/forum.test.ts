@@ -51,6 +51,45 @@ test("legacy tables retain thread metadata and unread counts", () => {
     lastActivity: "Today",
   });
 });
+
+test("news sidebar controls do not imply missing forum pages", () => {
+  // Reduced from the live ILIAS news block shown beside a one-page forum.
+  const news = `<aside id="il_right_col"><div id="block_news_123">
+    <div class="il-viewcontrol-pagination">
+      <button data-action="ilias.php?cmdClass=ilcolumngui&amp;ref_id=402&amp;block_type=news&amp;news_123_blnavpage=0">1</button>
+      <button data-action="ilias.php?cmdClass=ilcolumngui&amp;ref_id=402&amp;block_type=news&amp;news_123_blnavpage=3">4</button>
+    </div>
+  </div></aside>`;
+  const overview = parseForumOverview(`<h1>Forum</h1>${news}`, url, "402");
+  expect(overview.pages).toEqual([]);
+  expect(overview.paginationDetected).toBe(false);
+  const thread = parseForumThread(
+    `<h1>Topic</h1><ul id="ilFrmPostList"></ul>${news}`,
+    url + "&thr_pk=901",
+    "901",
+  );
+  expect(thread.pages).toEqual([]);
+  expect(thread.paginationDetected).toBe(false);
+});
+
+test("only content pagination determines forum pages, even with matching sidebar URLs", () => {
+  const html = `<div class="il-viewcontrol-pagination">
+    <button data-action="ilias.php?ref_id=402&amp;page=0">1</button>
+    <button data-action="ilias.php?ref_id=402&amp;page=1">2</button>
+  </div><aside id="il_right_col"><div class="il-viewcontrol-pagination">
+    <button data-action="ilias.php?ref_id=402&amp;page=99">100</button>
+  </div></aside>`;
+  const forum = parseForumOverview(html, url, "402");
+  expect(forum.pages).toEqual([{ page: 0 }, { page: 1 }]);
+  expect(forum.paginationDetected).toBe(true);
+  const unknown = parseForumOverview(
+    '<div class="il-viewcontrol-pagination"><button>Next</button></div>',
+    url,
+    "402",
+  );
+  expect(unknown.pages).toEqual([]);
+  expect(unknown.paginationDetected).toBe(true);
+});
 test("localized property names keep the author, with a first-property fallback", () => {
   const html = (propertyName: string) =>
     `<div class="il-item"><h3 class="il-item-title"><a href="ilias.php?ref_id=402&thr_pk=901&cmd=viewThread">Topic</a></h3><div><span class="il-item-property-name">${propertyName}</span><span class="il-item-property-value">Maya</span></div><div><span class="il-item-property-name">Beiträge</span><span class="il-item-property-value">3</span></div></div>`;

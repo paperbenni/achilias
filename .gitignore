@@ -51,3 +51,4 @@ test-results/
 
 # Compiled CLI
 /bin/cli.mjs
+/.next-build

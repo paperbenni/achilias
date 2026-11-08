@@ -18,6 +18,50 @@ const page = (overrides: Partial<IliasPage> = {}): IliasPage => ({
 });
 
 describe("workspace breadcrumbs", () => {
+  test("reads the live ILIAS RTL trail in root-to-page order", () => {
+    const parsed = parsePage(
+      `<h1>Open WebUI Support-Forum</h1>
+      <nav class="il-header-locator"><div class="dropdown">
+        <button>Open WebUI Support-Forum</button>
+        <ul><li><button data-action="goto.php/crs/101">Open WebUI Support- und Info-Bereich</button></li></ul>
+      </div></nav>
+      <div class="breadcrumbs"><nav aria-label="Brotkrumen" class="breadcrumb-wrapper">
+        <div class="breadcrumb" dir="rtl">
+          <span class="breadcrumb-crumb" dir="ltr"><a href="ilias.php?cmdClass=ilObjForumGUI&amp;ref_id=201">Open WebUI Support-Forum</a></span>
+          <span class="breadcrumb-separator" dir="rtl"></span>
+          <span class="breadcrumb-crumb" dir="ltr"><a href="goto.php/crs/101">Open WebUI Support- und Info-Bereich</a></span>
+          <span class="breadcrumb-separator" dir="rtl"></span>
+          <span class="breadcrumb-crumb" dir="ltr"><a href="goto.php/root/1">Magazin</a></span>
+        </div>
+      </nav></div>`,
+      "https://ilias.example/ilias.php?ref_id=201",
+    );
+    const crumbs = workspaceCrumbs(parsed, false);
+    expect(crumbs).toEqual([
+      { title: "My courses", href: "/courses" },
+      { title: "Open WebUI Support- und Info-Bereich", href: "/browse/crs/101" },
+      { title: "Open WebUI Support-Forum" },
+    ]);
+    expect(parentCrumb(crumbs)?.href).toBe("/browse/crs/101");
+  });
+
+  test("keeps nested folders in order with the newer LTR markup", () => {
+    const parsed = parsePage(
+      `<h1>Aufzeichnungen</h1><nav class="breadcrumb-wrapper"><div class="breadcrumb" dir="ltr">
+        <span class="breadcrumb-crumb"><a href="goto.php/crs/101">Algorithms</a></span>
+        <span class="breadcrumb-crumb"><a href="goto.php/fold/200">Lecture materials</a></span>
+        <span class="breadcrumb-crumb">Aufzeichnungen</span>
+      </div></nav>`,
+      "https://ilias.example/ilias.php?ref_id=201",
+    );
+    expect(workspaceCrumbs(parsed, false)).toEqual([
+      { title: "My courses", href: "/courses" },
+      { title: "Algorithms", href: "/browse/crs/101" },
+      { title: "Lecture materials", href: "/browse/fold/200" },
+      { title: "Aufzeichnungen" },
+    ]);
+  });
+
   test("preserves the course and nested folder path from the legacy ILIAS locator", () => {
     const parsed = parsePage(
       `<h1>Aufzeichnungen</h1>

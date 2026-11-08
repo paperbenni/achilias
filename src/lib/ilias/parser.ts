@@ -258,15 +258,22 @@ export function parsePage(html: string, sourceUrl: string): IliasPage {
   // Prefer the modern trail when both are rendered; combining them duplicates
   // ancestors. Keep object references so the app can link back to each parent.
   const breadcrumbs: Breadcrumb[] = [];
-  const modernCrumbs = $(".breadcrumb_wrapper .crumb, .breadcrumbs .crumb")
+  const modernCrumbs = $(
+    ".breadcrumb_wrapper .crumb, .breadcrumbs .crumb, .breadcrumb-wrapper .breadcrumb-crumb, .breadcrumbs .breadcrumb-crumb",
+  )
     .filter((_, el) => !hiddenSubtree($, el));
   const crumbNodes = modernCrumbs.length
     ? modernCrumbs
     : $("ol.breadcrumb > li").filter((_, el) => !hiddenSubtree($, el));
-  crumbNodes.each((_, el) => {
+  // Newer ILIAS breadcrumbs store the current page first and use RTL layout
+  // to display the path. Our model always runs from root to current page.
+  const orderedCrumbs = crumbNodes.toArray();
+  if (crumbNodes.first().closest(".breadcrumb").attr("dir") === "rtl")
+    orderedCrumbs.reverse();
+  for (const el of orderedCrumbs) {
     const node = $(el);
     const title = clean(node.text());
-    if (!title) return;
+    if (!title) continue;
     const link = node.find("a[href]").first();
     const crumbUrl = resolve(link.attr("href") || "");
     const reference = crumbUrl
@@ -278,7 +285,7 @@ export function parsePage(html: string, sourceUrl: string): IliasPage {
       ...(reference?.id ? { id: reference.id } : {}),
       ...(crumbUrl ? { sourceUrl: crumbUrl } : {}),
     });
-  });
+  }
   return {
     iliasVersion: readIliasVersion($),
     title:

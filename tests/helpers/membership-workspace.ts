@@ -62,9 +62,11 @@ ${pagination}
 
 let membershipHtml = membershipPage("");
 let membershipFails = false;
+const requestedUrls: string[] = [];
 
 upstreamTransport.fetch = (async (input: RequestInfo | URL) => {
   const url = new URL(String(input));
+  requestedUrls.push(url.href);
   if (url.pathname.endsWith("/goto.php")) {
     const target = url.searchParams.get("target");
     if (target === "crs_12")
@@ -97,6 +99,31 @@ upstreamTransport.fetch = (async (input: RequestInfo | URL) => {
   if (ref === "16" || ref === "17" || ref === "18") return html(plainPage(ref));
   throw new Error(`Unexpected URL ${url.href}`);
 }) as typeof fetch;
+
+// Home and My courses share this loader. They must use memberships even for
+// an account with no dashboard favorites, and reuse the same cached listing.
+await clearWorkspacePages();
+membershipHtml = membershipPage(membershipItem("101", "Unfavorited course"));
+const home = await getWorkspace(false);
+const courses = await getWorkspace(false);
+assert.equal(home.error, undefined);
+assert.equal(home.page.title, "My courses and groups");
+assert.deepEqual(home.page.items.map((item) => item.title), ["Unfavorited course"]);
+assert.deepEqual(courses.page.items, home.page.items);
+assert.deepEqual(requestedUrls, [instance + "ilias.php?baseClass=ilMembershipOverviewGUI"]);
+
+// A genuinely empty membership list is valid; a failed lookup is an error.
+await clearWorkspacePages();
+membershipHtml = membershipPage("");
+const empty = await getWorkspace(false);
+assert.equal(empty.error, undefined);
+assert.deepEqual(empty.page.items, []);
+await clearWorkspacePages();
+membershipFails = true;
+const failed = await getWorkspace(false);
+assert.match(failed.error!, /ILIAS returned an error/);
+assert.deepEqual(failed.page.items, []);
+membershipFails = false;
 
 // A redirect to the dashboard must not become the course page.
 await clearWorkspacePages();

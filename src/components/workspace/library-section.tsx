@@ -108,7 +108,7 @@ export function LibrarySection({
           query ? "No matching courses" : "No courses found",
           query
             ? "Try a different search."
-            : "Achilias shows course and group links from your ILIAS dashboard. Add courses to your dashboard in ILIAS if they’re missing here.",
+            : "No course or group memberships were found in ILIAS. Open ILIAS to check your enrollments.",
         )
       )}
     </section>

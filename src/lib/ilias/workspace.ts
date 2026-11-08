@@ -1,4 +1,4 @@
-import { objectUrl } from "./config";
+import { membershipsUrl, objectUrl } from "./config";
 import { fetchPage } from "./client";
 import { loadWorkspacePage } from "./page-cache";
 import { demoPage } from "./demo";
@@ -34,8 +34,11 @@ export async function getWorkspace(
 ): Promise<Workspace> {
   const { workspace, session } = await getWorkspaceContext(demo);
   if (demo) return { ...workspace, page: demoPage(type, id) };
-  if (type && id)
-    workspace.page.sourceUrl = objectUrl(workspace.instance, type, id);
+  // Home and My courses must include all memberships, even when the user has
+  // no dashboard favorites. Object pages still load their own listing.
+  workspace.page.sourceUrl = type && id
+    ? objectUrl(workspace.instance, type, id)
+    : membershipsUrl(workspace.instance);
   if (session?.status !== "connected") return workspace;
   const sourceUrl = workspace.page.sourceUrl;
   try {

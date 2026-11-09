@@ -347,3 +347,31 @@ export async function markForumThreadRead(
     );
   await fetchAuthenticatedHtml(session, thread.markReadUrl);
 }
+
+export async function markForumPostRead(
+  session: Session,
+  forumId: string,
+  threadId: string,
+  postId: string,
+  page = 0,
+) {
+  if (
+    !validObjectId(forumId) ||
+    !validObjectId(threadId) ||
+    !validObjectId(postId) ||
+    !Number.isInteger(page) ||
+    page < 0 ||
+    page > 99999
+  )
+    throw new IliasError("Invalid post.", 400);
+  requireLiveWrite(session, "frm", forumId);
+  // Mutations always rediscover the authorized action from a fresh ILIAS page.
+  const { thread } = await fetchForum(session, forumId, threadId, page);
+  const post = thread?.posts.find((post) => post.id === postId);
+  if (!post?.markReadUrl)
+    throw new IliasError(
+      "This post is already read, or ILIAS has not offered that action. Refresh to see its current status.",
+      409,
+    );
+  await fetchAuthenticatedHtml(session, post.markReadUrl);
+}

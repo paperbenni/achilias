@@ -13,6 +13,7 @@ export function RefreshButton({ iconOnly = false }: { iconOnly?: boolean }) {
       variant="ghost"
       size={iconOnly ? "icon" : "default"}
       disabled={pending}
+      title={iconOnly ? (pending ? "Refreshing" : "Refresh") : undefined}
       onClick={() =>
         startTransition(async () => {
           try {

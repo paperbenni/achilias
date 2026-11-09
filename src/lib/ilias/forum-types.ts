@@ -40,6 +40,7 @@ export type ForumPost = {
   hasEmbeddedContent: boolean;
   sourceUrl: string;
   replyUrl?: string;
+  markReadUrl?: string;
 };
 export type ForumThread = {
   id: string;

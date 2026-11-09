@@ -10,6 +10,7 @@ import {
   forumViewUrl,
   fetchForum,
   getForumThreadPreview,
+  markForumPostRead,
 } from "../src/lib/ilias/forum";
 import { FREIBURG } from "../src/lib/ilias/config";
 const url =
@@ -119,6 +120,8 @@ test("thread reader preserves reply hierarchy, author metadata, unread state and
     moderator: true,
     date: "02. Nov 2026, 10:00",
   });
+  expect(thread.posts[1].markReadUrl).toContain("cmd=markPostRead");
+  expect(thread.posts[0].markReadUrl).toBeUndefined();
   expect(thread.posts[0].author).toBe("Maya");
   expect(thread.posts[0].date).toBe("02. Nov 2026, 09:00");
   expect(thread.posts[0].replyUrl).toContain("action=showreply");
@@ -254,10 +257,44 @@ test("live previews read the opening post without adding a mark-read action", as
   expect(threadCall).toBeDefined();
   expect(threadCall).not.toContain("viewmode=");
 });
+test("marking one post read follows the action ILIAS offers for that post", async () => {
+  const calls: string[] = [];
+  upstreamTransport.fetch = mock(async (input: Parameters<typeof fetch>[0]) => {
+    const target = String(input);
+    calls.push(target);
+    if (target.includes("goto.php"))
+      return new Response(null, { status: 302, headers: { location: url } });
+    const html = await fixture(
+      target.includes("cmd=viewThread") ? "forum-thread" : "forum",
+    );
+    return new Response(html, { headers: { "content-type": "text/html" } });
+  }) as unknown as typeof fetch;
+  await markForumPostRead(
+    {
+      id: "22222222-2222-2222-2222-222222222222",
+      instance: FREIBURG,
+      status: "connected",
+      readOnly: false,
+      createdAt: Date.now(),
+    },
+    "402",
+    "901",
+    "1002",
+    1,
+  );
+  const threadCall = calls.find((call) => call.includes("cmd=viewThread"));
+  expect(new URL(threadCall!).searchParams.get("page")).toBe("1");
+  const markCall = calls.find((call) => /cmd=markPostRead/i.test(call));
+  expect(markCall).toBeDefined();
+  expect(new URL(markCall!).searchParams.get("pos_pk")).toBe("1002");
+  expect(new URL(markCall!).searchParams.get("thr_pk")).toBe("901");
+});
 test("links written inside a post cannot impersonate ILIAS action controls", () => {
-  const html = `<ul id="ilFrmPostList"><li><div class="ilFrmPostContentContainer"><a id="1001"></a><div class="ilFrmPostContent"><a href="ilias.php?ref_id=402&thr_pk=901&cmd=viewThread&mark_read=1">Mark read</a><a href="ilias.php?ref_id=402&thr_pk=901&cmd=createTopLevelPost">Reply</a><a href="ilias.php?ref_id=402&thr_pk=901&pos_pk=1001&cmd=viewThread&action=showreply">Reply to post</a></div></div></li></ul>`;
+  const html = `<ul id="ilFrmPostList"><li><div class="ilFrmPostContentContainer"><a id="1001"></a><div class="ilFrmPostContent"><a href="ilias.php?ref_id=402&thr_pk=901&cmd=viewThread&mark_read=1">Mark read</a><a href="ilias.php?ref_id=402&thr_pk=901&pos_pk=1001&cmd=markPostRead">Mark post read</a><a href="ilias.php?ref_id=402&thr_pk=901&cmd=createTopLevelPost">Reply</a><a href="ilias.php?ref_id=402&thr_pk=901&pos_pk=1001&cmd=viewThread&action=showreply">Reply to post</a></div></div></li></ul>`;
   const thread = parseForumThread(html, url + "&thr_pk=901", "901");
   expect(thread.markReadUrl).toBeUndefined();
   expect(thread.replyUrl).toBeUndefined();
   expect(thread.posts[0].replyUrl).toBeUndefined();
+  expect(thread.posts[0].markReadUrl).toBeUndefined();
+  expect(thread.posts[0].unread).toBe(false);
 });

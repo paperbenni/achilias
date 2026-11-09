@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardFooter,
@@ -77,11 +78,32 @@ import {
   type ForumState,
 } from "@/lib/ilias/forum-types";
 
-const emptyReadThreads: string[] = [];
-function decodeReadThreads(value: unknown): string[] {
+const emptyIds: string[] = [];
+function decodeIds(value: unknown): string[] {
   return Array.isArray(value)
     ? value.filter((id) => typeof id === "string")
-    : emptyReadThreads;
+    : emptyIds;
+}
+const postReadKey = (threadId: string, postId: string) =>
+  `${threadId}:${postId}`;
+
+/** Structural metadata uses one quiet chip style everywhere. */
+function MetaBadge({ children }: { children: React.ReactNode }) {
+  return (
+    <Badge variant="outline" className="text-muted-foreground">
+      {children}
+    </Badge>
+  );
+}
+
+/** Unread is the one state that should stand out, so it is not a chip. */
+function UnreadMark({ children = "Unread" }: { children?: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary">
+      <span className="size-1.5 rounded-full bg-primary" aria-hidden />
+      {children}
+    </span>
+  );
 }
 function Pagination({
   state,
@@ -155,20 +177,36 @@ export function ForumView({ state }: { state: ForumState }) {
   const { value: marked, update: updateMarked } = useBrowserStore(
     "achilias:demo:read-threads",
     "sessionStorage",
-    decodeReadThreads,
-    emptyReadThreads,
+    decodeIds,
+    emptyIds,
+  );
+  const { value: readPosts, update: updateReadPosts } = useBrowserStore(
+    "achilias:demo:read-posts",
+    "sessionStorage",
+    decodeIds,
+    emptyIds,
   );
   const originalPostId = thread && state.page === 0 &&
     (order !== "newest" || (!thread.paginationDetected && thread.pages.length <= 1))
     ? (order === "newest" ? thread.posts.at(-1)?.id : thread.posts[0]?.id)
     : undefined;
   const [marking, setMarking] = useState(false);
+  const [markingPost, setMarkingPost] = useState<string | null>(null);
   if (!forum) return null;
   const selected = forum.topics.find((topic) => topic.id === threadId);
   const isMarked = demo && !!threadId && marked.includes(threadId);
-  const topics = forum.topics.map((topic) =>
-    demo && marked.includes(topic.id) ? { ...topic, unread: 0 } : topic,
-  );
+  const readPostCounts = new Map<string, number>();
+  for (const key of readPosts) {
+    const topicId = key.split(":")[0];
+    readPostCounts.set(topicId, (readPostCounts.get(topicId) || 0) + 1);
+  }
+  const topics = forum.topics.map((topic) => {
+    if (!demo) return topic;
+    if (marked.includes(topic.id)) return { ...topic, unread: 0 };
+    const readHere = readPostCounts.get(topic.id) || 0;
+    if (!readHere || !topic.unread) return topic;
+    return { ...topic, unread: Math.max(0, topic.unread - readHere) };
+  });
   const unreadThreads = topics.filter(
     (topic) => (topic.unread || 0) > 0,
   ).length;
@@ -195,7 +233,13 @@ export function ForumView({ state }: { state: ForumState }) {
         .toLowerCase()
         .includes(query.toLowerCase()),
     ) || [];
-  const firstUnread = !isMarked && thread?.posts.find((post) => post.unread);
+  const firstUnread =
+    !isMarked &&
+    posts.find(
+      (post) =>
+        post.unread &&
+        !(threadId && readPosts.includes(postReadKey(threadId, post.id))),
+    );
   async function markRead() {
     if (!thread) return;
     setMarking(true);
@@ -232,6 +276,45 @@ export function ForumView({ state }: { state: ForumState }) {
     }
   }
 
+  async function markPostRead(postId: string) {
+    if (!thread) return;
+    setMarkingPost(postId);
+    try {
+      if (demo) {
+        const key = postReadKey(thread.id, postId);
+        if (!updateReadPosts((current) => [...new Set([...current, key])]))
+          throw new Error("Your browser could not save this change.");
+        toast.success("Post marked read in this demo");
+      } else {
+        const response = await fetch(
+          `/api/forums/${forumId}/threads/${thread.id}/read`,
+          {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              "x-achilias-connection": workspace.storageKey || "",
+            },
+            body: JSON.stringify({ postId, page: state.page }),
+            cache: "no-store",
+          },
+        );
+        const body = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        if (!response.ok)
+          throw new Error(body.error || "Could not update read status.");
+        router.refresh();
+        toast.success("Post marked read in ILIAS");
+      }
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "Could not update read status.",
+      );
+    } finally {
+      setMarkingPost(null);
+    }
+  }
+
   function empty(title: string, description: string) {
     return (
       <Empty className="min-h-52 border">
@@ -246,7 +329,11 @@ export function ForumView({ state }: { state: ForumState }) {
     );
   }
   return (
-    <div ref={forumRoot} className="flex min-w-0 flex-col gap-6" aria-busy={pending}>
+    <div
+      ref={forumRoot}
+      className="flex min-w-0 flex-col gap-6"
+      aria-busy={pending || marking || !!markingPost}
+    >
       {!state.writeAllowed && (
         <LiveWriteNotice sourceUrl={workspace.page.sourceUrl} />
       )}
@@ -287,16 +374,16 @@ export function ForumView({ state }: { state: ForumState }) {
                   {thread.posts.length === 1 ? "post" : "posts"} on this page
                 </span>
                 {selected?.closed && (
-                  <Badge variant="outline">
+                  <MetaBadge>
                     <LockKeyhole />
                     Closed
-                  </Badge>
+                  </MetaBadge>
                 )}
                 {selected?.pinned && (
-                  <Badge variant="secondary">
+                  <MetaBadge>
                     <Pin />
                     Pinned
-                  </Badge>
+                  </MetaBadge>
                 )}
               </>
             ) : (
@@ -307,23 +394,17 @@ export function ForumView({ state }: { state: ForumState }) {
             )}
           </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <RefreshButton />
+        <div className="flex flex-wrap items-center gap-2">
+          <RefreshButton iconOnly />
           {thread ? (
             <>
-              {firstUnread && (
-                <Button variant="outline" asChild>
-                  <a href={`#post-${firstUnread.id}`}>
-                    <ArrowDown data-icon="inline-start" />
-                    Jump to unread
-                  </a>
-                </Button>
-              )}
               {thread.markReadUrl && !isMarked && (
                 <Button
                   variant="outline"
                   onClick={markRead}
-                  disabled={marking || pending || !state.writeAllowed}
+                  disabled={
+                    marking || !!markingPost || pending || !state.writeAllowed
+                  }
                 >
                   {marking ? (
                     <Loader2
@@ -337,24 +418,32 @@ export function ForumView({ state }: { state: ForumState }) {
                 </Button>
               )}
               {thread.replyUrl && (
-                <OriginalLink
-                  compact
-                  href={demo ? workspace.instance : thread.replyUrl}
-                >
-                  <Reply data-icon="inline-start" />
-                  Reply in ILIAS
-                </OriginalLink>
+                <Button asChild>
+                  <a
+                    href={demo ? workspace.instance : thread.replyUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Reply data-icon="inline-start" />
+                    Reply in ILIAS
+                    <ArrowUpRight data-icon="inline-end" />
+                  </a>
+                </Button>
               )}
             </>
           ) : (
             forum.createUrl && (
-              <OriginalLink
-                compact
-                href={demo ? workspace.instance : forum.createUrl}
-              >
-                <Plus data-icon="inline-start" />
-                New topic in ILIAS
-              </OriginalLink>
+              <Button asChild>
+                <a
+                  href={demo ? workspace.instance : forum.createUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Plus data-icon="inline-start" />
+                  New topic in ILIAS
+                  <ArrowUpRight data-icon="inline-end" />
+                </a>
+              </Button>
             )
           )}
         </div>
@@ -459,16 +548,16 @@ export function ForumView({ state }: { state: ForumState }) {
                             <ItemTitle className="flex-wrap">
                               <span className="break-words">{topic.title}</span>
                               {topic.pinned && (
-                                <Badge variant="secondary">
+                                <MetaBadge>
                                   <Pin />
                                   Pinned
-                                </Badge>
+                                </MetaBadge>
                               )}
                               {topic.closed && (
-                                <Badge variant="outline">
+                                <MetaBadge>
                                   <LockKeyhole />
                                   Closed
-                                </Badge>
+                                </MetaBadge>
                               )}
                             </ItemTitle>
                             <ForumTopicPreview
@@ -487,7 +576,7 @@ export function ForumView({ state }: { state: ForumState }) {
                           </ItemContent>
                           <ItemActions>
                             {(topic.unread || 0) > 0 && (
-                              <Badge>{topic.unread} unread</Badge>
+                              <UnreadMark>{topic.unread} unread</UnreadMark>
                             )}
                             {topic.posts !== null && (
                               <span className="hidden text-xs text-muted-foreground sm:inline">
@@ -594,7 +683,13 @@ export function ForumView({ state }: { state: ForumState }) {
                 )}
               {posts.map((post, index) => {
                 const parent = thread.posts.find((p) => p.id === post.parentId);
-                const unread = post.unread && !isMarked;
+                const unread =
+                  post.unread &&
+                  !isMarked &&
+                  !(
+                    threadId &&
+                    readPosts.includes(postReadKey(threadId, post.id))
+                  );
                 const isOriginal = post.id === originalPostId;
                 const firstReply = !isOriginal && index > 0 && posts[index - 1].id === originalPostId;
                 return (
@@ -630,30 +725,48 @@ export function ForumView({ state }: { state: ForumState }) {
                               </AvatarFallback>
                             </Avatar>
                             <div className="min-w-0 flex-1">
-                              <div className="flex flex-wrap items-center gap-2">
+                              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                                 <h2 className="break-words text-sm font-medium">
                                   {post.author}
                                 </h2>
-                                {isOriginal && <Badge variant="outline">Original post</Badge>}
                                 {post.moderator && (
-                                  <Badge variant="secondary">Moderator</Badge>
+                                  <MetaBadge>Moderator</MetaBadge>
                                 )}
-                                {unread && <Badge>Unread</Badge>}
+                                {unread && <UnreadMark />}
                               </div>
                               <p className="mt-1 text-xs text-muted-foreground">
+                                {isOriginal && (
+                                  <span className="font-medium">
+                                    Original post
+                                  </span>
+                                )}
+                                {isOriginal ? " · " : ""}
                                 {post.date || "Date not available"}
                               </p>
+                              {parent && (
+                                <a
+                                  href={`#post-${parent.id}`}
+                                  className="mt-1.5 flex items-center gap-1.5 text-xs text-primary underline-offset-4 hover:underline"
+                                >
+                                  <Reply className="size-3" />
+                                  In reply to {parent.author}
+                                </a>
+                              )}
                             </div>
                           </div>
-                          {parent && (
-                            <a
-                              href={`#post-${parent.id}`}
-                              className="mt-2 flex items-center gap-1.5 text-xs text-primary underline-offset-4 hover:underline"
-                            >
-                              <Reply className="size-3" />
-                              In reply to {parent.author}
-                            </a>
-                          )}
+                          <CardAction>
+                            <Button variant="ghost" size="icon-sm" asChild>
+                              <a
+                                href={demo ? workspace.instance : post.sourceUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label="Open post in ILIAS"
+                                title="Open post in ILIAS"
+                              >
+                                <ArrowUpRight />
+                              </a>
+                            </Button>
+                          </CardAction>
                         </CardHeader>
                         <CardContent className="flex min-w-0 flex-col gap-4">
                           {post.status && (
@@ -701,26 +814,43 @@ export function ForumView({ state }: { state: ForumState }) {
                           <Button variant="link" size="sm" asChild>
                             <a href={`#post-${post.id}`}>#{post.id}</a>
                           </Button>
-                          <div className="flex flex-wrap gap-2">
-                            {post.replyUrl && (
-                              <OriginalLink
-                                compact
-                                href={demo ? workspace.instance : post.replyUrl}
+                          <div className="flex flex-wrap items-center gap-2">
+                            {unread && (demo || post.markReadUrl) && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => markPostRead(post.id)}
+                                disabled={
+                                  markingPost === post.id ||
+                                  marking ||
+                                  pending ||
+                                  !state.writeAllowed
+                                }
                               >
-                                <Reply data-icon="inline-start" />
-                                Reply in ILIAS
-                              </OriginalLink>
+                                {markingPost === post.id ? (
+                                  <Loader2
+                                    data-icon="inline-start"
+                                    className="animate-spin"
+                                  />
+                                ) : (
+                                  <CheckCheck data-icon="inline-start" />
+                                )}
+                                Mark read
+                              </Button>
                             )}
-                            <Button variant="ghost" size="sm" asChild>
-                              <a
-                                href={demo ? workspace.instance : post.sourceUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                Open post in ILIAS
-                                <ArrowUpRight data-icon="inline-end" />
-                              </a>
-                            </Button>
+                            {post.replyUrl && (
+                              <Button variant="outline" size="sm" asChild>
+                                <a
+                                  href={demo ? workspace.instance : post.replyUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <Reply data-icon="inline-start" />
+                                  Reply in ILIAS
+                                  <ArrowUpRight data-icon="inline-end" />
+                                </a>
+                              </Button>
+                            )}
                           </div>
                         </CardFooter>
                       </Card>
@@ -787,9 +917,9 @@ export function ForumView({ state }: { state: ForumState }) {
                 </CardHeader>
                 <CardContent>
                   <p className="text-xs leading-relaxed text-muted-foreground">
-                    Unread badges reflect the loaded ILIAS page. Use “Mark
-                    thread read” when you’re done. Page links load only when you
-                    open them.
+                    Unread markers reflect the loaded ILIAS page. Mark
+                    individual posts read, or mark the whole thread when you’re
+                    done. Page links load only when you open them.
                   </p>
                 </CardContent>
               </Card>
@@ -806,6 +936,20 @@ export function ForumView({ state }: { state: ForumState }) {
             forum.
           </AlertDescription>
         </Alert>
+      )}
+      {firstUnread && (
+        <div className="fixed right-4 bottom-[calc(1.5rem+env(safe-area-inset-bottom))] z-30 sm:right-6 print:hidden">
+          <Button
+            variant="secondary"
+            className="h-10 rounded-full border-border px-4 shadow-lg"
+            asChild
+          >
+            <a href={`#post-${firstUnread.id}`}>
+              <ArrowDown data-icon="inline-start" />
+              Jump to unread
+            </a>
+          </Button>
+        </div>
       )}
     </div>
   );

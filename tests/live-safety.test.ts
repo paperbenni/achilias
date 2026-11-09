@@ -8,7 +8,10 @@ import {
   saveExerciseUnit,
   saveLearnerFeedback,
 } from "../src/lib/ilias/exercise";
-import { markForumThreadRead } from "../src/lib/ilias/forum";
+import {
+  markForumPostRead,
+  markForumThreadRead,
+} from "../src/lib/ilias/forum";
 import {
   exerciseCommand,
   formScopeMatches,
@@ -130,6 +133,9 @@ test("every live mutation and raw POST is rejected before contacting ILIAS when 
   await expect(markForumThreadRead(session, "401", "601")).rejects.toThrow(
     "Live changes are disabled",
   );
+  await expect(
+    markForumPostRead(session, "401", "601", "701"),
+  ).rejects.toThrow("Live changes are disabled");
   await expect(
     fetchUpstream(session, action, { form: new URLSearchParams() }),
   ).rejects.toThrow("Live changes are disabled");

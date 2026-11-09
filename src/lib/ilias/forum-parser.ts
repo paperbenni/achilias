@@ -239,6 +239,10 @@ export function parseForumThread(
     const rowDoc = load(row.html() || "");
     const permalink = new URL(sourceUrl);
     permalink.hash = id;
+    const markReadUrl = action(rowDoc, sourceUrl, ["markpostread"], {
+      threadId,
+      postId: id,
+    });
     posts.push({
       id,
       title: clean(row.find(".ilFrmPostTitle").first().text()),
@@ -248,10 +252,14 @@ export function parseForumThread(
       text: clean(load(body).text()),
       depth,
       parentId,
-      unread: row
-        .find(".ilFrmPostTitle a[href]")
-        .toArray()
-        .some((a) => /cmd=markPostRead/i.test($(a).attr("href") || "")),
+      // A mark-post-read action is ILIAS' own signal that this post is unread.
+      unread:
+        !!markReadUrl ||
+        row
+          .find(".ilFrmPostTitle a[href]")
+          .toArray()
+          .some((a) => /cmd=markPostRead/i.test($(a).attr("href") || "")),
+      markReadUrl,
       moderator: row.hasClass("ilModeratorPosting"),
       status: clean(
         row

@@ -101,6 +101,18 @@ try {
   await page
     .getByRole("textbox", { name: "Search posts on this page" })
     .fill("");
+  const firstUnreadPost = page.locator("#post-1013");
+  await firstUnreadPost
+    .getByRole("button", { name: "Mark read", exact: true })
+    .click();
+  assert.equal(
+    await firstUnreadPost.getByText("Unread", { exact: true }).count(),
+    0,
+  );
+  await page
+    .getByRole("link", { name: "Jump to unread", exact: true })
+    .click();
+  assert.equal(new URL(page.url()).hash, "#post-1014");
   await page
     .getByRole("button", { name: "Mark thread read", exact: true })
     .click();

@@ -15,7 +15,7 @@ import { CompatibilityNotice } from "./compatibility-notice";
 import { crumbFor, demoHref } from "./nav-items";
 import { useNavigationTrail } from "./navigation-trail";
 import { RepositoryLocation } from "./repository-location";
-import { parentCrumb, workspaceCrumbs } from "@/lib/ilias/breadcrumbs";
+import { workspaceCrumbs } from "@/lib/ilias/breadcrumbs";
 import type { ItemListProps } from "./item-list";
 import { useLibrary } from "@/hooks/use-library";
 import { mergeItems } from "@/lib/ilias/library";
@@ -92,14 +92,26 @@ export function WorkspaceView({
   const [selected, setSelected] = useState<Item | null>(null);
   const demo = data.mode === "demo";
   const breadcrumbNav = useRef<HTMLElement>(null);
-  const repositoryCrumbs =
-    view === "browse" || view === "forum" || view === "exercise"
+  const repositoryCrumbs = useMemo(
+    () => view === "browse" || view === "forum" || view === "exercise"
       ? workspaceCrumbs(data.page, demo)
-      : [];
-  const visitedCrumbs = useNavigationTrail(
-    view === "courses" ? "My courses" : crumbFor(view, data.page.title),
-    [{ title: "My courses", href: demoHref("/courses", demo) }],
+      : [],
+    [view, data.page, demo],
   );
+  const hierarchy = useMemo(
+    () => data.page.breadcrumbs?.length ? repositoryCrumbs.slice(1, -1) : undefined,
+    [data.page.breadcrumbs, repositoryCrumbs],
+  );
+  const fallbackTrail = useMemo(
+    () => [{ title: "My courses", href: demoHref("/courses", demo) }],
+    [demo],
+  );
+  const navigation = useNavigationTrail(
+    view === "courses" ? "My courses" : crumbFor(view, data.page.title),
+    fallbackTrail,
+    hierarchy,
+  );
+  const visitedCrumbs = navigation.trail;
   const crumbs = repositoryCrumbs.length ? visitedCrumbs : [];
   const locationAncestors = repositoryCrumbs.slice(1, -1).filter((crumb) => {
     // Browse URLs identify the object by pathname. Extra view/query parameters
@@ -108,7 +120,7 @@ export function WorkspaceView({
     return view !== "browse" || !crumb.href || !current?.href ||
       crumb.href.split("?")[0] !== current.href.split("?")[0];
   });
-  const parent = parentCrumb(crumbs);
+  const parent = navigation.back;
   useEffect(() => {
     const nav = breadcrumbNav.current;
     if (!nav) return;
@@ -405,7 +417,7 @@ export function WorkspaceView({
                 <h1 className="sr-only">Overview</h1>
               ) : (
                 <PageHeading
-                  back={view === "browse" && parent?.href ? { title: parent.title, href: parent.href } : undefined}
+                  back={view === "browse" && parent?.href ? { title: parent.title, href: parent.href, history: navigation.backIsHistory } : undefined}
                   view={view as "browse" | "saved" | "courses"}
                   data={data}
                 />

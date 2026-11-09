@@ -38,6 +38,8 @@ Visited pages are reused for 30 seconds in the browser and in the server process
 
 Workspace routes live in the `(workspace)` route group. Its layout owns the sidebar and account dialogs, so navigation does not remount unchanged chrome; `loading.tsx` sits inside that layout and only replaces the page area. The layout resolves both live and demo metadata; the client shell selects one from the URL because layouts cannot read `searchParams`.
 
+Breadcrumbs are visited ancestors, not a browsing log. The pure model in `src/lib/navigation-trail.ts` reconciles the visited trail with ILIAS' known hierarchy, including restored history entries. Going up or across must not make the previous object a parent of the destination. Full repository context stays in the separate location menu. Back tracks the actual origin independently and uses browser history when known, with a My courses fallback for direct links. Sort order and pagination do not create breadcrumb levels.
+
 ## Local state
 
 Saved items and recent history are scoped to a connection's hashed storage key, with a separate demo key. Restored items are validated, duplicates are removed, and history is bounded. Current server metadata takes precedence over saved copies in search; a saved copy's repository path can still fill a missing `context` without overriding current metadata. Updates operate on the latest snapshot so bookmark and history changes do not overwrite one another.

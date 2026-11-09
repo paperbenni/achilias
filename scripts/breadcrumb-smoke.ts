@@ -28,9 +28,9 @@ try {
   await page.getByRole("link", { name: "Back to " + course, exact: true }).waitFor();
   await page.getByRole("link", { name: "Back to " + course, exact: true }).click();
   await page.getByRole("link", { name: "Back to My courses", exact: true }).waitFor();
-  await page.goBack();
-  await page.getByRole("link", { name: "Back to " + course, exact: true }).waitFor();
   await page.goForward();
+  await page.getByRole("link", { name: "Back to " + course, exact: true }).waitFor();
+  await page.goBack();
   await page.getByRole("link", { name: "Back to My courses", exact: true }).waitFor();
 
   // Opening a folder directly should not pretend its course was visited.
@@ -40,8 +40,20 @@ try {
   await direct.getByRole("link", { name: "Back to My courses", exact: true }).waitFor();
   assert.equal(await directNav.getByRole("button", { name: "Show ILIAS location" }).count(), 0);
   await direct.getByRole("button", { name: "Show ILIAS location" }).click();
-  await direct.getByRole("menuitem", { name: course, exact: true }).waitFor();
-  await direct.keyboard.press("Escape");
+  await direct.getByRole("menuitem", { name: course, exact: true }).click();
+  await direct.waitForURL("**/browse/crs/101?demo=1");
+  // Visiting an unvisited ancestor is going up, not descending into the folder.
+  await direct.getByRole("link", { name: "Back to Lecture materials", exact: true }).waitFor();
+  assert.equal((await directNav.innerText()).includes("Lecture materials"), false);
+  await direct.reload();
+  await direct.getByRole("link", { name: "Back to Lecture materials", exact: true }).waitFor();
+  assert.equal((await directNav.innerText()).includes("Lecture materials"), false);
+  await direct.goBack();
+  await direct.waitForURL("**/browse/fold/201?demo=1");
+  await direct.getByRole("link", { name: "Back to My courses", exact: true }).waitFor();
+  assert.equal((await directNav.innerText()).includes(course), false);
+  await direct.goForward();
+  await direct.getByRole("link", { name: "Back to Lecture materials", exact: true }).waitFor();
   await direct.close();
 
   // Sidebar entry points start a fresh trail.

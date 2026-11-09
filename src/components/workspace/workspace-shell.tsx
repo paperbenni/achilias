@@ -10,6 +10,7 @@ import {
   type SetStateAction,
 } from "react";
 import { useSearchParams } from "next/navigation";
+import { NavigationTrailProvider } from "./navigation-trail";
 import { Navigation } from "./navigation";
 import { ConnectDialog } from "./connect-dialog";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -49,6 +50,7 @@ export function WorkspaceShell({
 }) {
   const searchParams = useSearchParams();
   const data = searchParams.get("demo") === "1" ? demo : live;
+  const navigationScope = JSON.stringify([data.mode, data.storageKey, data.instance]);
   const [searchOpen, setSearchOpen] = useState(false);
   const [connectOpen, setConnectOpen] = useState(false);
   const value = useMemo(
@@ -65,16 +67,21 @@ export function WorkspaceShell({
     );
   return (
     <WorkspaceShellContext.Provider value={value}>
-      <SidebarProvider>
-        <Navigation data={data} openSearch={() => setSearchOpen(true)} />
-        {children}
-        <ConnectDialog
-          key={data.mode}
-          open={connectOpen}
-          onOpenChange={setConnectOpen}
-          instance={data.instance}
-        />
-      </SidebarProvider>
+      <NavigationTrailProvider
+        key={navigationScope}
+        scope={navigationScope}
+      >
+        <SidebarProvider>
+          <Navigation data={data} openSearch={() => setSearchOpen(true)} />
+          {children}
+          <ConnectDialog
+            key={data.mode}
+            open={connectOpen}
+            onOpenChange={setConnectOpen}
+            instance={data.instance}
+          />
+        </SidebarProvider>
+      </NavigationTrailProvider>
     </WorkspaceShellContext.Provider>
   );
 }

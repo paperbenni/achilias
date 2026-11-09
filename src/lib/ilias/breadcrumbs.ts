@@ -10,9 +10,9 @@ const rootTitle =
   /^(?:repository|magazin|dashboard|personal workspace|mein arbeitsbereich|workspace)$/i;
 
 /**
- * Turn ILIAS' repository path into the app's own trail. ILIAS starts at the
- * repository root; Achilias starts at "My courses", which is the page users
- * actually browse from. The last crumb is the current page.
+ * Map ILIAS repository ancestors to app links for the optional location menu.
+ * This is structural context, not the path the user took to the page.
+ * The synthetic "My courses" root also serves as a direct-link fallback.
  */
 export function workspaceCrumbs(
   page: IliasPage,

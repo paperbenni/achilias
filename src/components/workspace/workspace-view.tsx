@@ -13,6 +13,8 @@ import { EmptyState } from "./empty-state";
 import { LoadErrorAlert } from "./error-alert";
 import { CompatibilityNotice } from "./compatibility-notice";
 import { crumbFor, demoHref } from "./nav-items";
+import { useNavigationTrail } from "./navigation-trail";
+import { RepositoryLocation } from "./repository-location";
 import { parentCrumb, workspaceCrumbs } from "@/lib/ilias/breadcrumbs";
 import type { ItemListProps } from "./item-list";
 import { useLibrary } from "@/hooks/use-library";
@@ -91,10 +93,18 @@ export function WorkspaceView({
   const [selected, setSelected] = useState<Item | null>(null);
   const demo = data.mode === "demo";
   const breadcrumbNav = useRef<HTMLElement>(null);
-  const crumbs =
+  const repositoryCrumbs =
     view === "browse" || view === "forum" || view === "exercise"
       ? workspaceCrumbs(data.page, demo)
       : [];
+  const visitedCrumbs = useNavigationTrail(
+    view === "courses" ? "My courses" : crumbFor(view, data.page.title),
+    [{ title: "My courses", href: demoHref("/courses", demo) }],
+  );
+  const crumbs = repositoryCrumbs.length ? visitedCrumbs : [];
+  const hiddenAncestors = repositoryCrumbs.slice(1, -1).filter(
+    (crumb) => !visitedCrumbs.some((visited) => crumb.href ? visited.href === crumb.href : visited.title === crumb.title),
+  );
   const parent = parentCrumb(crumbs);
   useEffect(() => {
     const nav = breadcrumbNav.current;
@@ -249,16 +259,16 @@ export function WorkspaceView({
                         aria-current={current ? "page" : undefined}
                         className="flex shrink-0 items-center gap-3"
                       >
+                        {current && hiddenAncestors.length > 0 && (
+                          <>
+                            <ChevronRight className="size-3 shrink-0 text-muted-foreground" aria-hidden="true" />
+                            <RepositoryLocation crumbs={hiddenAncestors} />
+                          </>
+                        )}
                         <ChevronRight
                           className="size-3 shrink-0 text-muted-foreground"
                           aria-hidden="true"
                         />
-                        {index === 0 && (
-                          <GraduationCap
-                            className="size-3.5 shrink-0 text-muted-foreground"
-                            aria-hidden="true"
-                          />
-                        )}
                         {current || !crumb.href ? (
                           <span
                             className={`max-w-[40vw] truncate text-sm sm:max-w-96 ${current ? "font-medium" : "text-muted-foreground"}`}

@@ -295,3 +295,23 @@ body {
     @apply bg-muted font-medium;
   }
 }
+
+/* One keyboard-focus treatment for native controls and shadcn primitives.
+   Keep this outside layers so component ring utilities cannot double it up. */
+:is(a[href], button, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-ring-offset-shadow: 0 0 #0000;
+  transition-property: color, background-color, opacity;
+}
+
+/* Stretched links focus the resource boundary, outside its clipping region.
+   Focusing a secondary action outlines only that action, never the whole card. */
+:is(a[href], button).resource-primary:focus-visible {
+  outline: none;
+}
+:is(.course-card, .resource-row):has(.resource-primary:focus-visible) {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}

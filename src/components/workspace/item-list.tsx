@@ -94,6 +94,23 @@ export function ItemList({
               >
                 <Icon className="size-6" />
               </span>
+              {item.type !== "crs" && (
+                <CardDescription>
+                  {typeNames[item.type] || "ILIAS object"}
+                </CardDescription>
+              )}
+              <CardTitle className="col-span-2 min-w-0">
+                <ItemAction
+                  textLink
+                  className="resource-primary inline-flex gap-1 after:absolute after:inset-0 after:rounded-xl"
+                  item={item}
+                  demo={demo}
+                  onOpen={onOpen}
+                  onVisit={onVisit}
+                >
+                  {item.title}
+                </ItemAction>
+              </CardTitle>
               <CardAction className="relative z-10 flex items-center gap-1">
                 {item.meta && (
                   <Tooltip>
@@ -126,23 +143,6 @@ export function ItemList({
                   </TooltipContent>
                 </Tooltip>
               </CardAction>
-              {item.type !== "crs" && (
-                <CardDescription>
-                  {typeNames[item.type] || "ILIAS object"}
-                </CardDescription>
-              )}
-              <CardTitle className="col-span-2 min-w-0">
-                <ItemAction
-                  textLink
-                  className="inline-flex gap-1 after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
-                  item={item}
-                  demo={demo}
-                  onOpen={onOpen}
-                  onVisit={onVisit}
-                >
-                  {item.title}
-                </ItemAction>
-              </CardTitle>
             </CardHeader>
             {(cardSummary || item.context) && (
               <CardContent>
@@ -179,7 +179,7 @@ export function ItemList({
               <ItemTitle className="max-w-full">
                 <ItemAction
                   textLink
-                  className="resource-title hover:underline px-0 after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
+                  className="resource-primary resource-title hover:underline px-0 after:absolute after:inset-0 after:rounded-lg"
                   item={item}
                   demo={demo}
                   onOpen={onOpen}

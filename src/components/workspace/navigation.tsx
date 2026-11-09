@@ -1,4 +1,5 @@
 "use client";
+import { KeyboardShortcuts } from "./keyboard-shortcuts";
 import { AppearanceMenu } from "@/components/navigation/appearance-menu";
 
 import Link from "next/link";
@@ -132,6 +133,9 @@ export function Navigation({
         </SidebarGroup>
         <SidebarGroup className="mt-auto">
           <SidebarMenu>
+            <SidebarMenuItem>
+              <KeyboardShortcuts openSearch={openSearch} />
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link

@@ -102,9 +102,13 @@ export function WorkspaceView({
     [{ title: "My courses", href: demoHref("/courses", demo) }],
   );
   const crumbs = repositoryCrumbs.length ? visitedCrumbs : [];
-  const hiddenAncestors = repositoryCrumbs.slice(1, -1).filter(
-    (crumb) => !visitedCrumbs.some((visited) => crumb.href ? visited.href === crumb.href : visited.title === crumb.title),
-  );
+  const locationAncestors = repositoryCrumbs.slice(1, -1).filter((crumb) => {
+    // Browse URLs identify the object by pathname. Extra view/query parameters
+    // must not make the current folder appear again as its own ancestor.
+    const current = visitedCrumbs.at(-1);
+    return view !== "browse" || !crumb.href || !current?.href ||
+      crumb.href.split("?")[0] !== current.href.split("?")[0];
+  });
   const parent = parentCrumb(crumbs);
   useEffect(() => {
     const nav = breadcrumbNav.current;
@@ -259,12 +263,6 @@ export function WorkspaceView({
                         aria-current={current ? "page" : undefined}
                         className="flex shrink-0 items-center gap-3"
                       >
-                        {current && hiddenAncestors.length > 0 && (
-                          <>
-                            <ChevronRight className="size-3 shrink-0 text-muted-foreground" aria-hidden="true" />
-                            <RepositoryLocation crumbs={hiddenAncestors} />
-                          </>
-                        )}
                         <ChevronRight
                           className="size-3 shrink-0 text-muted-foreground"
                           aria-hidden="true"
@@ -325,6 +323,9 @@ export function WorkspaceView({
                 )}
               </ol>
             </nav>
+            {locationAncestors.length > 0 && (
+              <RepositoryLocation crumbs={locationAncestors} />
+            )}
           </div>
           <div className="flex items-center gap-3">
             <Button

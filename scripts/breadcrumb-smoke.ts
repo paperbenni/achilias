@@ -18,6 +18,12 @@ try {
   assert.equal(await nav.getByRole("button", { name: "Show ILIAS location" }).count(), 0);
   await page.getByRole("main").getByRole("link", { name: "Lecture materials", exact: true }).click();
   await page.getByRole("link", { name: "Back to " + course, exact: true }).waitFor();
+  assert.equal(await nav.getByRole("button", { name: "Show ILIAS location" }).count(), 0);
+  assert.equal(await nav.locator('[aria-current="page"]').innerText(), "Lecture materials");
+  await page.getByRole("button", { name: "Show ILIAS location" }).click();
+  await page.getByRole("menuitem", { name: course, exact: true }).waitFor();
+  await page.keyboard.press("Escape");
+  await page.getByRole("menu").waitFor({ state: "hidden" });
   await page.reload();
   await page.getByRole("link", { name: "Back to " + course, exact: true }).waitFor();
   await page.getByRole("link", { name: "Back to " + course, exact: true }).click();
@@ -32,7 +38,8 @@ try {
   await direct.goto(origin + "/browse/fold/201?demo=1");
   const directNav = direct.getByRole("navigation", { name: "Breadcrumb", exact: true });
   await direct.getByRole("link", { name: "Back to My courses", exact: true }).waitFor();
-  await directNav.getByRole("button", { name: "Show ILIAS location" }).click();
+  assert.equal(await directNav.getByRole("button", { name: "Show ILIAS location" }).count(), 0);
+  await direct.getByRole("button", { name: "Show ILIAS location" }).click();
   await direct.getByRole("menuitem", { name: course, exact: true }).waitFor();
   await direct.keyboard.press("Escape");
   await direct.close();

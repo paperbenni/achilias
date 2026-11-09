@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Ellipsis } from "lucide-react";
+import { FolderTree } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -14,8 +14,15 @@ export function RepositoryLocation({ crumbs }: { crumbs: WorkspaceCrumb[] }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon-sm" aria-label="Show ILIAS location">
-          <Ellipsis />
+        <Button
+          variant="ghost"
+          size="sm"
+          className="shrink-0 text-muted-foreground"
+          aria-label="Show ILIAS location"
+          title="Show ILIAS location"
+        >
+          <FolderTree />
+          <span className="hidden lg:inline">ILIAS location</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="max-h-80 max-w-[min(90vw,24rem)] overflow-y-auto">

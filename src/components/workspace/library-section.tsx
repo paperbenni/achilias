@@ -1,7 +1,7 @@
 "use client";
 import { sortItems } from "@/lib/ilias/item-sort";
 import type { Library } from "@/lib/ilias/library";
-import { SortControl, SortDescription, useItemSortPreference } from "./sort-control";
+import { SortControl, useItemSortPreference } from "./sort-control";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowRight, Search } from "lucide-react";
@@ -106,7 +106,6 @@ export function LibrarySection({
           <LayoutToggle layout={layout} onLayoutChange={onLayoutChange} />
         </div>
       </div>
-      {view !== "saved" && <SortDescription sort={sort} />}
       {view === "saved" ? (
         items.length ? (
           <ItemList {...itemProps} items={items} />

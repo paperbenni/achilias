@@ -1,5 +1,5 @@
 "use client";
-import { SortControl, SortDescription, useItemSortPreference } from "./sort-control";
+import { SortControl, useItemSortPreference } from "./sort-control";
 import { sortItems } from "@/lib/ilias/item-sort";
 import type { Library } from "@/lib/ilias/library";
 import type { ReactNode } from "react";
@@ -88,6 +88,7 @@ export function BrowseTabs({
         : objectType === "fold"
           ? "folder"
           : "course";
+  const [tab, setTab] = useState("materials");
   const { sort, onSortChange } = useItemSortPreference(data.storageKey || data.mode, "materials");
   const trimmedQuery = query.trim();
   const [deepSearch, setDeepSearch] = useState<DeepSearch | null>(null);
@@ -190,21 +191,44 @@ export function BrowseTabs({
   );
 
   return (
-    <Tabs defaultValue="materials">
+    <Tabs value={tab} onValueChange={setTab}>
       <GuestMembershipAlert
         page={data.page}
         sourceUrl={source}
         objectType={objectType}
       />
-      <TabsList>
-        <TabsTrigger value="materials">
-          Materials <Badge variant="secondary">{total}</Badge>
-        </TabsTrigger>
-        <TabsTrigger value="information">Course information</TabsTrigger>
-        <TabsTrigger value="tools">
-          ILIAS tools <ArrowUpRight />
-        </TabsTrigger>
-      </TabsList>
+      <div className="flex flex-wrap items-center gap-3">
+        <TabsList>
+          <TabsTrigger value="materials">
+            Materials <Badge variant="secondary">{total}</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="information">Details</TabsTrigger>
+          <TabsTrigger value="tools">
+            Tools <ArrowUpRight />
+          </TabsTrigger>
+        </TabsList>
+        {tab === "materials" && (
+          <div className="flex w-full min-w-0 flex-wrap items-center justify-end gap-2 lg:w-auto lg:flex-1">
+            <div className="w-full min-w-0 sm:w-56 sm:flex-1 lg:max-w-xs">
+              <InputGroup>
+                <InputGroupAddon>
+                  <Search />
+                </InputGroupAddon>
+                <InputGroupInput
+                  placeholder="Filter materials…"
+                  aria-label="Filter materials"
+                  value={query}
+                  onChange={(e) => changeQuery(e.target.value)}
+                />
+              </InputGroup>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <SortControl sort={sort} onSortChange={onSortChange} label="Sort materials" />
+              <LayoutToggle layout={layout} onLayoutChange={onLayoutChange} />
+            </div>
+          </div>
+        )}
+      </div>
       <TabsContent value="information" className="mt-6">
         <Card>
           <CardHeader>
@@ -216,6 +240,9 @@ export function BrowseTabs({
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
+            {data.page.description && (
+              <p className="text-sm leading-relaxed text-muted-foreground">{data.page.description}</p>
+            )}
             {data.page.text.length ? (
               data.page.text.map((p, i) => (
                 <p
@@ -259,29 +286,7 @@ export function BrowseTabs({
           </CardContent>
         </Card>
       </TabsContent>
-      <TabsContent value="materials" className="mt-6">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <div className="w-full max-w-md">
-            <InputGroup>
-              <InputGroupAddon>
-                <Search />
-              </InputGroupAddon>
-              <InputGroupInput
-                placeholder="Find something in this space…"
-                aria-label="Filter materials"
-                value={query}
-                onChange={(e) => changeQuery(e.target.value)}
-              />
-            </InputGroup>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <SortControl sort={sort} onSortChange={onSortChange} label="Sort materials" />
-            <LayoutToggle layout={layout} onLayoutChange={onLayoutChange} />
-          </div>
-        </div>
-        {["frecency", "recent", "frequent"].includes(sort) && (
-          <div className="mb-4"><SortDescription sort={sort} /></div>
-        )}
+      <TabsContent value="materials" className="mt-2">
         {items.length ? (
           <ItemList {...itemProps} items={sortItems(items, sort, library)} grid />
         ) : readyDeep ? (

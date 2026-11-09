@@ -33,7 +33,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
   ArrowRight,
   ArrowUpRight,
   Bookmark,
@@ -231,7 +230,7 @@ export function WorkspaceView({
         Skip to content
       </a>
       <SidebarInset>
-        <header className="flex h-20 shrink-0 items-center justify-between gap-4 border-b px-5 lg:px-10">
+        <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b px-5 lg:px-10">
           <div className="flex min-w-0 items-center gap-3">
             <SidebarTrigger className="md:hidden" />
             <nav
@@ -337,19 +336,25 @@ export function WorkspaceView({
               <Search />
             </Button>
             {demo ? (
-              <Badge variant="secondary" className="hidden sm:inline-flex">
-                Demo workspace
-              </Badge>
+              view === "browse" ? (
+                <Button variant="outline" size="sm" className="hidden sm:inline-flex" onClick={() => setConnectOpen(true)}>
+                  Demo · Sign in
+                </Button>
+              ) : (
+                <Badge variant="secondary" className="hidden sm:inline-flex">
+                  Demo workspace
+                </Badge>
+              )
             ) : null}
           </div>
         </header>
         <div
           id="main-content"
           tabIndex={-1}
-          className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-5 py-8 lg:px-10 lg:py-10"
+          className={`mx-auto flex w-full max-w-7xl flex-col px-5 lg:px-10 ${view === "browse" ? "gap-4 py-5 lg:py-6" : "gap-8 py-8 lg:py-10"}`}
         >
           <CompatibilityNotice data={data} />
-          {demo && (
+          {demo && view !== "browse" && (
             <Alert>
               <Sparkles />
               <AlertTitle>You’re exploring a demo</AlertTitle>
@@ -396,22 +401,11 @@ export function WorkspaceView({
             />
           ) : (
             <>
-              {view === "browse" && parent?.href && (
-                <Button
-                  variant="ghost"
-                  className="h-auto w-fit max-w-full justify-start whitespace-normal py-2 text-left"
-                  asChild
-                >
-                  <Link prefetch={demo} href={parent.href}>
-                    <ArrowLeft data-icon="inline-start" />
-                    Back to {parent.title}
-                  </Link>
-                </Button>
-              )}
               {view === "home" ? (
                 <h1 className="sr-only">Overview</h1>
               ) : (
                 <PageHeading
+                  back={view === "browse" && parent?.href ? { title: parent.title, href: parent.href } : undefined}
                   view={view as "browse" | "saved" | "courses"}
                   data={data}
                 />

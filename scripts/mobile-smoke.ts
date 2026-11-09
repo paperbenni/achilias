@@ -77,7 +77,7 @@ try {
   await touchTarget(page.getByRole("button", { name: "Toggle Sidebar", exact: true }));
   await touchTarget(page.getByRole("button", { name: "Bookmark Lecture materials", exact: true }));
   // The last tab must be reachable without making the whole page scroll.
-  await page.getByRole("tab", { name: "ILIAS tools", exact: true }).tap();
+  await page.getByRole("tab", { name: "Tools", exact: true }).tap();
   await page.getByText("Course tools in ILIAS", { exact: true }).waitFor();
   await fitsPage();
 

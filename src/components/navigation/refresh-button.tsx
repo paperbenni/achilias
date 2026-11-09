@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { refreshWorkspace } from "@/app/actions/workspace";
 import { cn } from "@/lib/utils";
 
-export function RefreshButton() {
+export function RefreshButton({ iconOnly = false }: { iconOnly?: boolean }) {
   const [pending, startTransition] = useTransition();
   return (
     <Button
       variant="ghost"
+      size={iconOnly ? "icon" : "default"}
       disabled={pending}
       onClick={() =>
         startTransition(async () => {
@@ -26,7 +27,7 @@ export function RefreshButton() {
         data-icon="inline-start"
         className={cn(pending && "animate-spin")}
       />
-      {pending ? "Refreshing" : "Refresh"}
+      <span className={iconOnly ? "sr-only" : undefined}>{pending ? "Refreshing" : "Refresh"}</span>
     </Button>
   );
 }

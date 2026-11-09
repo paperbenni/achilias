@@ -130,9 +130,9 @@ try {
       exact: true,
     })
     .click();
-  await page.getByRole("tab", { name: "Course information" }).click();
+  await page.getByRole("tab", { name: "Details" }).click();
   await page.getByText("Office hours: Tuesdays", { exact: false }).waitFor();
-  await page.getByRole("tab", { name: "ILIAS tools" }).click();
+  await page.getByRole("tab", { name: "Tools" }).click();
   await page.getByRole("link", { name: "Members", exact: false }).waitFor();
   await page.getByRole("tab", { name: "Materials 5" }).click();
   await page

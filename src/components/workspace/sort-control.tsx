@@ -26,17 +26,12 @@ export function SortControl({ sort, onSortChange, label }: {
         {itemSortOptions.map(([value, label]) => (
           <SelectItem key={value} value={value}>{label}</SelectItem>
         ))}
+        <div className="max-w-64 border-t px-2 py-2">
+          <p className="text-xs text-muted-foreground">
+            Usage is local to this browser. Frecency favors frequent and recent opens.
+          </p>
+        </div>
       </SelectContent>
     </Select>
-  );
-}
-
-export function SortDescription({ sort }: { sort: ItemSort }) {
-  if (!["frecency", "recent", "frequent"].includes(sort)) return null;
-  return (
-    <p className="text-xs text-muted-foreground">
-      {sort === "frecency" ? "Frequent and recent opens rank higher; older activity fades. " : ""}
-      Based on items you open in this browser.
-    </p>
   );
 }

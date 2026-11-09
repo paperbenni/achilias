@@ -296,8 +296,7 @@ body {
   }
 }
 
-/* Shared keyboard-focus treatment. Compound inputs draw focus on their
-   rounded group boundary rather than the rectangular input inside it.
+/* Shared keyboard-focus treatment for controls.
    Keep this outside layers so component ring utilities cannot double it up. */
 :is(a[href], button, input, textarea, select, [tabindex]):focus-visible {
   outline: 2px solid var(--primary);
@@ -320,9 +319,10 @@ body {
 :is(input, textarea):is([data-slot="input-group-control"], [data-slot="command-input"]):focus-visible {
   outline: none;
 }
-[data-slot="input-group"]:has(:is(input, textarea):focus-visible) {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
+/* Compound text fields use the caret without an additional focus frame. */
+[data-slot="input-group"]:has(:is(input, textarea):focus) {
+  outline: none;
+  box-shadow: none;
   --tw-ring-shadow: 0 0 #0000;
   --tw-ring-offset-shadow: 0 0 #0000;
 }

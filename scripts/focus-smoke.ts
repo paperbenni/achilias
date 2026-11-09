@@ -16,14 +16,14 @@ try {
       return {
         outline: style.outlineStyle,
         groupOutline: groupStyle.outlineStyle,
-        groupWidth: groupStyle.outlineWidth,
+        groupShadow: groupStyle.boxShadow,
         radius: groupStyle.borderRadius,
         inside: rect.left >= bounds.left && rect.right <= bounds.right,
       };
     });
     assert.equal(styles.outline, "none", "Inner input should not draw a second rectangle");
-    assert.equal(styles.groupOutline, "solid");
-    assert.equal(styles.groupWidth, "2px");
+    assert.equal(styles.groupOutline, "none");
+    assert.ok(styles.groupShadow === "none" || !styles.groupShadow.replaceAll("rgba(0, 0, 0, 0)", "").match(/[1-9]/), "No visible focus shadow");
     assert.notEqual(styles.radius, "0px");
     assert.equal(styles.inside, true);
   }

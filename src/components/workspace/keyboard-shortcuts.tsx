@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { Keyboard } from "lucide-react";
 import { SidebarMenuButton } from "@/components/ui/sidebar";
 import {
@@ -171,7 +172,7 @@ export function KeyboardShortcuts({ openSearch }: { openSearch: () => void }) {
           </label>
         </DialogContent>
       </Dialog>
-      {hints.length > 0 && (
+      {hints.length > 0 && createPortal(
         <div className="pointer-events-none fixed inset-0 z-[60]" aria-hidden="true">
           {hints.filter((hint) => hint.label.startsWith(prefix)).map((hint) => (
             <kbd key={hint.label} style={{ left: hint.x, top: hint.y }}
@@ -182,7 +183,8 @@ export function KeyboardShortcuts({ openSearch }: { openSearch: () => void }) {
           <div role="status" className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded bg-popover px-3 py-2 text-sm text-popover-foreground shadow">
             Type a hint to activate · Esc to cancel
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );

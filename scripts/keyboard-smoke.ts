@@ -31,10 +31,12 @@ try {
   await page.keyboard.press("f");
   const hint = page.locator("kbd").filter({ hasText: /^a+$/ }).last();
   await hint.waitFor();
+  assert.equal(await hint.evaluate((el) => el.parentElement?.parentElement === document.body), true, "Hints must escape the sidebar stacking context");
   await page.keyboard.press("Escape");
   await page.waitForTimeout(250);
   await page.keyboard.press("f");
   await hint.waitFor();
+  assert.equal(await hint.evaluate((el) => el.parentElement?.parentElement === document.body), true, "Hints must escape the sidebar stacking context");
   const searchHint = await page.evaluate(() => {
     const button = Array.from(document.querySelectorAll("button")).find((el) => el.textContent?.includes("Quick search"))!;
     const rect = button.getBoundingClientRect();

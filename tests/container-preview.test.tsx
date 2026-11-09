@@ -35,7 +35,7 @@ const item = (id: string, title: string) => `
 `;
 
 test("previews the first listing page of a category with bounded entries", async () => {
-  upstreamTransport.fetch = (async (input: URL | RequestInfo) => {
+  upstreamTransport.fetch = async (input) => {
     const url = new URL(String(input));
     expect(url.searchParams.get("target")).toBe("cat_1056902");
     return new Response(
@@ -49,7 +49,7 @@ test("previews the first listing page of a category with bounded entries", async
       ),
       { headers: { "content-type": "text/html" } },
     );
-  }) as typeof fetch;
+  };
 
   const preview = await getContainerPreview(account, "cat", "1056902");
   expect(preview.count).toBe(4);
@@ -63,10 +63,10 @@ test("previews the first listing page of a category with bounded entries", async
 });
 
 test("an empty category reports that no visible items were found", async () => {
-  upstreamTransport.fetch = (async () =>
+  upstreamTransport.fetch = async () =>
     new Response(listing(""), {
       headers: { "content-type": "text/html" },
-    })) as typeof fetch;
+    });
 
   const preview = await getContainerPreview(account, "cat", "1056903");
   expect(preview).toEqual({
@@ -79,7 +79,7 @@ test("an empty category reports that no visible items were found", async () => {
 
 test("previews reject non-containers and redirected pages", async () => {
   let calls = 0;
-  upstreamTransport.fetch = (async (input: URL | RequestInfo) => {
+  upstreamTransport.fetch = async (input) => {
     calls++;
     const url = new URL(String(input));
     if (url.pathname.endsWith("goto.php"))
@@ -90,7 +90,7 @@ test("previews reject non-containers and redirected pages", async () => {
     return new Response(listing(""), {
       headers: { "content-type": "text/html" },
     });
-  }) as typeof fetch;
+  };
 
   await expect(getContainerPreview(account, "crs", "1056904")).rejects.toThrow(
     "Invalid category or folder",

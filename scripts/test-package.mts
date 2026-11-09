@@ -36,7 +36,7 @@ export async function testPackage(archive: string) {
     assert(!bundle.includes(root), "The CLI embeds a build-machine path.");
 
     for (const runtime of [node, process.execPath]) {
-      const label = runtime === node ? "Node" : "Bun";
+      const label: string = runtime === node ? "Node" : "Bun";
       // Ignore checkout configuration; every run owns disposable user data.
       const env = Object.fromEntries(
         Object.entries(process.env).filter(

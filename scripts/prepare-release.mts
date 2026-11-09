@@ -22,7 +22,11 @@ try {
     ["pack", "--ignore-scripts", "--json", "--pack-destination", staging],
     { cwd: root },
   );
-  const [{ filename }] = JSON.parse(packed.stdout) as { filename: string }[];
+  // npm returns an array on older versions and a package-name map on npm 12.
+  const packages = JSON.parse(packed.stdout) as
+    | { filename: string }[]
+    | Record<string, { filename: string }>;
+  const [{ filename }] = Object.values(packages);
   const archive = path.join(staging, filename);
   await testPackage(archive);
   await mkdir(destination, { recursive: true });

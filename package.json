@@ -40,6 +40,7 @@
     "test:exercises": "bun scripts/exercise-smoke.ts",
     "test:multi-user": "bun scripts/multi-user-smoke.ts",
     "test:forms": "bun scripts/form-serialization-smoke.ts",
+    "test:browse-search": "bun scripts/browse-search-smoke.ts",
     "test:search": "bun scripts/search-smoke.ts && bun scripts/search-discovery-smoke.ts",
     "test:search-prefetch": "bun scripts/search-prefetch-smoke.ts",
     "test:pdf-theme": "bun scripts/pdf-theme-smoke.ts",

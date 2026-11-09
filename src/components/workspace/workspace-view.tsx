@@ -68,10 +68,12 @@ export function WorkspaceView({
   data,
   view = "home",
   objectType,
+  objectId,
   children,
 }: {
   children?: React.ReactNode;
   data: Workspace;
+  objectId?: string;
   objectType?: string;
   view?: WorkspaceViewName;
 }) {
@@ -192,12 +194,14 @@ export function WorkspaceView({
   const renderEmpty = (
     title = "No items found",
     description = "Check the original ILIAS page if you expected items.",
+    action?: React.ReactNode,
   ) => (
     <EmptyState
       title={title}
       description={description}
       showOriginal={view !== "saved" && data.mode === "live"}
       sourceUrl={source}
+      action={action}
     />
   );
   if (data.mode === "disconnected")
@@ -479,9 +483,13 @@ export function WorkspaceView({
                   )}
                   {view === "browse" && (
                     <BrowseTabs
+                      // Reset scoped results and abort pending searches when
+                      // navigating to another container or account.
+                      key={JSON.stringify([data.mode, data.storageKey, data.instance, objectType, objectId])}
                       data={data}
                       demo={demo}
                       source={source}
+                      objectId={objectId}
                       query={query}
                       onQueryChange={setQuery}
                       items={items}

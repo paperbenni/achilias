@@ -18,6 +18,7 @@ export default async function Browse({
       data={await getWorkspace(demo === "1", type, id)}
       view="browse"
       objectType={type}
+      objectId={id}
     />
   );
 }

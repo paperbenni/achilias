@@ -1,4 +1,5 @@
 "use client";
+import type { ReactNode } from "react";
 import { BookOpen } from "lucide-react";
 import {
   Empty,
@@ -16,11 +17,13 @@ export function EmptyState({
   description,
   showOriginal,
   sourceUrl,
+  action,
 }: {
   title: string;
   description: string;
   showOriginal: boolean;
   sourceUrl: string;
+  action?: ReactNode;
 }) {
   return (
     <Empty className="min-h-48 border">
@@ -31,9 +34,12 @@ export function EmptyState({
         <EmptyTitle>{title}</EmptyTitle>
         <EmptyDescription>{description}</EmptyDescription>
       </EmptyHeader>
-      {showOriginal && (
+      {(showOriginal || action) && (
         <EmptyContent>
-          <OriginalLink href={sourceUrl}>Check in ILIAS</OriginalLink>
+          {action}
+          {showOriginal && (
+            <OriginalLink href={sourceUrl}>Check in ILIAS</OriginalLink>
+          )}
         </EmptyContent>
       )}
     </Empty>

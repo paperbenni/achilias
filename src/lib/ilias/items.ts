@@ -44,6 +44,11 @@ export function isSupportedItemType(type: string) {
   const kind = objectTypes[type]?.kind;
   return !!kind && kind !== "external";
 }
+/** Categories and folders are opened for previews; courses and groups can
+ * record access state or have much heavier pages, so leave them untouched. */
+export function isPreviewableContainer(type: string) {
+  return type === "cat" || type === "fold";
+}
 export function isNavigableItem(item: Item) {
   return (
     item.available &&

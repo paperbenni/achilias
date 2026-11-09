@@ -9,6 +9,17 @@ export type Item = {
   sourceUrl: string;
   available: boolean;
 };
+/** A read-only peek at a category's or folder's first listing page. */
+export type ContainerPreviewData = {
+  /** Number of items on the listing page that was read. */
+  count: number;
+  /** The first few items, enough for a compact card preview. */
+  items: Pick<Item, "type" | "title">[];
+  /** Items exist beyond the ones included in this preview. */
+  truncated: boolean;
+  /** ILIAS paginates the listing, so it may contain more than `count`. */
+  hasMore: boolean;
+};
 export type Tool = { title: string; url: string };
 export type Breadcrumb = {
   title: string;

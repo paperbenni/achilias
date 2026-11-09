@@ -12,7 +12,7 @@ import type { IliasPage, Workspace } from "./types";
  * not open the requested object. Comparing the final reference prevents a
  * failed course request from rendering an unrelated page as course content.
  */
-function pageMatchesObject(page: IliasPage, type: string, id: string) {
+export function pageMatchesObject(page: IliasPage, type: string, id: string) {
   try {
     const url = new URL(page.sourceUrl);
     const ref = url.searchParams.get("ref_id");

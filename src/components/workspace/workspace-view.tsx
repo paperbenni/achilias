@@ -184,6 +184,7 @@ export function WorkspaceView({
     layout,
     saved: local.saved,
     demo,
+    connection: data.storageKey,
     onOpen: openItem,
     onVisit: rememberItem,
     onToggleSave: toggleSave,

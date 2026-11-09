@@ -23,6 +23,7 @@ import {
 import {
   isContainerType,
   isExternalItem,
+  isPreviewableContainer,
   isSupportedItemType,
   itemKey,
   typeNames,
@@ -40,6 +41,7 @@ import {
 } from "@/components/ui/item";
 import { ItemAction } from "@/components/navigation/item-action";
 
+import { ContainerPreview } from "./container-preview";
 import { iconFor } from "./item-icon";
 export function ItemList({
   items: list,
@@ -47,6 +49,7 @@ export function ItemList({
   layout,
   saved,
   demo,
+  connection,
   onOpen,
   onVisit,
   onToggleSave,
@@ -56,6 +59,7 @@ export function ItemList({
   layout: string;
   saved: Item[];
   demo: boolean;
+  connection?: string;
   onOpen: (item: Item) => void;
   onVisit: (item: Item) => void;
   onToggleSave: (item: Item) => void;
@@ -72,6 +76,8 @@ export function ItemList({
       {list.map((item, index) => {
         const Icon = iconFor(item.type);
         const isSaved = saved.some((i) => itemKey(i) === itemKey(item));
+        const canPreview =
+          isPreviewableContainer(item.type) && (demo || !!connection);
         const summary =
           item.meta || (isContainerType(item.type) ? "" : item.description);
         // Course cards keep their description; other containers repeat ILIAS
@@ -144,7 +150,7 @@ export function ItemList({
                 </Tooltip>
               </CardAction>
             </CardHeader>
-            {(cardSummary || item.context) && (
+            {(cardSummary || item.context || canPreview) && (
               <CardContent>
                 {cardSummary && (
                   <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">
@@ -161,6 +167,13 @@ export function ItemList({
                   >
                     {item.context}
                   </p>
+                )}
+                {canPreview && (
+                  <ContainerPreview
+                    item={item}
+                    demo={demo}
+                    connection={connection}
+                  />
                 )}
               </CardContent>
             )}
@@ -202,6 +215,14 @@ export function ItemList({
                 >
                   {item.context}
                 </p>
+              )}
+              {canPreview && (
+                <ContainerPreview
+                  item={item}
+                  demo={demo}
+                  connection={connection}
+                  variant="row"
+                />
               )}
             </ItemContent>
             <ItemActions className="relative z-10">

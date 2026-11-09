@@ -296,7 +296,8 @@ body {
   }
 }
 
-/* One keyboard-focus treatment for native controls and shadcn primitives.
+/* Shared keyboard-focus treatment. Compound inputs draw focus on their
+   rounded group boundary rather than the rectangular input inside it.
    Keep this outside layers so component ring utilities cannot double it up. */
 :is(a[href], button, input, textarea, select, [tabindex]):focus-visible {
   outline: 2px solid var(--primary);
@@ -314,4 +315,14 @@ body {
 :is(.course-card, .resource-row):has(.resource-primary:focus-visible) {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
+}
+
+:is(input, textarea):is([data-slot="input-group-control"], [data-slot="command-input"]):focus-visible {
+  outline: none;
+}
+[data-slot="input-group"]:has(:is(input, textarea):focus-visible) {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-ring-offset-shadow: 0 0 #0000;
 }

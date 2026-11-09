@@ -25,11 +25,16 @@ export function RepositoryLocation({ crumbs }: { crumbs: WorkspaceCrumb[] }) {
           <span className="hidden lg:inline">ILIAS location</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="max-h-80 max-w-[min(90vw,24rem)] overflow-y-auto">
+      <DropdownMenuContent align="end" className="max-h-80 w-[min(32rem,calc(100vw-2rem))] overflow-y-auto">
         <DropdownMenuLabel>ILIAS location</DropdownMenuLabel>
         {crumbs.map((crumb, index) => (
-          <DropdownMenuItem key={index} asChild={!!crumb.href} disabled={!crumb.href}>
-            {crumb.href ? <Link href={crumb.href} prefetch={false} className="whitespace-normal">{crumb.title}</Link> : <span>{crumb.title}</span>}
+          <DropdownMenuItem
+            key={index}
+            asChild={!!crumb.href}
+            disabled={!crumb.href}
+            className="min-w-0 whitespace-normal [overflow-wrap:anywhere]"
+          >
+            {crumb.href ? <Link href={crumb.href} prefetch={false}>{crumb.title}</Link> : <span>{crumb.title}</span>}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

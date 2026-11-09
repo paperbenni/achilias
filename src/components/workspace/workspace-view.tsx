@@ -323,11 +323,11 @@ export function WorkspaceView({
                 )}
               </ol>
             </nav>
+          </div>
+          <div className="flex shrink-0 items-center gap-3">
             {locationAncestors.length > 0 && (
               <RepositoryLocation crumbs={locationAncestors} />
             )}
-          </div>
-          <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="icon"

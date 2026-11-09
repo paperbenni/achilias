@@ -14,7 +14,13 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   applicationName: "Achilias",
   appleWebApp: { capable: true, title: "Achilias", statusBarStyle: "default" },
-  icons: { apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }] },
+  icons: {
+    icon: [
+      { url: "/icons/favicon-32.png", type: "image/png", sizes: "32x32" },
+      { url: "/icon.svg", type: "image/svg+xml", sizes: "any" },
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+  },
   formatDetection: { telephone: false },
   title: {
     default: "Achilias",

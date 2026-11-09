@@ -7,7 +7,6 @@ import {
   ArrowUpRight,
   Bookmark,
   ShieldCheck,
-  University,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppearanceButton } from "@/components/navigation/appearance-button";
@@ -37,17 +36,15 @@ export function DisconnectedView({
       <main className="flex min-h-svh flex-col">
         <header className="flex h-20 shrink-0 items-center justify-between gap-4 border-b px-5 lg:px-10">
           <Brand />
-          <div className="flex items-center gap-2">
-            <AppearanceButton />
-            <Button variant="ghost" asChild>
-              <Link href="/" aria-label="Back to sign in">
-                <ArrowLeft data-icon="inline-start" />
-                <span className="hidden sm:inline">Back to sign in</span>
-              </Link>
-            </Button>
-          </div>
+          <AppearanceButton />
         </header>
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-5 py-8 lg:px-10 lg:py-10">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-5 py-8 lg:px-10 lg:py-10">
+          <Button variant="ghost" className="h-auto w-fit p-0" asChild>
+            <Link href="/" aria-label="Back to sign in">
+              <ArrowLeft data-icon="inline-start" />
+              Back to sign in
+            </Link>
+          </Button>
           <SettingsView
             data={data}
             onConnect={() => router.push("/")}
@@ -68,11 +65,7 @@ export function DisconnectedView({
             <h1 className="text-3xl font-medium tracking-tight sm:text-4xl">
               Sign in to ILIAS
             </h1>
-            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              Use your existing university account. There is no new password to
-              remember.
-            </p>
-            <div className="mt-8">
+            <div className="mt-6">
               <ConnectForm
                 instance={data.instance}
                 showNotice={false}
@@ -114,8 +107,7 @@ export function DisconnectedView({
       </section>
       <aside className="hidden border-l bg-muted/30 lg:flex lg:flex-col lg:justify-center lg:px-16 xl:px-24">
         <div className="max-w-md">
-          <p className="eyebrow">A calmer ILIAS</p>
-          <h2 className="mt-4 text-balance text-4xl font-medium leading-tight tracking-tight">
+          <h2 className="text-balance text-4xl font-medium leading-tight tracking-tight">
             Your courses, files and forums without the clutter.
           </h2>
           <p className="mt-5 text-base leading-relaxed text-muted-foreground">
@@ -136,18 +128,6 @@ export function DisconnectedView({
               <span>Anything unsupported opens in the original ILIAS.</span>
             </li>
           </ul>
-          <div className="mt-10 flex items-center gap-3 border-t pt-6 text-xs text-muted-foreground">
-            <University className="size-4 shrink-0" />
-            <span>Default instance: {data.instanceName}</span>
-            <a
-              href={data.instance}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="ml-auto underline-offset-4 hover:text-foreground hover:underline"
-            >
-              Open ILIAS
-            </a>
-          </div>
         </div>
       </aside>
     </main>

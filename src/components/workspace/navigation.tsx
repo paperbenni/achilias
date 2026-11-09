@@ -171,11 +171,11 @@ export function Navigation({
                 <AvatarFallback>
                   {data.mode === "demo"
                     ? "AL"
-                    : (data.userName || "You").slice(0, 2).toUpperCase()}
+                    : (data.userName || "Account").slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <span className="flex flex-1 flex-col items-start">
-                <span>{data.userName || "Your account"}</span>
+                <span>{data.userName || "Account"}</span>
                 <span className="text-xs text-muted-foreground">
                   {data.mode === "demo"
                     ? "Exploring the demo"

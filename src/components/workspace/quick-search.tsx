@@ -454,13 +454,16 @@ export function QuickSearch({
       open={open}
       onOpenChange={onOpenChange}
       title="Find a course or material"
-      showCloseButton
       description="Search your courses, this page, bookmarks, and recent history, or search the ILIAS repository."
-      className="top-1/2 h-[min(88svh,52rem)] max-h-[calc(100svh-2rem)] w-[calc(100%-2rem)] max-w-[calc(100%-2rem)] -translate-y-1/2 gap-0 overflow-hidden p-0 sm:max-w-4xl"
+      className="top-1/2 flex max-h-[min(88svh,52rem)] w-[calc(100%-2rem)] max-w-[calc(100%-2rem)] -translate-y-1/2 flex-col gap-0 overflow-hidden p-0 sm:max-w-4xl"
     >
       <Command shouldFilter={false} className="h-auto min-h-0 flex-1">
         <CommandInput
-          className="pr-12"
+          endContent={
+            <kbd className="border bg-background px-1.5 py-0.5 font-sans text-[10px] font-medium text-muted-foreground">
+              Esc
+            </kbd>
+          }
           placeholder="Search courses, groups, folders, and materials…"
           value={searchQuery}
           onValueChange={(value) => {
@@ -622,13 +625,8 @@ export function QuickSearch({
           )}
         </CommandList>
       </Command>
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t px-3 py-2 text-xs text-muted-foreground">
-        <span>
-          {data.mode === "disconnected"
-            ? "Local search works now. Connect to search the whole repository."
-            : "Discovered items appear immediately. Nearby folders and ILIAS search load additional matches."}
-        </span>
-        {deepForQuery && (
+      {deepForQuery && (
+        <div className="flex shrink-0 items-center justify-end border-t px-3 py-2 text-xs text-muted-foreground">
           <a
             href={deepForQuery.sourceUrl}
             target="_blank"
@@ -638,8 +636,8 @@ export function QuickSearch({
             Open this search in ILIAS
             <ArrowUpRight className="size-3.5" />
           </a>
-        )}
-      </div>
+        </div>
+      )}
     </CommandDialog>
   );
 }

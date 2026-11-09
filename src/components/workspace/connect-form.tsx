@@ -273,9 +273,6 @@ export function ConnectForm({
                 {passwordBusy ? "Signing in…" : "Sign in"}
               </Button>
             </FieldGroup>
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              Sent once and never stored. Only use on a server you control.
-            </p>
           </form>
         </TabsContent>
         <TabsContent value="helper" className="mt-2">
@@ -426,9 +423,6 @@ export function ConnectForm({
               )}
               {cookieBusy ? "Verifying…" : "Connect with cookies"}
             </Button>
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              Cookies are bearer credentials. Log out when finished.
-            </p>
           </form>
         </TabsContent>
       </Tabs>

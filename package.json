@@ -40,6 +40,7 @@
     "test:exercises": "bun scripts/exercise-smoke.ts",
     "test:multi-user": "bun scripts/multi-user-smoke.ts",
     "test:forms": "bun scripts/form-serialization-smoke.ts",
+    "test:preferences": "bun scripts/preferences-forum-smoke.ts",
     "test:favicon": "bun scripts/favicon-smoke.ts",
     "test:browse-layout": "bun scripts/browse-layout-smoke.ts",
     "test:sorting": "bun scripts/sorting-smoke.ts",

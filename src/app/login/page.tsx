@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Brand } from "@/components/workspace/brand";
 import { ConnectForm } from "@/components/workspace/connect-form";
 import { safeReturnTo } from "@/lib/auth-navigation";
 import { FREIBURG } from "@/lib/ilias/config";
@@ -13,9 +13,7 @@ export default async function Login({
   const returnTo = safeReturnTo(params.returnTo);
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-lg flex-col justify-center gap-6 p-6">
-      <Link href="/" className="text-sm text-muted-foreground">
-        Achilias
-      </Link>
+      <div className="mb-2"><Brand prominent /></div>
       <div className="space-y-2">
         <h1 className="text-2xl font-semibold">Sign in to continue</h1>
         <p className="text-sm text-muted-foreground">

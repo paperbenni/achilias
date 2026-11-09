@@ -1,6 +1,6 @@
 "use client";
 import { LiveWriteNotice } from "@/components/navigation/live-write-notice";
-import { useState, useTransition } from "react";
+import { Fragment, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -10,7 +10,6 @@ import {
   ArrowUpRight,
   CheckCheck,
   ChevronRight,
-  Copy,
   Info,
   Loader2,
   LockKeyhole,
@@ -64,11 +63,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { OriginalLink } from "@/components/navigation/original-link";
 import { RefreshButton } from "@/components/navigation/refresh-button";
 import { ForumTopicPreview } from "./forum-topic-preview";
@@ -150,6 +144,10 @@ export function ForumView({ state }: { state: ForumState }) {
     decodeReadThreads,
     emptyReadThreads,
   );
+  const originalPostId = thread && state.page === 0 &&
+    (order !== "newest" || (!thread.paginationDetected && thread.pages.length <= 1))
+    ? (order === "newest" ? thread.posts.at(-1)?.id : thread.posts[0]?.id)
+    : undefined;
   const [marking, setMarking] = useState(false);
   if (!forum) return null;
   const selected = forum.topics.find((topic) => topic.id === threadId);
@@ -219,18 +217,7 @@ export function ForumView({ state }: { state: ForumState }) {
       setMarking(false);
     }
   }
-  async function copyPost(id: string) {
-    try {
-      const link = new URL(window.location.href);
-      link.hash = `post-${id}`;
-      await navigator.clipboard.writeText(link.href);
-      toast.success("Link to this post copied");
-    } catch {
-      toast.error(
-        "Could not copy the link. You can use the post’s address in your browser.",
-      );
-    }
-  }
+
   function empty(title: string, description: string) {
     return (
       <Empty className="min-h-52 border">
@@ -590,143 +577,140 @@ export function ForumView({ state }: { state: ForumState }) {
                     ? "Try a different word or author."
                     : "Check the original thread for available content and access requirements.",
                 )}
-              {posts.map((post) => {
+              {posts.map((post, index) => {
                 const parent = thread.posts.find((p) => p.id === post.parentId);
                 const unread = post.unread && !isMarked;
+                const isOriginal = post.id === originalPostId;
+                const firstReply = !isOriginal && index > 0 && posts[index - 1].id === originalPostId;
                 return (
-                  <article
-                    key={post.id}
-                    id={`post-${post.id}`}
-                    tabIndex={-1}
-                    aria-label={`Post by ${post.author}`}
-                    className={cn(
-                      "scroll-mt-6 rounded-xl outline-none target:ring-2 target:ring-ring",
-                      order === "conversation" && post.depth > 0 && "sm:ml-6",
+                  <Fragment key={post.id}>
+                    {firstReply && order !== "newest" && (
+                      <div role="separator" aria-label="Replies" className="mt-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                        <Reply className="size-4" /> Replies
+                        <span className="h-px flex-1 bg-border" />
+                      </div>
                     )}
-                  >
-                    <Card>
-                      <CardHeader>
-                        <div className="flex items-start gap-3">
-                          <Avatar className="size-9">
-                            <AvatarFallback>
-                              {post.author
-                                .split(/\s+/)
-                                .slice(0, 2)
-                                .map((s) => s[0])
-                                .join("")
-                                .toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <h2 className="break-words text-sm font-medium">
-                                {post.author}
-                              </h2>
-                              {post.moderator && (
-                                <Badge variant="secondary">Moderator</Badge>
-                              )}
-                              {unread && <Badge>Unread</Badge>}
+                    <article
+                      data-post-kind={isOriginal ? "original" : "reply"}
+                      id={`post-${post.id}`}
+                      tabIndex={-1}
+                      aria-label={`Post by ${post.author}`}
+                      className={cn(
+                        "scroll-mt-6 rounded-xl outline-none target:ring-2 target:ring-ring",
+                        !isOriginal && "ml-2 rounded-none border-l-2 border-border pl-3 sm:ml-6 sm:pl-4",
+                        !isOriginal && order === "conversation" && post.depth > 1 && "sm:ml-10",
+                      )}
+                    >
+                      <Card>
+                        <CardHeader>
+                          <div className="flex items-start gap-3">
+                            <Avatar className="size-9">
+                              <AvatarFallback>
+                                {post.author
+                                  .split(/\s+/)
+                                  .slice(0, 2)
+                                  .map((s) => s[0])
+                                  .join("")
+                                  .toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h2 className="break-words text-sm font-medium">
+                                  {post.author}
+                                </h2>
+                                {isOriginal && <Badge variant="outline">Original post</Badge>}
+                                {post.moderator && (
+                                  <Badge variant="secondary">Moderator</Badge>
+                                )}
+                                {unread && <Badge>Unread</Badge>}
+                              </div>
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                {post.date || "Date not available"}
+                              </p>
                             </div>
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              {post.date || "Date not available"}
-                            </p>
                           </div>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label={`Copy link to post by ${post.author}`}
-                                onClick={() => copyPost(post.id)}
-                              >
-                                <Copy />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              Copy link to this post
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                        {parent && (
-                          <a
-                            href={`#post-${parent.id}`}
-                            className="mt-2 flex items-center gap-1.5 text-xs text-primary underline-offset-4 hover:underline"
-                          >
-                            <Reply className="size-3" />
-                            In reply to {parent.author}
-                          </a>
-                        )}
-                      </CardHeader>
-                      <CardContent className="flex min-w-0 flex-col gap-4">
-                        {post.status && (
-                          <Alert>
-                            <Info />
-                            <AlertDescription>{post.status}</AlertDescription>
-                          </Alert>
-                        )}
-                        {post.title &&
-                          post.title !== thread.title &&
-                          post.title.replace(/^re:\s*/i, "") !==
-                            thread.title && (
-                            <h3 className="text-sm font-medium">
-                              {post.title}
-                            </h3>
+                          {parent && (
+                            <a
+                              href={`#post-${parent.id}`}
+                              className="mt-2 flex items-center gap-1.5 text-xs text-primary underline-offset-4 hover:underline"
+                            >
+                              <Reply className="size-3" />
+                              In reply to {parent.author}
+                            </a>
                           )}
-                        <div
-                          className="forum-prose"
-                          dangerouslySetInnerHTML={{ __html: post.body }}
-                        />
-                        {post.hasEmbeddedContent && (
-                          <p className="text-xs leading-relaxed text-muted-foreground">
-                            This post includes media or mathematical content.
-                            Open the original post for the full content.
-                          </p>
-                        )}
-                        {post.attachments.length > 0 && (
+                        </CardHeader>
+                        <CardContent className="flex min-w-0 flex-col gap-4">
+                          {post.status && (
+                            <Alert>
+                              <Info />
+                              <AlertDescription>{post.status}</AlertDescription>
+                            </Alert>
+                          )}
+                          {post.title &&
+                            post.title !== thread.title &&
+                            post.title.replace(/^re:\s*/i, "") !==
+                              thread.title && (
+                              <h3 className="text-sm font-medium">
+                                {post.title}
+                              </h3>
+                            )}
+                          <div
+                            className="forum-prose"
+                            dangerouslySetInnerHTML={{ __html: post.body }}
+                          />
+                          {post.hasEmbeddedContent && (
+                            <p className="text-xs leading-relaxed text-muted-foreground">
+                              This post includes media or mathematical content.
+                              Open the original post for the full content.
+                            </p>
+                          )}
+                          {post.attachments.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {post.attachments.map((attachment, i) => (
+                                <OriginalLink
+                                  compact
+                                  key={i}
+                                  href={
+                                    demo ? workspace.instance : attachment.url
+                                  }
+                                >
+                                  <Paperclip data-icon="inline-start" />
+                                  {attachment.title}
+                                </OriginalLink>
+                              ))}
+                            </div>
+                          )}
+                        </CardContent>
+                        <CardFooter className="flex-wrap justify-between gap-2">
+                          <Button variant="link" size="sm" asChild>
+                            <a href={`#post-${post.id}`}>#{post.id}</a>
+                          </Button>
                           <div className="flex flex-wrap gap-2">
-                            {post.attachments.map((attachment, i) => (
+                            {post.replyUrl && (
                               <OriginalLink
                                 compact
-                                key={i}
-                                href={
-                                  demo ? workspace.instance : attachment.url
-                                }
+                                href={demo ? workspace.instance : post.replyUrl}
                               >
-                                <Paperclip data-icon="inline-start" />
-                                {attachment.title}
+                                <Reply data-icon="inline-start" />
+                                Reply in ILIAS
                               </OriginalLink>
-                            ))}
+                            )}
+                            <Button variant="ghost" size="sm" asChild>
+                              <a
+                                href={demo ? workspace.instance : post.sourceUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                Open post in ILIAS
+                                <ArrowUpRight data-icon="inline-end" />
+                              </a>
+                            </Button>
                           </div>
-                        )}
-                      </CardContent>
-                      <CardFooter className="flex-wrap justify-between gap-2">
-                        <Button variant="link" size="sm" asChild>
-                          <a href={`#post-${post.id}`}>#{post.id}</a>
-                        </Button>
-                        <div className="flex flex-wrap gap-2">
-                          {post.replyUrl && (
-                            <OriginalLink
-                              compact
-                              href={demo ? workspace.instance : post.replyUrl}
-                            >
-                              <Reply data-icon="inline-start" />
-                              Reply in ILIAS
-                            </OriginalLink>
-                          )}
-                          <Button variant="ghost" size="sm" asChild>
-                            <a
-                              href={demo ? workspace.instance : post.sourceUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              Original post
-                              <ArrowUpRight data-icon="inline-end" />
-                            </a>
-                          </Button>
-                        </div>
-                      </CardFooter>
-                    </Card>
-                  </article>
+                        </CardFooter>
+                      </Card>
+                    </article>
+                  </Fragment>
                 );
               })}
               <Pagination state={state} pages={thread.pages} />

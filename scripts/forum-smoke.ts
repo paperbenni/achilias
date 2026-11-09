@@ -5,7 +5,7 @@ const browser = await chromium.launch({ headless: true });
 try {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
-    permissions: ["clipboard-read", "clipboard-write"],
+
   });
   const page = await context.newPage();
   const errors: string[] = [];
@@ -91,16 +91,9 @@ try {
     .getByRole("link", { name: "In reply to Jonas Becker", exact: true })
     .click();
   assert.equal(new URL(page.url()).hash, "#post-1012");
-  await page
-    .getByRole("button", {
-      name: "Copy link to post by Jonas Becker",
-      exact: true,
-    })
-    .click();
-  assert.equal(
-    new URL(await page.evaluate(() => navigator.clipboard.readText())).hash,
-    "#post-1012",
-  );
+  await page.locator("#post-1012").getByRole("link", { name: "#1012", exact: true }).click();
+  assert.equal(new URL(page.url()).hash, "#post-1012");
+  assert.equal(await page.getByRole("button", { name: /Copy link to post/ }).count(), 0);
   await page
     .getByRole("textbox", { name: "Search posts on this page" })
     .fill("dictionary");
@@ -133,7 +126,7 @@ try {
     () => document.querySelector("article")?.id === "post-1014",
   );
   await page
-    .getByRole("navigation", { name: "Breadcrumb", exact: true })
+    .getByRole("main")
     .getByRole("link", { name: "Questions & discussion", exact: true })
     .click();
   await page.getByRole("radio", { name: "Unread 1", exact: true }).click();
@@ -225,7 +218,7 @@ try {
   await page.getByText("Page not found", { exact: true }).waitFor();
   assert.deepEqual(errors, []);
   console.log(
-    "Passed: saved forum navigation, topic previews, thread filters/sorting, empty search, formatted posts, unread jumps, reply context, copy link, post search, demo read-state persistence, chronological order, closed-thread actions, mobile layouts, read/preview action authorization and invalid routes.",
+    "Passed: saved forum navigation, topic previews, thread filters/sorting, empty search, formatted posts, unread jumps, reply context, post permalinks, post search, demo read-state persistence, chronological order, closed-thread actions, mobile layouts, read/preview action authorization and invalid routes.",
   );
 } finally {
   await browser.close();

@@ -321,10 +321,11 @@ Copy `.env.example` to `.env.local` when running from source; Bun loads `.env.lo
 
 | Variable                      | Purpose                                                                                                                                                                                                                      |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ACHILIAS_WRITE_TARGETS`      | Comma-separated canonical exercise/forum URLs allowed to make live changes. Unset means disabled. See [live testing](docs/live-testing.md).                                                                                  |
 | `ACHILIAS_TRUST_PROXY`        | Set `true` only behind a proxy that overwrites `X-Forwarded-For` and prevents direct app access. Enables per-client sign-in limits.                                                                                          |
 | `ACHILIAS_DATA_DIR`           | Directory for encrypted sessions and the encryption key. Default: `.local/` in the checkout.                                                                                                                                 |
 | `ACHILIAS_ORIGIN`             | Exact browser-visible **Achilias app** origin for mutation origin checks, especially behind a reverse proxy. This is not the ILIAS instance; users choose that in the dialog. Defaults to the local browser-visible host.      |
+
+Read-only mode is a browser preference in **Features & connection → Preferences**. It is on by default and enforced by the server for explicit changes; ILIAS permissions still apply.
 
 Restart the server after configuration changes. Users choose the ILIAS instance in the sign-in form; its specific theme/authentication may differ.
 

@@ -22,9 +22,12 @@ import { isLoopbackHostname } from "./loopback";
 import { configuredOrigin, isHttpsOrigin } from "./origin";
 
 export const SESSION_COOKIE = "achilias_session";
+export const READ_ONLY_COOKIE = "achilias_read_only";
 const dir = dataDirectory;
 const maxAge = 60 * 60 * 12;
 export type Session = {
+  /** Effective browser preference, resolved by currentSession on each request. */
+  readOnly?: boolean;
   id: string;
   instance: string;
   createdAt: number;
@@ -102,7 +105,9 @@ export async function readSession(id?: string): Promise<Session | null> {
 }
 export async function currentSession() {
   const { cookies } = await import("next/headers");
-  return readSession((await cookies()).get(SESSION_COOKIE)?.value);
+  const jar = await cookies();
+  const session = await readSession(jar.get(SESSION_COOKIE)?.value);
+  return session ? { ...session, readOnly: jar.get(READ_ONLY_COOKIE)?.value !== "false" } : null;
 }
 const lockState = globalThis as typeof globalThis & {
   achiliasSessionLocks?: Map<string, Promise<void>>;

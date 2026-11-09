@@ -1,19 +1,19 @@
 import Link from "next/link";
 
-export function Brand({ demo = false }: { demo?: boolean }) {
+export function Brand({ demo = false, prominent = false }: { demo?: boolean; prominent?: boolean }) {
   return (
     <Link
       prefetch={demo}
       href={demo ? "/?demo=1" : "/"}
-      className="flex items-center gap-2.5"
+      className={`flex w-fit items-center ${prominent ? "gap-4" : "gap-2.5"}`}
       aria-label="Achilias home"
     >
-      <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+      <span className={`flex shrink-0 items-center justify-center bg-primary text-primary-foreground ${prominent ? "size-16 rounded-2xl sm:size-20" : "size-9 rounded-xl"}`}>
         <svg
           viewBox="0 0 24 24"
           fill="none"
           aria-hidden="true"
-          className="size-6"
+          className={prominent ? "size-11 sm:size-14" : "size-6"}
         >
           <path
             d="m11 3-1 7c-.3 2-2 4-2 6 0 2 1.5 3 3.5 3H20c1.2 0 1.5-1.6.5-2.3L15 13.5 16 3"
@@ -31,7 +31,7 @@ export function Brand({ demo = false }: { demo?: boolean }) {
           />
         </svg>
       </span>
-      <span className="text-xl font-semibold tracking-tight">
+      <span className={`font-semibold tracking-tight ${prominent ? "text-4xl sm:text-5xl" : "text-xl"}`}>
         achilias<span className="text-primary">.</span>
       </span>
     </Link>

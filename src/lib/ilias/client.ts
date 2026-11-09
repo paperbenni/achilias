@@ -70,7 +70,7 @@ export async function fetchUpstream(
         );
     } else {
       const id = action.searchParams.get("ref_id") || "";
-      requireLiveWrite(session.instance, "exc", id);
+      requireLiveWrite(session, "exc", id);
     }
   }
   const readOnly = Boolean(options.readOnlyForm);

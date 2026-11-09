@@ -1,33 +1,22 @@
-import { objectUrl } from "./config";
 import { validObjectId } from "./identifiers";
 import { IliasError } from "./errors";
+import type { Session } from "./session";
 
-/** Deliberately evaluated per request, shared by UI state and every mutation. */
+/** The user's browser preference is resolved server-side for every request.
+ * It controls Achilias features; ILIAS still enforces the account's permissions.
+ */
 export function liveWriteAllowed(
-  instance: string,
+  session: Session | null,
   kind: "exc" | "frm",
   id: string,
 ) {
-  if (!validObjectId(id)) return false;
-  const expected = objectUrl(instance, kind, id);
-  return (process.env.ACHILIAS_WRITE_TARGETS || "").split(",").some((entry) => {
-    try {
-      const url = new URL(entry.trim());
-      // Require the exact canonical object URL; no wildcards or cross-instance IDs.
-      return url.href === expected;
-    } catch {
-      return false;
-    }
-  });
+  return !!session && session.readOnly === false &&
+    (kind === "exc" || kind === "frm") && validObjectId(id);
 }
-export function requireLiveWrite(
-  instance: string,
-  kind: "exc" | "frm",
-  id: string,
-) {
-  if (!liveWriteAllowed(instance, kind, id))
+export function requireLiveWrite(session: Session, kind: "exc" | "frm", id: string) {
+  if (!liveWriteAllowed(session, kind, id))
     throw new IliasError(
-      "Live changes are disabled for this object. Ask the server administrator to enable editing for this object. Use the original ILIAS interface to make changes.",
+      "Live changes are disabled by your read-only preference. Turn off Read-only mode in Features & connection to make changes here.",
       403,
     );
 }

@@ -17,12 +17,10 @@ import {
 } from "../src/lib/ilias/exercise-parser";
 import type { Session } from "../src/lib/ilias/session";
 const instance = "https://ilias.uni-freiburg.de/";
-const exercise = instance + "goto.php?target=exc_401";
 const action =
   instance +
   "ilias.php?ref_id=401&ass_id=501&cmdClass=ilExAssignmentEditorGUI&cmd=updateAssignment";
 const originalFetch = upstreamTransport.fetch;
-const originalTargets = process.env.ACHILIAS_WRITE_TARGETS;
 const session: Session = {
   id: "00000000-0000-0000-0000-000000000000",
   instance,
@@ -31,8 +29,7 @@ const session: Session = {
 };
 afterEach(() => {
   upstreamTransport.fetch = originalFetch;
-  if (originalTargets === undefined) delete process.env.ACHILIAS_WRITE_TARGETS;
-  else process.env.ACHILIAS_WRITE_TARGETS = originalTargets;
+  delete session.readOnly;
 });
 const fixture = (name: string) =>
   readFile(
@@ -40,23 +37,15 @@ const fixture = (name: string) =>
     "utf8",
   );
 
-test("live changes default to denied and allowlists bind object kind, installation and ID", () => {
-  delete process.env.ACHILIAS_WRITE_TARGETS;
-  expect(liveWriteAllowed(instance, "exc", "401")).toBe(false);
-  process.env.ACHILIAS_WRITE_TARGETS =
-    exercise + ",https://other.example/ilias/goto.php?target=frm_401";
-  expect(liveWriteAllowed(instance, "exc", "401")).toBe(true);
-  expect(liveWriteAllowed(instance, "exc", "402")).toBe(false);
-  expect(liveWriteAllowed(instance, "frm", "401")).toBe(false);
-  expect(liveWriteAllowed("https://other.example/", "exc", "401")).toBe(false);
-  expect(liveWriteAllowed("https://other.example/ilias/", "frm", "401")).toBe(
-    true,
-  );
-  process.env.ACHILIAS_WRITE_TARGETS = "*,401," + exercise + "&cmd=delete";
-  expect(liveWriteAllowed(instance, "exc", "401")).toBe(false);
+test("live changes are denied by default and follow each request's user preference", () => {
+  expect(liveWriteAllowed(session, "exc", "401")).toBe(false);
+  expect(liveWriteAllowed(null, "frm", "401")).toBe(false);
+  expect(liveWriteAllowed({ ...session, readOnly: true }, "exc", "401")).toBe(false);
+  expect(liveWriteAllowed({ ...session, readOnly: false }, "exc", "401")).toBe(true);
+  expect(liveWriteAllowed({ ...session, readOnly: false }, "frm", "402")).toBe(true);
+  expect(liveWriteAllowed({ ...session, readOnly: false }, "exc", "../401")).toBe(false);
 });
-test("read-only search posts bypass the write allowlist only for the search controller", async () => {
-  delete process.env.ACHILIAS_WRITE_TARGETS;
+test("read-only search posts bypass the mutation preference only for the search controller", async () => {
   const searchAction =
     instance +
     "ilias.php?baseClass=ilSearchController&cmd=post&fallbackCmd=remoteSearch&rtoken=test";
@@ -114,7 +103,6 @@ test("read-only search posts bypass the write allowlist only for the search cont
   expect(request).toHaveBeenCalledTimes(2);
 });
 test("every live mutation and raw POST is rejected before contacting ILIAS when disabled", async () => {
-  delete process.env.ACHILIAS_WRITE_TARGETS;
   const request = mock(() => {
     throw new Error("Must not contact ILIAS");
   });
@@ -149,7 +137,7 @@ test("every live mutation and raw POST is rejected before contacting ILIAS when 
 });
 for (const status of [307, 308])
   test(`POST ${status} redirects never replay an ambiguous write`, async () => {
-    process.env.ACHILIAS_WRITE_TARGETS = exercise;
+    session.readOnly = false;
     const request = mock(
       async () => new Response(null, { status, headers: { location: action } }),
     );

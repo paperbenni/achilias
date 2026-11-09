@@ -237,8 +237,8 @@ function pagingLinks(html: string, instance: string, base: string) {
 /**
  * Use ILIAS' own main-menu search instead of crawling every course. The search
  * form action is discovered from the authenticated dashboard; its POST is
- * read-only and is the only form the upstream client may submit without a
- * write allowlist. Further result pages are read-only GETs of the same search.
+ * read-only and is the only form the upstream client may submit without
+ * enabling live changes. Further result pages are read-only GETs of the same search.
  */
 export async function searchRepository(
   session: Session,

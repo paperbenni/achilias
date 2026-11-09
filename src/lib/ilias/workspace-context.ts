@@ -29,6 +29,7 @@ export async function getWorkspaceContext(demo = false) {
   const instance = session?.instance || FREIBURG;
   const connected = session?.status === "connected";
   const workspace: Workspace = {
+    readOnly: demo ? false : session?.readOnly !== false,
     mode: demo ? "demo" : connected ? "live" : "disconnected",
     instance,
     instanceName: instanceName(instance),

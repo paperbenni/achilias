@@ -51,6 +51,7 @@ export type IliasPage = {
   membership?: "member" | "guest";
 };
 export type Workspace = {
+  readOnly?: boolean;
   iliasVersion?: string;
   storageKey?: string;
   mode: "disconnected" | "demo" | "live";

@@ -43,8 +43,6 @@ ACHILIAS_ORIGIN=https://learn.example.org
 ACHILIAS_DATA_DIR=/var/lib/achilias
 # Only enable behind a trusted proxy that overwrites X-Forwarded-For.
 ACHILIAS_TRUST_PROXY=true
-# Leave this unset during initial browsing/compatibility tests.
-# ACHILIAS_WRITE_TARGETS=https://ilias.example.edu/goto.php?target=exc_12345
 ```
 
 The app binds `127.0.0.1` by default. Forward your HTTPS reverse proxy to it. A typical Nginx location inside your existing TLS virtual host is:
@@ -77,7 +75,7 @@ The ILIAS instance is selected by each user in the connection dialog; there is n
 - Session IDs are random bearer secrets in an HttpOnly browser cookie; encrypted files are separate per connection. Login codes are scoped, expire and are single-use. Only exact-instance cookies are imported, excluding identity-provider cookies.
 - Personal pages and downloads use `private, no-store`. Authenticated upstream reads bypass Next’s shared fetch cache. Connection changes reload the document to clear the browser router cache. Saved items/history are stored in the browser under a separate key for each connection; separate browser profiles are still appropriate on a shared computer.
 - Mutations check the current cookie/session and connection identity. Object URLs, members and units are revalidated against fresh authorized upstream forms. ILIAS permissions are never granted by an Achilias UI control.
-- Live changes remain disabled unless the administrator lists specific canonical exercise/forum URLs in `ACHILIAS_WRITE_TARGETS`. This is a server-wide feature allowlist, not a per-user grant: each user still needs upstream rights. Follow [controlled live testing](live-testing.md) before allowing real grades or notifications.
+- Read-only mode is on by default. Each user can change it in **Features & connection → Preferences**; the preference is saved in their browser and enforced server-side on each explicit mutation. ILIAS permissions still apply. Follow [controlled live testing](live-testing.md) before testing real grades or notifications.
 - In-process sign-in limits allow 12 starts and 60 helper/claim requests per client per ten minutes, with separate global ceilings and eight simultaneous verifications. Current values live in `src/lib/ilias/request-limits.ts`. Without a trusted proxy, clients share the anonymous limit. Do not enable proxy trust when clients can reach the app port or supply the forwarding header. Add edge/proxy throttling for an Internet-facing service; these bounds do not replace DDoS protection.
 - Text responses are limited to 8 MiB after decompression before parsing, upstream response bodies to 512 MiB, and requests have timeouts. Larger content should use the original ILIAS interface. Downloads stream on the server; the current browser download helper buffers the finished file.
 - Sessions expire logically after twelve hours, and cancellation/disconnection deletes their files. New connections periodically clean abandoned files whose last modification is older than twelve hours. Keep storage backed up only if necessary: both encrypted session files and their key are credential material. Losing the key requires everyone to reconnect.

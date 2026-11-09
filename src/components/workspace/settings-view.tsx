@@ -22,6 +22,7 @@ import {
 } from "@/lib/ilias/compatibility";
 
 import { OriginalLink } from "@/components/navigation/original-link";
+import { ReadOnlyPreference } from "./read-only-preference";
 import { InstallCard } from "@/components/pwa/install-card";
 
 export function SettingsView({
@@ -41,6 +42,7 @@ export function SettingsView({
       <div>
         <h1 className="page-title">Features & connection</h1>
       </div>
+      <ReadOnlyPreference data={data} />
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>

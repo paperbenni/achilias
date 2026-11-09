@@ -299,7 +299,7 @@ export async function getForumState(
     threadId,
     page,
     order,
-    writeAllowed: demo || liveWriteAllowed(workspace.instance, "frm", forumId),
+    writeAllowed: demo || liveWriteAllowed(session, "frm", forumId),
   };
   if (demo) {
     const forum = demoForum();
@@ -337,7 +337,7 @@ export async function markForumThreadRead(
 ) {
   if (!validObjectId(forumId) || !validObjectId(threadId))
     throw new IliasError("Invalid discussion.", 400);
-  requireLiveWrite(session.instance, "frm", forumId);
+  requireLiveWrite(session, "frm", forumId);
   // Mutations always rediscover the authorized action from a fresh ILIAS page.
   const { thread } = await fetchForum(session, forumId, threadId);
   if (!thread?.markReadUrl)

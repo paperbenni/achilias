@@ -25,14 +25,11 @@ const url =
 const fixture = (name: string) =>
   readFile(new URL(`./fixtures/exercise${name}.html`, import.meta.url), "utf8");
 const originalFetch = upstreamTransport.fetch;
-const originalWriteTargets = process.env.ACHILIAS_WRITE_TARGETS;
 afterEach(() => {
   upstreamTransport.fetch = originalFetch;
-  if (originalWriteTargets === undefined)
-    delete process.env.ACHILIAS_WRITE_TARGETS;
-  else process.env.ACHILIAS_WRITE_TARGETS = originalWriteTargets;
 });
 const session = (): Session => ({
+  readOnly: false,
   id: "00000000-0000-0000-0000-000000000000",
   instance: base,
   createdAt: Date.now(),
@@ -128,7 +125,6 @@ test("relative or locked schedules stay read-only and instructions are not expos
   ).toBe(false);
 });
 async function upstream() {
-  process.env.ACHILIAS_WRITE_TARGETS = base + "goto.php?target=exc_401";
   const fixtures = await Promise.all([
     fixture(""),
     fixture("-units"),

@@ -170,7 +170,7 @@ export async function getExerciseState(
   const state: ExerciseState = {
     workspace,
     writeAllowed:
-      demo || liveWriteAllowed(workspace.instance, "exc", exerciseId),
+      demo || liveWriteAllowed(session, "exc", exerciseId),
     exerciseId,
     unitId,
     creating,
@@ -269,7 +269,7 @@ export async function saveAssessment(
 ) {
   validIds(exerciseId, unitId, memberId);
   validateAssessment(input);
-  requireLiveWrite(session.instance, "exc", exerciseId);
+  requireLiveWrite(session, "exc", exerciseId);
   const current = await fetchExercise(
     session,
     exerciseId,
@@ -352,7 +352,7 @@ export async function saveExerciseUnit(
 ) {
   validateUnit(input);
   validIds(...(unitId ? [exerciseId, unitId] : [exerciseId]));
-  requireLiveWrite(session.instance, "exc", exerciseId);
+  requireLiveWrite(session, "exc", exerciseId);
   const current = await fetchExercise(session, exerciseId, unitId, !unitId);
   const editor = current.settings;
   if (!editor?.settings.canEdit)
@@ -508,7 +508,7 @@ export async function saveLearnerFeedback(
       "Learner feedback is limited to 4,000 characters.",
       400,
     );
-  requireLiveWrite(session.instance, "exc", exerciseId);
+  requireLiveWrite(session, "exc", exerciseId);
   const current = await feedbackForm(session, exerciseId, unitId, memberId);
   if (current.version !== version)
     throw new IliasError(

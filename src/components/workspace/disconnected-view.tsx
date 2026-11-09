@@ -56,13 +56,13 @@ export function DisconnectedView({
   return (
     <main className="grid min-h-svh grid-cols-1 bg-background lg:grid-cols-2">
       <section className="flex flex-col px-6 py-8 sm:px-10 lg:px-16 xl:px-24">
-        <div className="flex items-center justify-between gap-4">
-          <Brand />
+        <div className="flex justify-end">
           <AppearanceButton />
         </div>
-        <div className="flex flex-1 items-center py-12">
+        <div className="flex flex-1 items-center py-8">
           <div className="w-full max-w-md">
-            <h1 className="text-3xl font-medium tracking-tight sm:text-4xl">
+            <div className="mb-8"><Brand prominent /></div>
+            <h1 className="text-2xl font-medium tracking-tight">
               Sign in to ILIAS
             </h1>
             <div className="mt-6">

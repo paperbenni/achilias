@@ -1,20 +1,15 @@
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { OriginalLink } from "./original-link";
+
 export function LiveWriteNotice({ sourceUrl }: { sourceUrl: string }) {
   return (
-    <Alert role="note">
-      <AlertTitle>Live changes disabled</AlertTitle>
-      <AlertDescription className="flex flex-col gap-3">
-        <p>
-          Grades, exercise settings, learner feedback and explicit mark-as-read
-          actions are protected. Live editing has not been enabled for this
-          object. You can browse here and make changes in the original
-          interface. Browsing ILIAS can still record visits or read status.
-        </p>
-        <div>
-          <OriginalLink href={sourceUrl} />
-        </div>
-      </AlertDescription>
-    </Alert>
+    <div role="note" className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border bg-muted/30 px-3 py-2 text-sm">
+      <span className="text-muted-foreground">Read-only mode</span>
+      <Button variant="link" size="sm" className="h-auto p-0" asChild>
+        <Link href="/settings#preferences">Editing preferences</Link>
+      </Button>
+      <OriginalLink href={sourceUrl} compact />
+    </div>
   );
 }

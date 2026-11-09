@@ -57,8 +57,8 @@ test("current metadata wins over saved copies and resource identity includes obj
   const old = item("1");
   const folder = item("1", { type: "fold" });
   expect(mergeItems([current], [old, folder])).toEqual([current, folder]);
-  expect(recordVisit({ saved: [old], recent: [old, folder] }, current)).toEqual(
-    { saved: [old], recent: [current, folder] },
+  expect(recordVisit({ saved: [old], recent: [old, folder] }, current, 1000)).toEqual(
+    { saved: [old], recent: [current, folder], itemVisits: { "crs:1": { count: 1, lastOpened: 1000, score: 1 } } },
   );
   expect(toggleSaved(toggleSaved(emptyLibrary, current), current)).toEqual(
     emptyLibrary,

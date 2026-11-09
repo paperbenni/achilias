@@ -1,4 +1,7 @@
 "use client";
+import { sortItems } from "@/lib/ilias/item-sort";
+import type { Library } from "@/lib/ilias/library";
+import { SortControl, SortDescription, useItemSortPreference } from "./sort-control";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowRight, Search } from "lucide-react";
@@ -23,6 +26,8 @@ type LibraryView = Extract<WorkspaceViewName, "home" | "saved" | "courses">;
  */
 export function LibrarySection({
   view,
+  library,
+  storageKey,
   demo,
   items,
   courses,
@@ -34,6 +39,8 @@ export function LibrarySection({
   empty,
 }: {
   courses: Item[];
+  library: Library;
+  storageKey: string;
   demo: boolean;
   empty: (title?: string, description?: string) => ReactNode;
   itemProps: ItemListProps;
@@ -44,6 +51,8 @@ export function LibrarySection({
   query: string;
   view: LibraryView;
 }) {
+  const { sort, onSortChange } = useItemSortPreference(storageKey, "courses");
+  const sortedCourses = sortItems(courses, sort, library);
   return (
     <section className="flex flex-col gap-5" id="courses">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -73,7 +82,7 @@ export function LibrarySection({
             </div>
           )}
         </div>
-        <div className="flex w-full min-w-0 items-center gap-3 sm:w-auto">
+        <div className="flex w-full min-w-0 flex-wrap items-center gap-3 sm:w-auto">
           <div className="min-w-0 flex-1 sm:w-56">
             <InputGroup>
               <InputGroupAddon>
@@ -91,9 +100,13 @@ export function LibrarySection({
               />
             </InputGroup>
           </div>
+          {view !== "saved" && (
+            <SortControl sort={sort} onSortChange={onSortChange} label="Sort courses" />
+          )}
           <LayoutToggle layout={layout} onLayoutChange={onLayoutChange} />
         </div>
       </div>
+      {view !== "saved" && <SortDescription sort={sort} />}
       {view === "saved" ? (
         items.length ? (
           <ItemList {...itemProps} items={items} />
@@ -106,7 +119,7 @@ export function LibrarySection({
           )
         )
       ) : courses.length ? (
-        <ItemList {...itemProps} items={courses} grid />
+        <ItemList {...itemProps} items={sortedCourses} grid />
       ) : (
         empty(
           query ? "No matching courses" : "No courses found",

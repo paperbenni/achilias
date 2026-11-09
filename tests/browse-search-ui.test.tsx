@@ -38,6 +38,7 @@ function render(query: string, items: Item[]) {
     <TooltipProvider>
       <BrowseTabs
         data={data}
+        library={{ saved: [], recent: [] }}
         demo
         source={data.page.sourceUrl}
         objectId="12"

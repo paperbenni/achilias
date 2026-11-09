@@ -1,8 +1,9 @@
+import { decodeItemVisits, recordItemVisit, type ItemVisits } from "./item-sort";
 import type { Item } from "./types";
 import { itemKey, normalizeItemType } from "./items";
 import { validObjectId } from "./identifiers";
 
-export type Library = { saved: Item[]; recent: Item[] };
+export type Library = { saved: Item[]; recent: Item[]; itemVisits?: ItemVisits };
 export const emptyLibrary: Library = { saved: [], recent: [] };
 function validItem(value: unknown): value is Item {
   if (!value || typeof value !== "object") return false;
@@ -49,8 +50,9 @@ export function mergeItems(...sources: Item[][]): Item[] {
 }
 export function decodeLibrary(value: unknown): Library {
   if (!value || typeof value !== "object") return emptyLibrary;
-  const { saved, recent } = value as Record<string, unknown>;
+  const { saved, recent, itemVisits } = value as Record<string, unknown>;
   return {
+    ...(itemVisits ? { itemVisits: decodeItemVisits(itemVisits) } : {}),
     saved: Array.isArray(saved) ? mergeItems(saved.filter(validItem)) : [],
     recent: Array.isArray(recent)
       ? mergeItems(recent.filter(validItem)).slice(0, 12)
@@ -68,9 +70,10 @@ export function toggleSaved(library: Library, item: Item): Library {
       : [...library.saved, item],
   };
 }
-export function recordVisit(library: Library, item: Item): Library {
+export function recordVisit(library: Library, item: Item, now = Date.now()): Library {
   return {
     ...library,
     recent: mergeItems([item], library.recent).slice(0, 12),
+    itemVisits: recordItemVisit(library.itemVisits || {}, item, now),
   };
 }

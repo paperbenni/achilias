@@ -83,6 +83,7 @@ test("unavailable pages do not offer a sign-in retry", () => {
 test("guest course pages use a membership-aware empty state", () => {
   const html = renderToStaticMarkup(
     <BrowseTabs
+      library={{ saved: [], recent: [] }}
       data={workspace({ membership: "guest" })}
       demo={false}
       source="https://ilias.example/goto.php?target=crs_12"

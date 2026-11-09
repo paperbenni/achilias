@@ -1,4 +1,7 @@
 "use client";
+import { SortControl, SortDescription, useItemSortPreference } from "./sort-control";
+import { sortItems } from "@/lib/ilias/item-sort";
+import type { Library } from "@/lib/ilias/library";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -48,6 +51,7 @@ const deepSearchThreshold = 4;
 /** The browse-view tabs: course information, upstream tools, and materials. */
 export function BrowseTabs({
   data,
+  library,
   demo,
   source,
   objectId,
@@ -62,6 +66,7 @@ export function BrowseTabs({
   objectType,
 }: {
   data: Workspace;
+  library: Library;
   demo: boolean;
   empty: (title: string, description: string, action?: ReactNode) => ReactNode;
   itemProps: ItemListProps;
@@ -83,6 +88,7 @@ export function BrowseTabs({
         : objectType === "fold"
           ? "folder"
           : "course";
+  const { sort, onSortChange } = useItemSortPreference(data.storageKey || data.mode, "materials");
   const trimmedQuery = query.trim();
   const [deepSearch, setDeepSearch] = useState<DeepSearch | null>(null);
   const deepAbort = useRef<AbortController | null>(null);
@@ -268,10 +274,16 @@ export function BrowseTabs({
               />
             </InputGroup>
           </div>
-          <LayoutToggle layout={layout} onLayoutChange={onLayoutChange} />
+          <div className="flex flex-wrap items-center gap-3">
+            <SortControl sort={sort} onSortChange={onSortChange} label="Sort materials" />
+            <LayoutToggle layout={layout} onLayoutChange={onLayoutChange} />
+          </div>
         </div>
+        {["frecency", "recent", "frequent"].includes(sort) && (
+          <div className="mb-4"><SortDescription sort={sort} /></div>
+        )}
         {items.length ? (
-          <ItemList {...itemProps} items={items} grid />
+          <ItemList {...itemProps} items={sortItems(items, sort, library)} grid />
         ) : readyDeep ? (
           deepMatches.length ? null : empty(
             readyDeep.hasMore ? "No matches on this result page" : "No matching materials",
@@ -346,7 +358,7 @@ export function BrowseTabs({
               </h2>
               <Badge variant="secondary">{deepMatches.length}</Badge>
             </div>
-            <ItemList {...itemProps} items={deepMatches} grid />
+            <ItemList {...itemProps} items={sortItems(deepMatches, sort, library)} grid />
           </section>
         )}
         {readyDeep &&

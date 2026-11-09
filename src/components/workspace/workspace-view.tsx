@@ -493,6 +493,7 @@ export function WorkspaceView({
                   )}
                   {view === "browse" && (
                     <BrowseTabs
+                      library={local}
                       // Reset scoped results and abort pending searches when
                       // navigating to another container or account.
                       key={JSON.stringify([data.mode, data.storageKey, data.instance, objectType, objectId])}
@@ -513,6 +514,8 @@ export function WorkspaceView({
                   )}
                   {view !== "browse" && (
                     <LibrarySection
+                      library={local}
+                      storageKey={data.storageKey || data.mode}
                       view={view as "home" | "saved" | "courses"}
                       demo={demo}
                       items={items}

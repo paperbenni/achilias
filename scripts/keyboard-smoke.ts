@@ -59,8 +59,12 @@ try {
   await firstPrimary.focus();
   await page.keyboard.press("Tab");
   assert.equal(await cards.first().evaluate((el) => el.contains(document.activeElement) && document.activeElement?.tagName === "BUTTON"), true);
-  const buttonOutline = await page.evaluate(() => getComputedStyle(document.activeElement!).outline);
-  assert.ok(buttonOutline.includes("2px"));
+  const buttonFocus = await page.evaluate(() => ({
+    outline: getComputedStyle(document.activeElement!).outlineStyle,
+    shadow: getComputedStyle(document.activeElement!).boxShadow,
+  }));
+  assert.equal(buttonFocus.outline, "none", "Buttons retain shadcn focus styling");
+  assert.notEqual(buttonFocus.shadow, "none", "Keyboard focus remains visible");
   assert.equal(await cards.first().evaluate((el) => getComputedStyle(el).outlineStyle), "none");
   await page.keyboard.press("Shift+Tab");
   assert.equal(await firstPrimary.evaluate((el) => el === document.activeElement), true);

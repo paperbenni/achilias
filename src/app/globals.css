@@ -303,7 +303,7 @@ a[href]:not([data-slot]):not(.resource-primary):focus-visible {
   outline-offset: 2px;
 }
 
-/* Stretched links focus the resource boundary, outside its clipping region.
+/* Resource navigation highlights the card or row as a single destination.
    Focusing a secondary action outlines only that action, never the whole card. */
 :is(a[href], button).resource-primary:focus-visible {
   outline: none;
@@ -311,8 +311,8 @@ a[href]:not([data-slot]):not(.resource-primary):focus-visible {
   --tw-ring-offset-shadow: 0 0 #0000;
 }
 :is(.course-card, .resource-row):has(.resource-primary:focus-visible) {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
+  border-color: var(--ring);
+  background-color: var(--muted);
 }
 
 :is(input, textarea):is([data-slot="input-group-control"], [data-slot="command-input"]):focus-visible {
@@ -324,4 +324,8 @@ a[href]:not([data-slot]):not(.resource-primary):focus-visible {
   box-shadow: none;
   --tw-ring-shadow: 0 0 #0000;
   --tw-ring-offset-shadow: 0 0 #0000;
+}
+
+.forum-post:focus-visible > [data-slot="card"] {
+  box-shadow: inset 3px 0 var(--ring);
 }

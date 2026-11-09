@@ -1,6 +1,7 @@
 "use client";
+import { usePageShortcuts } from "@/hooks/use-page-shortcuts";
 import { LiveWriteNotice } from "@/components/navigation/live-write-notice";
-import { Fragment, useState, useTransition } from "react";
+import { Fragment, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -130,6 +131,19 @@ function Pagination({
   );
 }
 export function ForumView({ state }: { state: ForumState }) {
+  const forumRoot = useRef<HTMLDivElement>(null);
+  usePageShortcuts((event) => {
+    if (event.key !== "j" && event.key !== "k") return;
+    const entries = Array.from(forumRoot.current?.querySelectorAll<HTMLElement>(
+      state.thread ? "article[data-post-kind]" : "[data-discussion-link]",
+    ) || []);
+    if (!entries.length) return;
+    const current = entries.findIndex((entry) => entry.contains(document.activeElement));
+    const index = current < 0 ? 0 : Math.max(0, Math.min(entries.length - 1, current + (event.key === "j" ? 1 : -1)));
+    event.preventDefault();
+    entries[index].focus({ preventScroll: true });
+    entries[index].scrollIntoView({ block: "start", inline: "nearest" });
+  });
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const { forum, thread, forumId, threadId, workspace, order } = state;
@@ -232,7 +246,7 @@ export function ForumView({ state }: { state: ForumState }) {
     );
   }
   return (
-    <div className="flex min-w-0 flex-col gap-6" aria-busy={pending}>
+    <div ref={forumRoot} className="flex min-w-0 flex-col gap-6" aria-busy={pending}>
       {!state.writeAllowed && (
         <LiveWriteNotice sourceUrl={workspace.page.sourceUrl} />
       )}
@@ -435,7 +449,8 @@ export function ForumView({ state }: { state: ForumState }) {
                         <Link
                           prefetch={demo}
                           href={forumHref(forumId, demo, topic.id)}
-                          className="py-5"
+                          data-discussion-link
+                          className="scroll-mt-6 py-5"
                         >
                           <ItemMedia variant="icon">
                             <MessageSquare />
@@ -596,7 +611,7 @@ export function ForumView({ state }: { state: ForumState }) {
                       tabIndex={-1}
                       aria-label={`Post by ${post.author}`}
                       className={cn(
-                        "scroll-mt-6 rounded-xl outline-none target:ring-2 target:ring-ring",
+                        "forum-post scroll-mt-6 rounded-xl outline-none target:ring-2 target:ring-ring",
                         !isOriginal && "ml-2 rounded-none border-l-2 border-border pl-3 sm:ml-6 sm:pl-4",
                         !isOriginal && order === "conversation" && post.depth > 1 && "sm:ml-10",
                       )}

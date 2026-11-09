@@ -1,4 +1,5 @@
 "use client";
+import { useResourceShortcuts } from "./use-resource-shortcuts";
 import type { WorkspaceViewName } from "./navigation";
 import { useWorkspaceShell } from "./workspace-shell";
 import { SettingsView } from "./settings-view";
@@ -78,6 +79,8 @@ export function WorkspaceView({
   objectType?: string;
   view?: WorkspaceViewName;
 }) {
+  const resourceRoot = useRef<HTMLDivElement>(null);
+  useResourceShortcuts(resourceRoot, ["home", "courses", "saved", "browse"].includes(view) && data.mode !== "disconnected");
   const router = useRouter();
   const { searchOpen, setSearchOpen, setConnectOpen } = useWorkspaceShell();
   const [query, setQuery] = useState("");
@@ -361,6 +364,7 @@ export function WorkspaceView({
           </div>
         </header>
         <div
+          ref={resourceRoot}
           id="main-content"
           tabIndex={-1}
           className={`mx-auto flex w-full max-w-7xl flex-col px-5 lg:px-10 ${view === "browse" ? "gap-4 py-5 lg:py-6" : "gap-8 py-8 lg:py-10"}`}
